@@ -136,6 +136,74 @@ In order to keep the project focused and feasible, ChemVCS will explicitly **not
 
 ---
 
+## 4.5 Relationship to Git
+
+ChemVCS draws heavy inspiration from Git's elegant design but diverges in key areas to better serve computational science workflows:
+
+### What ChemVCS Shares with Git
+
+- **Content-addressable storage**: SHA-256 hashed immutable objects
+- **Merkle DAG structure**: Snapshots form a directed acyclic graph
+- **Distributed architecture**: Clone, push, pull, fetch operations
+- **Branch-based workflow**: Multiple branches for parallel work
+
+### Critical Differences from Git
+
+**1. Extensible Object Model (Most Important)**
+```
+Git Objects:          ChemVCS Objects:
+- blob (fixed)        - Flexible Object with Type field
+- tree (fixed)        - Can represent: file, folder, structure, calculation, workflow
+- commit (fixed)      - Arbitrary metadata via Meta map
+- tag (fixed)         - Future: "structure" type with molecular coordinates
+                      - Future: "calculation" type with energy, method, convergence
+```
+
+This extensibility is **not cosmetic**—it enables representing domain entities as first-class VCS objects in M5/M6.
+
+**2. No Staging Area (Index)**
+- **Git**: `git add` moves files to staging area before commit
+- **ChemVCS**: Direct commit of working directory state
+- **Rationale**: Scientific calculations are atomic units. Partial staging contradicts "complete computational state" model.
+- **Implication**: Simpler workflow more aligned with scientific thinking
+
+**3. History Integrity Over Convenience**
+- **Git supports**: `rebase`, `cherry-pick`, `reset --hard` (rewrite history)
+- **ChemVCS excludes**: All history-rewriting operations
+- **Rationale**: Scientific provenance requires authentic history. The order and failures of calculations matter.
+- **Trade-off**: Less flexible for cosmetic commit cleanup, but higher integrity for reproducibility
+
+**4. Terminology Aligned with Scientific Practice**
+- "Snapshot" instead of "commit" (emphasizes capturing state, not just changes)
+- Future: "Structure", "Run", "Workflow" as first-class types
+- Philosophy: The system should speak the language of computational science
+
+**5. Planned Integrations Git Doesn't Need**
+- HPC scheduler hooks (SLURM, PBS)
+- Automatic provenance capture (environment, modules, resources)
+- Chemistry file format awareness (XYZ, CIF, VASP, Gaussian)
+- Computational property tracking (energies, geometries, convergence)
+
+### Current Reality (M1-M4 Complete)
+
+At present, ChemVCS is architecturally prepared but functionally similar to a simplified Git:
+- ✅ Extensible object model (foundation in place)
+- ✅ Simpler workflow (no staging area)
+- ✅ Three-way merge with conflict detection
+- ⚠️ Chemistry-specific features not yet implemented
+
+The **true differentiation** will emerge in:
+- **M5 (Python Domain Layer)**: Chemistry object types and smart diff/merge
+- **M6 (HPC Integration)**: Job tracking and provenance capture
+
+### Design Philosophy
+
+ChemVCS is **not** "Git for chemistry" (wrapper around Git with chemistry tools). It is a **chemistry-native VCS** that reimplements core VCS concepts with domain requirements baked into the architecture from day one.
+
+The extensible object model and history integrity constraints reflect this fundamental difference in purpose.
+
+---
+
 ## 5. Stakeholders and Use Cases
 
 ### 5.1 Stakeholders

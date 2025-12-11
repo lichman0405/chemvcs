@@ -215,6 +215,64 @@ go test ./...
 - **remote**: Client protocol implementation
 - **server**: HTTP server endpoints
 
+## ChemVCS vs Git
+
+While ChemVCS shares core concepts with Git (content-addressable storage, Merkle DAG, snapshots), it diverges in important ways to better serve computational science:
+
+### Key Differences
+
+**1. Extensible Object Model** ⭐
+- **Git**: Fixed types (blob, tree, commit, tag)
+- **ChemVCS**: Flexible `Object` with extensible `Type` field
+  ```go
+  type Object struct {
+      Type string                 // "file", "folder", or future: "structure", "calculation"
+      Meta map[string]interface{} // Domain-specific metadata (energy, method, etc.)
+      Refs []Reference            // Flexible references
+  }
+  ```
+- **Benefit**: Can represent chemistry-specific entities natively in future milestones
+
+**2. No Staging Area (Index)**
+- **Git**: Three-stage workflow (working → staging → repository)
+- **ChemVCS**: Two-stage workflow (working → repository)
+- **Rationale**: Scientific calculations are atomic operations; partial staging contradicts "complete calculation state" model
+- **UX**: Simpler mental model for researchers
+
+**3. Terminology Aligned with Science**
+- **Git**: "commit" (suggests code changes)
+- **ChemVCS**: "snapshot" (emphasizes capturing computational state)
+- **Philosophy**: Reflects that each version is a complete scientific result, not just incremental changes
+
+**4. Deliberately Excluded Features**
+- ❌ **Rebase/Cherry-pick**: Violates scientific provenance principles
+  - Science requires authentic history, not beautified commits
+  - Real calculation order matters for reproducibility
+- ❌ **Interactive staging**: No staging area in ChemVCS
+- ❌ **Reset modes**: Unnecessary complexity without staging
+
+**5. Planned Chemistry-Specific Features** (M5+)
+- Domain-aware diff for molecular structures (RMSD, graph comparison)
+- Automatic provenance capture (compute environment, resources)
+- HPC job tracking and result correlation
+- Chemistry file format support (XYZ, CIF, quantum chemistry outputs)
+
+### Current State
+
+**Today (M1-M4)**: ChemVCS is a "cleaner Git" with extensible architecture
+- ✅ Simpler workflow (no staging)
+- ✅ Architecture ready for domain extensions
+- ⚠️ Chemistry features not yet implemented
+
+**Tomorrow (M5-M6)**: True differentiation emerges
+- Chemistry-specific object types
+- Computational provenance tracking
+- HPC workflow integration
+
+See [TODO.md](TODO.md) for detailed roadmap and design decisions.
+
+---
+
 ## Design Principles
 
 1. **Content-addressable**: All objects identified by SHA-256 hash
@@ -222,6 +280,7 @@ go test ./...
 3. **Snapshot-based**: Each commit captures full state
 4. **Domain-agnostic core**: Chemistry semantics in domain layer
 5. **HTTP protocol**: Simple REST-like API for remotes
+6. **Scientific integrity**: Authentic history over convenient rewrites
 
 ## Documentation
 
