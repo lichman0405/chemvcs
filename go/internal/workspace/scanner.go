@@ -154,6 +154,7 @@ func (s *Scanner) scanFile(path string, entry os.DirEntry) (*model.Object, error
 }
 
 // RestoreDirectory restores a complete directory tree from an object hash.
+// It also removes files and directories that are not in the target snapshot.
 func (s *Scanner) RestoreDirectory(rootObjHash, targetPath string) error {
 	// Get root object
 	rootObj, err := s.store.GetObject(rootObjHash)
@@ -167,8 +168,81 @@ func (s *Scanner) RestoreDirectory(rootObjHash, targetPath string) error {
 		return fmt.Errorf("failed to resolve target path: %w", err)
 	}
 
+	// Collect all paths that should exist in the target snapshot
+	expectedPaths := make(map[string]bool)
+	if err := s.collectExpectedPaths(rootObj, absTarget, expectedPaths); err != nil {
+		return fmt.Errorf("failed to collect expected paths: %w", err)
+	}
+
+	// Clean up files/directories that shouldn't exist
+	if err := s.cleanupExtraPaths(absTarget, expectedPaths); err != nil {
+		return fmt.Errorf("failed to cleanup extra paths: %w", err)
+	}
+
 	// Restore recursively
 	return s.restoreObject(rootObj, absTarget)
+}
+
+// collectExpectedPaths recursively collects all paths that should exist in the target snapshot.
+func (s *Scanner) collectExpectedPaths(obj *model.Object, path string, paths map[string]bool) error {
+	// Mark this path as expected
+	paths[path] = true
+
+	if obj.Type == "folder" {
+		// Collect children
+		for _, ref := range obj.Refs {
+			if ref.Kind != "object" {
+				continue
+			}
+
+			childObj, err := s.store.GetObject(ref.ID)
+			if err != nil {
+				return fmt.Errorf("failed to get child object %s: %w", ref.ID, err)
+			}
+
+			childName, ok := childObj.Meta["name"].(string)
+			if !ok {
+				return fmt.Errorf("child object missing 'name' in metadata")
+			}
+
+			childPath := filepath.Join(path, childName)
+			if err := s.collectExpectedPaths(childObj, childPath, paths); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// cleanupExtraPaths removes files and directories that are not in the expected paths.
+func (s *Scanner) cleanupExtraPaths(rootPath string, expectedPaths map[string]bool) error {
+	// Walk the directory tree
+	return filepath.WalkDir(rootPath, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip .chemvcs directory
+		if d.IsDir() && d.Name() == ".chemvcs" {
+			return filepath.SkipDir
+		}
+
+		// Check if this path should exist
+		if !expectedPaths[path] {
+			// Remove this path (file or directory)
+			if err := os.RemoveAll(path); err != nil {
+				return fmt.Errorf("failed to remove %s: %w", path, err)
+			}
+
+			// If we just removed a directory, skip walking into it
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+		}
+
+		return nil
+	})
 }
 
 // restoreObject restores a single object (folder or file).
