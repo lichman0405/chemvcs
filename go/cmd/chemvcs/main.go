@@ -714,19 +714,18 @@ func handleFetch(args []string) error {
 func extractRepoID(url string) string {
 	// Remove trailing slash
 	url = strings.TrimSuffix(url, "/")
-	
+
 	// For URLs like "http://server/chemvcs/v1/repos/owner/repo", extract "owner/repo"
 	parts := strings.Split(url, "/repos/")
 	if len(parts) > 1 {
 		return parts[1]
 	}
-	
+
 	// Fallback: use last two path components
 	parts = strings.Split(url, "/")
 	if len(parts) >= 2 {
 		return parts[len(parts)-2] + "/" + parts[len(parts)-1]
 	}
-	
+
 	return "default/repo"
 }
-
