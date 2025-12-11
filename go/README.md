@@ -4,7 +4,7 @@ A domain-aware, distributed version control system for computational chemistry a
 
 ## Project Status
 
-**Current Phase:** Milestone 1 - Local VCS Core MVP
+**Current Phase:** Milestone 1 - Local VCS Core MVP ✅ **COMPLETE**
 
 ### Completed
 - ✅ Phase 0: Project foundation
@@ -14,16 +14,29 @@ A domain-aware, distributed version control system for computational chemistry a
 - ✅ Milestone 1, Step 1: Model layer
   - Core data structures (Blob, Object, Snapshot, Reference)
   - Deterministic hashing with canonical JSON serialisation
-  - Comprehensive unit tests (9/9 passing)
+  - 9 tests passing
+- ✅ Milestone 1, Step 2: ObjectStore layer
+  - Content-addressable storage with sharding
+  - Atomic operations and integrity verification
+  - 14 tests passing
+- ✅ Milestone 1, Step 3: Repository layer
+  - Init, open, snapshot creation, history traversal
+  - Branch management and HEAD resolution
+  - 15 tests passing
+- ✅ Milestone 1, Step 4: CLI implementation
+  - Commands: init, commit, log, branch, checkout
+  - User-friendly interface with proper error handling
+  - **Total: 38 tests passing, 65-77% coverage**
 
 ### In Progress
-- 🚧 Milestone 1, Step 2: ObjectStore layer
+- 🚧 Milestone 2: Working directory and status
 
 ### Planned
-- Milestone 1, Step 3: Repository layer
-- Milestone 1, Step 4: CLI implementation
-- Milestone 2: Working directory and status
+- Milestone 2: Working directory scanning and status
 - Milestone 3: Branches and merge
+- Milestone 4: Remote repositories
+- Milestone 5: Python domain layer
+- Milestone 6: HPC integration
 
 ## Documentation
 
@@ -50,7 +63,49 @@ Comprehensive design documentation is available in the `docs/` directory:
 
 ```bash
 cd go
-go build ./cmd/chemvcs
+go build -o chemvcs ./cmd/chemvcs
+```
+
+On Windows:
+```bash
+go build -o chemvcs.exe ./cmd/chemvcs
+```
+
+### Running
+
+The `chemvcs` executable provides the following commands:
+
+```bash
+# Initialise a new repository
+chemvcs init [path]
+
+# Create a snapshot (commit)
+chemvcs commit -m "Your message"
+
+# View history
+chemvcs log [-n <count>] [-oneline]
+
+# Manage branches
+chemvcs branch              # List branches
+chemvcs branch <name>       # Create branch
+
+# Switch branches or snapshots
+chemvcs checkout <target>
+
+# Show version
+chemvcs version
+```
+
+Set author information via environment variables:
+```bash
+export CHEMVCS_AUTHOR_NAME="Your Name"
+export CHEMVCS_AUTHOR_EMAIL="your.email@example.com"
+```
+
+Or on Windows:
+```powershell
+$env:CHEMVCS_AUTHOR_NAME="Your Name"
+$env:CHEMVCS_AUTHOR_EMAIL="your.email@example.com"
 ```
 
 ### Testing
