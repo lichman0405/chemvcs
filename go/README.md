@@ -4,36 +4,33 @@ A domain-aware, distributed version control system for computational chemistry a
 
 ## Project Status
 
-**Current Phase:** Milestone 1 - Local VCS Core MVP ✅ **COMPLETE**
+**Current Phase:** Milestone 2 - Working Directory and Status ✅ **COMPLETE**
 
 ### Completed
 - ✅ Phase 0: Project foundation
   - Go module initialised
   - Directory structure created
   - CI/CD ready
-- ✅ Milestone 1, Step 1: Model layer
+- ✅ Milestone 1: Local VCS Core MVP
   - Core data structures (Blob, Object, Snapshot, Reference)
-  - Deterministic hashing with canonical JSON serialisation
-  - 9 tests passing
-- ✅ Milestone 1, Step 2: ObjectStore layer
   - Content-addressable storage with sharding
-  - Atomic operations and integrity verification
-  - 14 tests passing
-- ✅ Milestone 1, Step 3: Repository layer
-  - Init, open, snapshot creation, history traversal
-  - Branch management and HEAD resolution
-  - 15 tests passing
-- ✅ Milestone 1, Step 4: CLI implementation
-  - Commands: init, commit, log, branch, checkout
-  - User-friendly interface with proper error handling
-  - **Total: 38 tests passing, 65-77% coverage**
+  - Repository operations (init, commit, log, branch, checkout)
+  - CLI with 6 commands
+  - 38 tests passing, 65-77% coverage
+- ✅ Milestone 2: Working directory and status
+  - Workspace scanning for recursive directory trees
+  - Folder and file object creation with blob references
+  - Diff engine for comparing object trees
+  - Status command showing added/modified/deleted files
+  - Working directory restoration on checkout
+  - Real file tracking in commits
+  - **Total: 51 tests passing, 65-76% coverage**
 
 ### In Progress
-- 🚧 Milestone 2: Working directory and status
+- 🚧 Milestone 3: Branches and merge
 
 ### Planned
-- Milestone 2: Working directory scanning and status
-- Milestone 3: Branches and merge
+- Milestone 3: Branch merging and conflict resolution
 - Milestone 4: Remote repositories
 - Milestone 5: Python domain layer
 - Milestone 6: HPC integration
@@ -91,6 +88,9 @@ chemvcs branch <name>       # Create branch
 
 # Switch branches or snapshots
 chemvcs checkout <target>
+
+# Show working directory status
+chemvcs status
 
 # Show version
 chemvcs version
