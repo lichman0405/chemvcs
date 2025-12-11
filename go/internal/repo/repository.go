@@ -12,9 +12,9 @@ import (
 
 // Repository represents a ChemVCS repository.
 type Repository struct {
-	path  string               // Root path of the repository (contains .chemvcs)
-	store *objectstore.Store   // Object storage
-	refs  *RefManager          // Reference manager
+	path  string             // Root path of the repository (contains .chemvcs)
+	store *objectstore.Store // Object storage
+	refs  *RefManager        // Reference manager
 }
 
 // Init initialises a new ChemVCS repository in the specified directory.

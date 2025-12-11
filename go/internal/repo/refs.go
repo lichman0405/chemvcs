@@ -27,7 +27,7 @@ func NewRefManager(repoPath string) *RefManager {
 // Returns empty string if HEAD points to a non-existent ref (e.g., initial repo).
 func (rm *RefManager) ResolveHEAD() (string, error) {
 	headPath := filepath.Join(rm.repoPath, ".chemvcs", "HEAD")
-	
+
 	data, err := ioutil.ReadFile(headPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -52,7 +52,7 @@ func (rm *RefManager) ResolveHEAD() (string, error) {
 // Returns empty string if the ref doesn't exist yet.
 func (rm *RefManager) ResolveRef(refName string) (string, error) {
 	refPath := filepath.Join(rm.repoPath, ".chemvcs", refName)
-	
+
 	data, err := ioutil.ReadFile(refPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -68,7 +68,7 @@ func (rm *RefManager) ResolveRef(refName string) (string, error) {
 // Returns empty string if HEAD is detached.
 func (rm *RefManager) CurrentBranch() (string, error) {
 	headPath := filepath.Join(rm.repoPath, ".chemvcs", "HEAD")
-	
+
 	data, err := ioutil.ReadFile(headPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -106,7 +106,7 @@ func (rm *RefManager) UpdateRef(refName, snapshotHash string) error {
 // For direct hash, just pass the hash.
 func (rm *RefManager) SetHEAD(target string) error {
 	headPath := filepath.Join(rm.repoPath, ".chemvcs", "HEAD")
-	
+
 	content := target
 	if !strings.HasPrefix(target, "ref:") && len(target) > 0 {
 		// If not already a ref: prefix and not empty, ensure it ends with newline
@@ -124,7 +124,7 @@ func (rm *RefManager) SetHEAD(target string) error {
 // ListBranches returns a list of all branch names (without refs/heads/ prefix).
 func (rm *RefManager) ListBranches() ([]string, error) {
 	headsPath := filepath.Join(rm.repoPath, ".chemvcs", "refs", "heads")
-	
+
 	entries, err := ioutil.ReadDir(headsPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -152,7 +152,7 @@ func (rm *RefManager) CreateBranch(branchName, snapshotHash string) error {
 // atomicWriteFile writes data to a file atomically using temp file + rename.
 func atomicWriteFile(path string, data []byte) error {
 	dir := filepath.Dir(path)
-	
+
 	// Create temp file in same directory
 	tmpFile, err := ioutil.TempFile(dir, ".tmp-*")
 	if err != nil {
