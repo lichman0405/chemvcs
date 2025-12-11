@@ -67,12 +67,25 @@
 - [ ] Web UI for browsing repositories
 - [ ] IDE/editor integrations
 
+### Essential Git Features (High Priority)
+- [ ] **Hooks system** - Critical for automation
+  - [ ] pre-commit: Validate input files, check file sizes
+  - [ ] post-commit: Auto-submit to compute queue, trigger CI
+  - [ ] pre-push: Prevent pushing large orbital files
+  - [ ] post-receive: Server-side archiving
+- [ ] **Submodules** - For shared resources
+  - [ ] Share structure libraries across projects
+  - [ ] Manage basis set dependencies
+  - [ ] Large project dependency management
+
 ### Advanced Features
 - [ ] Signed commits (GPG)
-- [ ] Repository hooks (pre-commit, post-commit)
 - [ ] Garbage collection for unreachable objects
 - [ ] Repository mirroring
 - [ ] Multi-user access control
+- [ ] Stash - Temporarily save work state (low priority)
+- [ ] Reflog - Recovery from mistakes (low priority)
+- [ ] Bisect - Binary search for problematic commits (low priority)
 
 ### Chemistry-Specific
 - [ ] Automatic structure comparison (RMSD, graph isomorphism)
@@ -85,6 +98,25 @@
 - [ ] Add benchmarks for large repositories
 - [ ] Performance profiling and optimization
 - [ ] Fuzz testing for protocol handlers
+
+### Deliberately Excluded Features
+
+**Not planned for ChemVCS** (with rationale):
+
+- ❌ **Rebase / Cherry-pick** - Violates scientific provenance principles
+  - Science requires authentic history, not beautified commits
+  - Rewriting history breaks computational reproducibility
+  - Real calculation order matters for traceability
+
+- ❌ **Reset (--soft/--mixed/--hard)** - Conceptually complex and unnecessary
+  - ChemVCS has no staging area, so most reset modes don't apply
+  - Use `checkout` for switching states instead
+  - Simpler mental model for users
+
+- ❌ **Interactive staging (git add -p)** - Not applicable
+  - ChemVCS intentionally removed staging area concept
+  - Commit entire working directory state (scientific snapshot)
+  - Partial staging contradicts "complete calculation state" model
 
 ---
 
