@@ -3,7 +3,6 @@ package repo
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/lishi/chemvcs/internal/model"
@@ -665,13 +664,17 @@ func TestMerge_FastForward(t *testing.T) {
 	}
 
 	// Merge feature into main (should fast-forward)
-	merged, err := repo.Merge("feature")
+	result, err := repo.Merge("feature")
 	if err != nil {
 		t.Fatalf("Merge failed: %v", err)
 	}
 
-	if !merged {
-		t.Error("expected merge to succeed (fast-forward)")
+	if !result.FastForward {
+		t.Error("expected fast-forward merge")
+	}
+
+	if len(result.Conflicts) > 0 {
+		t.Errorf("unexpected conflicts: %v", result.Conflicts)
 	}
 
 	// Verify main now points to feature commit
@@ -710,13 +713,17 @@ func TestMerge_AlreadyUpToDate(t *testing.T) {
 	}
 
 	// Try to merge - should be up to date
-	merged, err := repo.Merge("other")
+	result, err := repo.Merge("other")
 	if err != nil {
 		t.Fatalf("Merge failed: %v", err)
 	}
 
-	if merged {
-		t.Error("expected merge to report already up-to-date")
+	if result.FastForward {
+		t.Error("expected no merge (already up-to-date)")
+	}
+
+	if len(result.Conflicts) > 0 {
+		t.Errorf("unexpected conflicts: %v", result.Conflicts)
 	}
 }
 
@@ -789,10 +796,16 @@ func TestMerge_DivergedBranches(t *testing.T) {
 		t.Fatalf("Init failed: %v", err)
 	}
 
-	// Create initial commit
-	obj1 := model.NewObject("generic")
-	obj1.SetMeta("version", 1)
-	root1, err := repo.Store().PutObject(obj1)
+	// Create initial commit with a folder
+	baseFolder := model.NewObject("folder")
+	baseFolder.SetMeta("name", "root")
+	obj1 := model.NewObject("file")
+	obj1.SetMeta("name", "file1.txt")
+	blob1Hash, _ := repo.Store().PutBlob([]byte("base content"))
+	obj1.Refs = []model.Reference{{Kind: "blob", ID: blob1Hash}}
+	file1Hash, _ := repo.Store().PutObject(obj1)
+	baseFolder.Refs = []model.Reference{{Kind: "object", ID: file1Hash}}
+	root1, err := repo.Store().PutObject(baseFolder)
 	if err != nil {
 		t.Fatalf("failed to store object: %v", err)
 	}
@@ -807,10 +820,19 @@ func TestMerge_DivergedBranches(t *testing.T) {
 		t.Fatalf("CreateBranch failed: %v", err)
 	}
 
-	// Make commit on main
-	obj2 := model.NewObject("generic")
-	obj2.SetMeta("version", 2)
-	root2, err := repo.Store().PutObject(obj2)
+	// Make commit on main - add file2.txt
+	mainFolder := model.NewObject("folder")
+	mainFolder.SetMeta("name", "root")
+	obj2 := model.NewObject("file")
+	obj2.SetMeta("name", "file2.txt")
+	blob2Hash, _ := repo.Store().PutBlob([]byte("main content"))
+	obj2.Refs = []model.Reference{{Kind: "blob", ID: blob2Hash}}
+	file2Hash, _ := repo.Store().PutObject(obj2)
+	mainFolder.Refs = []model.Reference{
+		{Kind: "object", ID: file1Hash},
+		{Kind: "object", ID: file2Hash},
+	}
+	root2, err := repo.Store().PutObject(mainFolder)
 	if err != nil {
 		t.Fatalf("failed to store object: %v", err)
 	}
@@ -820,14 +842,23 @@ func TestMerge_DivergedBranches(t *testing.T) {
 		t.Fatalf("CreateSnapshot failed: %v", err)
 	}
 
-	// Switch to feature and make commit
+	// Switch to feature and make commit - add file3.txt
 	if err := repo.CheckoutBranch("feature"); err != nil {
 		t.Fatalf("CheckoutBranch failed: %v", err)
 	}
 
-	obj3 := model.NewObject("generic")
-	obj3.SetMeta("version", 3)
-	root3, err := repo.Store().PutObject(obj3)
+	featureFolder := model.NewObject("folder")
+	featureFolder.SetMeta("name", "root")
+	obj3 := model.NewObject("file")
+	obj3.SetMeta("name", "file3.txt")
+	blob3Hash, _ := repo.Store().PutBlob([]byte("feature content"))
+	obj3.Refs = []model.Reference{{Kind: "blob", ID: blob3Hash}}
+	file3Hash, _ := repo.Store().PutObject(obj3)
+	featureFolder.Refs = []model.Reference{
+		{Kind: "object", ID: file1Hash},
+		{Kind: "object", ID: file3Hash},
+	}
+	root3, err := repo.Store().PutObject(featureFolder)
 	if err != nil {
 		t.Fatalf("failed to store object: %v", err)
 	}
@@ -842,12 +873,39 @@ func TestMerge_DivergedBranches(t *testing.T) {
 		t.Fatalf("CheckoutBranch failed: %v", err)
 	}
 
-	// Try to merge - should fail (branches diverged)
-	_, err = repo.Merge("feature")
-	if err == nil {
-		t.Error("expected merge to fail with diverged branches")
+	// Try to merge - should succeed with three-way merge
+	result, err := repo.Merge("feature")
+	if err != nil {
+		t.Fatalf("Merge failed: %v", err)
 	}
-	if err != nil && !strings.Contains(err.Error(), "diverged") {
-		t.Errorf("expected error about diverged branches, got: %v", err)
+
+	if result.FastForward {
+		t.Error("expected three-way merge, not fast-forward")
+	}
+
+	// Verify merge commit was created
+	mainHash, err := repo.Refs().ResolveRef("refs/heads/main")
+	if err != nil {
+		t.Fatalf("failed to resolve main: %v", err)
+	}
+
+	// Verify merge commit has two parents
+	mergeSnapshot, err := repo.Store().GetSnapshot(mainHash)
+	if err != nil {
+		t.Fatalf("failed to get merge snapshot: %v", err)
+	}
+
+	if len(mergeSnapshot.Parents) != 2 {
+		t.Errorf("expected 2 parents, got %d", len(mergeSnapshot.Parents))
+	}
+
+	// Verify merged folder has all three files
+	mergedRoot, err := repo.Store().GetObject(mergeSnapshot.Root)
+	if err != nil {
+		t.Fatalf("failed to get merged root: %v", err)
+	}
+
+	if len(mergedRoot.Refs) != 3 {
+		t.Errorf("expected 3 files in merged root, got %d", len(mergedRoot.Refs))
 	}
 }

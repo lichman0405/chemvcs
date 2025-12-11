@@ -492,15 +492,16 @@ func handleMerge(args []string) error {
 	}
 
 	// Perform merge
-	merged, err := r.Merge(branchName)
+	result, err := r.Merge(branchName)
 	if err != nil {
+		if result != nil && len(result.Conflicts) > 0 {
+			fmt.Fprintf(os.Stderr, "Merge conflicts detected in the following files:\n")
+			for _, conflict := range result.Conflicts {
+				fmt.Fprintf(os.Stderr, "  %s\n", conflict)
+			}
+			return fmt.Errorf("merge aborted due to conflicts")
+		}
 		return err
-	}
-
-	if !merged {
-		// Already up to date
-		fmt.Printf("Already up-to-date with '%s'\n", branchName)
-		return nil
 	}
 
 	// Get new HEAD hash for display
@@ -514,7 +515,17 @@ func handleMerge(args []string) error {
 		shortHash = newHash[:8]
 	}
 
-	fmt.Printf("Fast-forward merge '%s' into '%s'\n", branchName, currentBranch)
+	if result.FastForward {
+		fmt.Printf("Fast-forward merge '%s' into '%s'\n", branchName, currentBranch)
+	} else if len(result.Conflicts) == 0 {
+		// Three-way merge succeeded
+		fmt.Printf("Merge branch '%s' into '%s'\n", branchName, currentBranch)
+	} else {
+		// Already up to date
+		fmt.Printf("Already up-to-date with '%s'\n", branchName)
+		return nil
+	}
+
 	fmt.Printf("Updated to %s\n", shortHash)
 
 	// Restore working directory to match new HEAD

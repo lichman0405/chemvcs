@@ -324,69 +324,126 @@ func (r *Repository) IsAncestor(ancestorHash, descendantHash string) (bool, erro
 
 // Merge performs a merge of the specified branch into the current branch.
 // Currently only supports fast-forward merges.
-func (r *Repository) Merge(branchName string) (bool, error) {
+func (r *Repository) Merge(branchName string) (*MergeResult, error) {
 	// Check if on a branch (can't merge into detached HEAD)
 	currentBranch, err := r.refs.CurrentBranch()
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	if currentBranch == "" {
-		return false, fmt.Errorf("cannot merge: HEAD is detached")
+		return nil, fmt.Errorf("cannot merge: HEAD is detached")
 	}
 
 	// Resolve current HEAD
 	currentHash, err := r.refs.ResolveHEAD()
 	if err != nil {
-		return false, fmt.Errorf("failed to resolve HEAD: %w", err)
+		return nil, fmt.Errorf("failed to resolve HEAD: %w", err)
 	}
 	if currentHash == "" {
-		return false, fmt.Errorf("cannot merge: no commits yet")
+		return nil, fmt.Errorf("cannot merge: no commits yet")
 	}
 
 	// Resolve target branch
 	targetRef := "refs/heads/" + branchName
 	targetHash, err := r.refs.ResolveRef(targetRef)
 	if err != nil {
-		return false, fmt.Errorf("failed to resolve branch: %w", err)
+		return nil, fmt.Errorf("failed to resolve branch: %w", err)
 	}
 	if targetHash == "" {
-		return false, fmt.Errorf("branch '%s' not found", branchName)
+		return nil, fmt.Errorf("branch '%s' not found", branchName)
 	}
 
 	// Check if already up to date
 	if currentHash == targetHash {
-		return false, nil // Already up to date
+		return &MergeResult{FastForward: false, Conflicts: nil}, nil // Already up to date
 	}
 
 	// Check if fast-forward is possible
-	// Target must be an ancestor of current, OR current must be an ancestor of target
 	targetIsAncestor, err := r.IsAncestor(targetHash, currentHash)
 	if err != nil {
-		return false, fmt.Errorf("failed to check ancestry: %w", err)
+		return nil, fmt.Errorf("failed to check ancestry: %w", err)
 	}
 
 	if targetIsAncestor {
 		// Target is behind current - already up to date
-		return false, nil
+		return &MergeResult{FastForward: false, Conflicts: nil}, nil
 	}
 
 	// Check if current is ancestor of target (fast-forward possible)
 	currentIsAncestor, err := r.IsAncestor(currentHash, targetHash)
 	if err != nil {
-		return false, fmt.Errorf("failed to check ancestry: %w", err)
+		return nil, fmt.Errorf("failed to check ancestry: %w", err)
 	}
 
-	if !currentIsAncestor {
-		// Diverged branches - need three-way merge (not supported yet)
-		return false, fmt.Errorf("cannot fast-forward: branches have diverged (three-way merge not yet implemented)")
+	if currentIsAncestor {
+		// Perform fast-forward merge: update current branch to point to target
+		if err := r.refs.UpdateRef(currentBranch, targetHash); err != nil {
+			return nil, fmt.Errorf("failed to update branch: %w", err)
+		}
+		return &MergeResult{FastForward: true, Conflicts: nil}, nil
 	}
 
-	// Perform fast-forward merge: update current branch to point to target
-	if err := r.refs.UpdateRef(currentBranch, targetHash); err != nil {
-		return false, fmt.Errorf("failed to update branch: %w", err)
+	// Branches have diverged - perform three-way merge
+	baseHash, err := r.FindCommonAncestor(currentHash, targetHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find common ancestor: %w", err)
+	}
+	if baseHash == "" {
+		return nil, fmt.Errorf("no common ancestor found")
 	}
 
-	return true, nil // Fast-forward merge successful
+	// Get snapshot root objects
+	currentSnapshot, err := r.store.GetSnapshot(currentHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current snapshot: %w", err)
+	}
+
+	targetSnapshot, err := r.store.GetSnapshot(targetHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get target snapshot: %w", err)
+	}
+
+	baseSnapshot, err := r.store.GetSnapshot(baseHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get base snapshot: %w", err)
+	}
+
+	// Perform three-way merge
+	mergedRoot, conflicts, err := r.ThreeWayMerge(baseSnapshot.Root, currentSnapshot.Root, targetSnapshot.Root)
+	if err != nil {
+		return nil, fmt.Errorf("merge failed: %w", err)
+	}
+
+	// If there are conflicts, return them without creating a merge commit
+	if len(conflicts) > 0 {
+		return &MergeResult{FastForward: false, Conflicts: conflicts}, fmt.Errorf("merge conflicts detected")
+	}
+
+	// Store merged root object
+	mergedRootHash, err := r.store.PutObject(mergedRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to store merged root: %w", err)
+	}
+
+	// Create merge commit
+	mergeSnapshot := model.NewSnapshot(
+		mergedRootHash,
+		"ChemVCS <chemvcs@local>",
+		fmt.Sprintf("Merge branch '%s'", branchName),
+		[]string{currentHash, targetHash},
+	)
+
+	mergeHash, err := r.store.PutSnapshot(mergeSnapshot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to store merge snapshot: %w", err)
+	}
+
+	// Update current branch to point to merge commit
+	if err := r.refs.UpdateRef(currentBranch, mergeHash); err != nil {
+		return nil, fmt.Errorf("failed to update branch: %w", err)
+	}
+
+	return &MergeResult{FastForward: false, Conflicts: nil}, nil
 }
 
 // ResolveRef resolves a ref name to a snapshot hash.
