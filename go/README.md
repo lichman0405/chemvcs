@@ -4,7 +4,7 @@ A domain-aware, distributed version control system for computational chemistry a
 
 ## Project Status
 
-**Current Phase:** Milestone 2 - Working Directory and Status ✅ **COMPLETE**
+**Current Phase:** Milestone 3 - Branches and Merge ✅ **COMPLETE**
 
 ### Completed
 - ✅ Phase 0: Project foundation
@@ -24,14 +24,20 @@ A domain-aware, distributed version control system for computational chemistry a
   - Status command showing added/modified/deleted files
   - Working directory restoration on checkout
   - Real file tracking in commits
-  - **Total: 51 tests passing, 65-76% coverage**
+  - 51 tests passing, 65-76% coverage
+- ✅ Milestone 3: Branches and merge
+  - Fast-forward merge implementation
+  - Ancestor checking for merge decisions
+  - Merge command with proper error handling
+  - Detection of already up-to-date branches
+  - Detection of diverged branches (three-way merge not yet supported)
+  - **Total: 57 tests passing, 76.2% coverage**
 
 ### In Progress
-- 🚧 Milestone 3: Branches and merge
+- 🚧 Milestone 4: Remote repositories
 
 ### Planned
-- Milestone 3: Branch merging and conflict resolution
-- Milestone 4: Remote repositories
+- Milestone 4: Remote protocol and synchronisation
 - Milestone 5: Python domain layer
 - Milestone 6: HPC integration
 
@@ -91,6 +97,9 @@ chemvcs checkout <target>
 
 # Show working directory status
 chemvcs status
+
+# Merge a branch into current branch
+chemvcs merge <branch>
 
 # Show version
 chemvcs version
