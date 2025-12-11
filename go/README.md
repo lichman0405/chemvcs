@@ -4,7 +4,7 @@ A domain-aware, distributed version control system for computational chemistry a
 
 ## Project Status
 
-**Current Phase:** Milestone 3 - Branches and Merge ✅ **COMPLETE**
+**Current Phase:** Milestone 4 - Remote Repositories ✅ **CLIENT COMPLETE**
 
 ### Completed
 - ✅ Phase 0: Project foundation
@@ -31,15 +31,28 @@ A domain-aware, distributed version control system for computational chemistry a
   - Merge command with proper error handling
   - Detection of already up-to-date branches
   - Detection of diverged branches (three-way merge not yet supported)
-  - **Total: 57 tests passing, 76.2% coverage**
+  - 57 tests passing, 76.2% coverage
+- ✅ Milestone 4: Remote repositories (Client-side)
+  - HTTP client for ChemVCS remote protocol
+  - Remote ref management (GetRef, UpdateRef, ListRefs)
+  - Object existence checking and batch upload/download
+  - High-level Push/Pull/Fetch operations with graph traversal
+  - Remote configuration management (add remote)
+  - CLI commands: remote add, push, pull, fetch
+  - **Total: 66 tests passing, 30-75% coverage across packages**
 
 ### In Progress
-- 🚧 Milestone 4: Remote repositories
+- 🚧 Milestone 4: Remote repositories (Server-side implementation deferred)
 
 ### Planned
-- Milestone 4: Remote protocol and synchronisation
 - Milestone 5: Python domain layer
 - Milestone 6: HPC integration
+
+### Known Limitations
+- ⚠️ Checkout doesn't delete files not in target snapshot (requires manual cleanup)
+- ⚠️ Three-way merge not implemented (diverged branches rejected)
+- ⚠️ No merge conflict detection or resolution
+- ⚠️ Remote server (chemvcs-server) not yet implemented
 
 ## Documentation
 
@@ -101,6 +114,18 @@ chemvcs status
 # Merge a branch into current branch
 chemvcs merge <branch>
 
+# Add a remote repository
+chemvcs remote add <name> <url>
+
+# Push a branch to remote
+chemvcs push <remote> <branch>
+
+# Pull a branch from remote
+chemvcs pull <remote> <branch>
+
+# Fetch objects from remote (without updating local ref)
+chemvcs fetch <remote> <branch>
+
 # Show version
 chemvcs version
 ```
@@ -132,7 +157,8 @@ go test -cover ./...
 Run tests for a specific package:
 ```bash
 go test ./internal/model -v
-```
+```├── workspace/        # Working directory mapping
+│   └── remote/           # Remote client and operations
 
 ### Project Structure
 
