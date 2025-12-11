@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/lishi/chemvcs/internal/remote"
 	"github.com/lishi/chemvcs/internal/repo"
 	"github.com/lishi/chemvcs/internal/workspace"
 )
@@ -38,6 +39,14 @@ func main() {
 		err = handleStatus(args)
 	case "merge":
 		err = handleMerge(args)
+	case "remote":
+		err = handleRemote(args)
+	case "push":
+		err = handlePush(args)
+	case "pull":
+		err = handlePull(args)
+	case "fetch":
+		err = handleFetch(args)
 	case "version":
 		handleVersion()
 	case "help", "--help", "-h":
@@ -67,6 +76,10 @@ func printUsage() {
 	fmt.Println("  checkout <target>     Switch branches or snapshots")
 	fmt.Println("  status                Show working directory changes")
 	fmt.Println("  merge <branch>        Merge a branch into current branch")
+	fmt.Println("  remote add <name> <url>  Add a remote repository")
+	fmt.Println("  push <remote> <branch>   Push a branch to remote")
+	fmt.Println("  pull <remote> <branch>   Pull a branch from remote")
+	fmt.Println("  fetch <remote> <branch>  Fetch objects from remote")
 	fmt.Println("  version               Show version information")
 	fmt.Println("  help                  Show this help message")
 	fmt.Println()
@@ -512,3 +525,208 @@ func handleMerge(args []string) error {
 
 	return nil
 }
+
+func handleRemote(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: chemvcs remote add <name> <url>")
+	}
+
+	subCmd := args[0]
+	subArgs := args[1:]
+
+	switch subCmd {
+	case "add":
+		return handleRemoteAdd(subArgs)
+	default:
+		return fmt.Errorf("unknown remote subcommand: %s", subCmd)
+	}
+}
+
+func handleRemoteAdd(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("usage: chemvcs remote add <name> <url>")
+	}
+
+	name := args[0]
+	url := args[1]
+
+	r, err := repo.Open(".")
+	if err != nil {
+		return err
+	}
+
+	if err := remote.AddRemoteConfig(r, name, url); err != nil {
+		return err
+	}
+
+	fmt.Printf("Added remote '%s' at %s\n", name, url)
+	return nil
+}
+
+func handlePush(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("usage: chemvcs push <remote> <branch>")
+	}
+
+	remoteName := args[0]
+	branchName := args[1]
+
+	r, err := repo.Open(".")
+	if err != nil {
+		return err
+	}
+
+	// Get remote URL
+	remoteURL, err := remote.GetRemoteURL(r, remoteName)
+	if err != nil {
+		return err
+	}
+
+	// Create client
+	client := remote.NewClient(remoteURL, "")
+
+	// Parse repository ID from URL (simplified: assume URL ends with repo ID)
+	// In a full implementation, this would be more sophisticated
+	repoID := extractRepoID(remoteURL)
+
+	// Set up push options
+	localRef := "refs/heads/" + branchName
+	opts := remote.PushOptions{
+		RepoID:    repoID,
+		LocalRef:  localRef,
+		RemoteRef: localRef,
+		Force:     false,
+	}
+
+	// Perform push
+	fmt.Printf("Pushing %s to %s (%s)...\n", branchName, remoteName, remoteURL)
+	if err := client.Push(r, opts); err != nil {
+		return err
+	}
+
+	fmt.Printf("Successfully pushed %s to %s\n", branchName, remoteName)
+	return nil
+}
+
+func handlePull(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("usage: chemvcs pull <remote> <branch>")
+	}
+
+	remoteName := args[0]
+	branchName := args[1]
+
+	r, err := repo.Open(".")
+	if err != nil {
+		return err
+	}
+
+	// Get remote URL
+	remoteURL, err := remote.GetRemoteURL(r, remoteName)
+	if err != nil {
+		return err
+	}
+
+	// Create client
+	client := remote.NewClient(remoteURL, "")
+
+	repoID := extractRepoID(remoteURL)
+
+	// Set up pull options
+	remoteRef := "refs/heads/" + branchName
+	localRef := "refs/heads/" + branchName
+	opts := remote.PullOptions{
+		RepoID:    repoID,
+		RemoteRef: remoteRef,
+		LocalRef:  localRef,
+	}
+
+	// Perform pull
+	fmt.Printf("Pulling %s from %s (%s)...\n", branchName, remoteName, remoteURL)
+	if err := client.Pull(r, opts); err != nil {
+		return err
+	}
+
+	// Restore working directory
+	newHash, err := r.Refs().ResolveHEAD()
+	if err != nil {
+		return err
+	}
+
+	scanner := workspace.NewScanner(r.Store())
+	if err := scanner.RestoreDirectory(newHash, r.Path()); err != nil {
+		return fmt.Errorf("failed to restore working directory: %w", err)
+	}
+
+	fmt.Printf("Successfully pulled %s from %s\n", branchName, remoteName)
+	return nil
+}
+
+func handleFetch(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("usage: chemvcs fetch <remote> <branch>")
+	}
+
+	remoteName := args[0]
+	branchName := args[1]
+
+	r, err := repo.Open(".")
+	if err != nil {
+		return err
+	}
+
+	// Get remote URL
+	remoteURL, err := remote.GetRemoteURL(r, remoteName)
+	if err != nil {
+		return err
+	}
+
+	// Create client
+	client := remote.NewClient(remoteURL, "")
+
+	repoID := extractRepoID(remoteURL)
+
+	// Set up fetch options
+	remoteRef := "refs/heads/" + branchName
+	opts := remote.FetchOptions{
+		RepoID:    repoID,
+		RemoteRef: remoteRef,
+	}
+
+	// Perform fetch
+	fmt.Printf("Fetching %s from %s (%s)...\n", branchName, remoteName, remoteURL)
+	snapID, err := client.Fetch(r, opts)
+	if err != nil {
+		return err
+	}
+
+	shortHash := snapID
+	if len(snapID) > 8 {
+		shortHash = snapID[:8]
+	}
+
+	fmt.Printf("Successfully fetched %s from %s (snapshot %s)\n", branchName, remoteName, shortHash)
+	return nil
+}
+
+// extractRepoID extracts repository ID from a remote URL.
+// This is a simplified implementation; a full version would handle various URL formats.
+func extractRepoID(url string) string {
+	// Remove trailing slash
+	url = strings.TrimSuffix(url, "/")
+	
+	// For URLs like "http://server/chemvcs/v1/repos/owner/repo", extract "owner/repo"
+	parts := strings.Split(url, "/repos/")
+	if len(parts) > 1 {
+		return parts[1]
+	}
+	
+	// Fallback: use last two path components
+	parts = strings.Split(url, "/")
+	if len(parts) >= 2 {
+		return parts[len(parts)-2] + "/" + parts[len(parts)-1]
+	}
+	
+	return "default/repo"
+}
+

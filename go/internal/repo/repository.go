@@ -388,3 +388,19 @@ func (r *Repository) Merge(branchName string) (bool, error) {
 
 	return true, nil // Fast-forward merge successful
 }
+
+// ResolveRef resolves a ref name to a snapshot hash.
+// Returns empty string if ref doesn't exist (not an error).
+func (r *Repository) ResolveRef(refName string) (string, error) {
+	return r.refs.ResolveRef(refName)
+}
+
+// UpdateRef updates a ref to point to a new snapshot hash.
+func (r *Repository) UpdateRef(refName, snapshotHash string) error {
+	return r.refs.UpdateRef(refName, snapshotHash)
+}
+
+// GitDir returns the path to the .chemvcs directory.
+func (r *Repository) GitDir() string {
+	return filepath.Join(r.path, ".chemvcs")
+}

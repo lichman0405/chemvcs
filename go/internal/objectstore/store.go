@@ -312,3 +312,79 @@ func (s *Store) atomicWrite(path string, data []byte) error {
 func (s *Store) Root() string {
 	return s.root
 }
+
+// GetRaw retrieves raw bytes for a given object hash without validation.
+// This is used for remote operations where validation happens elsewhere.
+func (s *Store) GetRaw(hash string) ([]byte, error) {
+	path := s.objectPath(hash)
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("object not found: %s", hash)
+		}
+		return nil, fmt.Errorf("failed to read object: %w", err)
+	}
+
+	return data, nil
+}
+
+// PutRaw stores raw bytes with a given hash without validation.
+// This is used for remote operations where validation happens elsewhere.
+// The hash must match the content, but this method does not verify it.
+func (s *Store) PutRaw(hash string, data []byte) error {
+	path := s.objectPath(hash)
+
+	// Check if already exists (idempotency)
+	if exists, err := s.exists(path); err != nil {
+		return err
+	} else if exists {
+		return nil
+	}
+
+	// Atomic write
+	if err := s.atomicWrite(path, data); err != nil {
+		return fmt.Errorf("failed to write object: %w", err)
+	}
+
+	return nil
+}
+
+// ReadFile reads a file relative to the repository root (parent of objects directory).
+// This is a helper for reading config files, refs, etc.
+func (s *Store) ReadFile(relativePath string) ([]byte, error) {
+	// Go up one level from objects/ to .chemvcs/, then up again to repo root
+	repoRoot := filepath.Dir(filepath.Dir(s.root))
+	fullPath := filepath.Join(repoRoot, relativePath)
+
+	data, err := os.ReadFile(fullPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("file not found: %s", relativePath)
+		}
+		return nil, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	return data, nil
+}
+
+// WriteFile writes a file relative to the repository root.
+// This is a helper for writing config files, refs, etc.
+func (s *Store) WriteFile(relativePath string, data []byte) error {
+	// Go up one level from objects/ to .chemvcs/, then up again to repo root
+	repoRoot := filepath.Dir(filepath.Dir(s.root))
+	fullPath := filepath.Join(repoRoot, relativePath)
+
+	// Ensure parent directory exists
+	dir := filepath.Dir(fullPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	// Write file atomically
+	if err := s.atomicWrite(fullPath, data); err != nil {
+		return fmt.Errorf("failed to write file: %w", err)
+	}
+
+	return nil
+}
