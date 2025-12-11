@@ -1,0 +1,155 @@
+# ChemVCS TODO List
+
+## Milestone 5: Python Domain Layer (M5)
+
+### Core Tasks
+- [ ] Design Python package structure (`chemvcs-py`)
+- [ ] Implement Python bindings to Go core (via REST API or CGo)
+- [ ] Define chemistry-specific object types
+  - [ ] Structure objects (molecular geometries, unit cells)
+  - [ ] Calculation objects (input files, output data)
+  - [ ] Workflow objects (job sequences, dependencies)
+- [ ] Implement Python API for common operations
+  - [ ] Repository operations (init, commit, checkout)
+  - [ ] Domain-specific queries (find structures, search calculations)
+  - [ ] Provenance tracking
+- [ ] Add chemistry-aware diff/merge for common file formats
+  - [ ] XYZ files
+  - [ ] CIF files
+  - [ ] Common QM output formats
+- [ ] Write Python tests and examples
+- [ ] Document Python API
+
+### Documentation
+- [ ] Python API reference
+- [ ] Chemistry workflow examples
+- [ ] Integration guide with popular QM codes
+
+---
+
+## Milestone 6: HPC Integration (M6)
+
+### Core Tasks
+- [ ] Design SLURM adapter interface
+- [ ] Implement job submission tracking
+  - [ ] Capture job ID in commit metadata
+  - [ ] Link outputs back to commits
+- [ ] Add HPC-specific commands
+  - [ ] `chemvcs submit` - Submit job and commit
+  - [ ] `chemvcs jobs` - List tracked jobs
+  - [ ] `chemvcs retrieve` - Fetch completed job outputs
+- [ ] Implement job status monitoring
+- [ ] Add provenance metadata for computational jobs
+  - [ ] Compute environment (modules, versions)
+  - [ ] Job script
+  - [ ] Resource usage
+- [ ] Write integration tests with SLURM
+- [ ] Document HPC workflow patterns
+
+### Documentation
+- [ ] HPC setup guide
+- [ ] SLURM integration examples
+- [ ] Best practices for computational provenance
+
+---
+
+## Future Enhancements (Post-MVP)
+
+### Performance
+- [ ] Implement packfile format for efficient storage
+- [ ] Add incremental push/pull optimization
+- [ ] Implement shallow clone support
+- [ ] Add object caching layer
+
+### User Experience
+- [ ] Interactive conflict resolution
+- [ ] Visual diff for molecular structures
+- [ ] Web UI for browsing repositories
+- [ ] IDE/editor integrations
+
+### Advanced Features
+- [ ] Signed commits (GPG)
+- [ ] Repository hooks (pre-commit, post-commit)
+- [ ] Garbage collection for unreachable objects
+- [ ] Repository mirroring
+- [ ] Multi-user access control
+
+### Chemistry-Specific
+- [ ] Automatic structure comparison (RMSD, graph isomorphism)
+- [ ] Energy landscape tracking
+- [ ] Trajectory file support
+- [ ] Integration with molecular viewers
+
+### Testing & Quality
+- [ ] Increase test coverage to 80%+
+- [ ] Add benchmarks for large repositories
+- [ ] Performance profiling and optimization
+- [ ] Fuzz testing for protocol handlers
+
+---
+
+## Completed ✅
+
+### Milestone 1: Local VCS Core (M1) ✅
+- [x] Core data structures (Object, Snapshot, Reference)
+- [x] Content-addressable storage with SHA-256
+- [x] Repository operations (init, commit, log, branch, checkout)
+- [x] CLI with basic commands
+- [x] 38 tests passing
+
+### Milestone 2: Working Directory (M2) ✅
+- [x] Workspace scanning for directory trees
+- [x] Object creation with blob references
+- [x] Diff engine for tree comparison
+- [x] Status command
+- [x] Working directory restoration
+- [x] 51 tests passing
+
+### Milestone 3: Branching and Merge (M3) ✅
+- [x] Fast-forward merge
+- [x] Ancestor checking
+- [x] Merge command
+- [x] Branch divergence detection
+- [x] 57 tests passing
+
+### Milestone 4: Remote Repositories (M4) ✅
+- [x] HTTP client for remote protocol
+- [x] Remote ref management
+- [x] Object batch upload/download
+- [x] Push/Pull/Fetch operations
+- [x] HTTP server (chemvcs-server)
+- [x] Remote configuration management
+- [x] 72 tests passing
+
+### Quality Improvements (Post-M4) ✅
+- [x] Checkout cleanup - Remove files not in target snapshot
+- [x] Three-way merge algorithm - Support diverged branches
+- [x] Conflict detection - Report conflicting paths
+- [x] Merge commit creation with two parents
+- [x] Intelligent merge strategies (auto-resolve one-sided changes)
+- [x] 80 tests passing
+
+---
+
+## Known Issues
+
+### Critical
+- None
+
+### Minor
+- Server authentication is placeholder (no actual token validation)
+- No repository size limits enforced
+- Limited error recovery in network operations
+
+### Documentation
+- Need more usage examples
+- API documentation could be more detailed
+
+---
+
+## Questions for Discussion
+
+1. Should M5 use REST API or CGo for Python-Go integration?
+2. What QM codes should we prioritize for integration?
+3. Should we support other schedulers besides SLURM (PBS, LSF)?
+4. What authentication mechanism for production deployment?
