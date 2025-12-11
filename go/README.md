@@ -4,7 +4,7 @@ A domain-aware, distributed version control system for computational chemistry a
 
 ## Project Status
 
-**Current Phase:** Milestone 4 - Remote Repositories ✅ **CLIENT COMPLETE**
+**Current Phase:** Milestone 4 - Remote Repositories ✅ **COMPLETE**
 
 ### Completed
 - ✅ Phase 0: Project foundation
@@ -32,17 +32,24 @@ A domain-aware, distributed version control system for computational chemistry a
   - Detection of already up-to-date branches
   - Detection of diverged branches (three-way merge not yet supported)
   - 57 tests passing, 76.2% coverage
-- ✅ Milestone 4: Remote repositories (Client-side)
-  - HTTP client for ChemVCS remote protocol
-  - Remote ref management (GetRef, UpdateRef, ListRefs)
-  - Object existence checking and batch upload/download
-  - High-level Push/Pull/Fetch operations with graph traversal
-  - Remote configuration management (add remote)
-  - CLI commands: remote add, push, pull, fetch
-  - **Total: 66 tests passing, 30-75% coverage across packages**
+- ✅ **Milestone 4: Remote repositories - COMPLETE**
+  - **Client-side:**
+    - HTTP client for ChemVCS remote protocol
+    - Remote ref management (GetRef, UpdateRef, ListRefs)
+    - Object existence checking and batch upload/download
+    - High-level Push/Pull/Fetch operations with graph traversal
+    - Remote configuration management (add remote)
+    - CLI commands: remote add, push, pull, fetch
+  - **Server-side:**
+    - HTTP server (chemvcs-server) with all protocol endpoints
+    - Repository listing and info
+    - Object upload/download with hash verification
+    - Ref operations with optimistic concurrency control
+    - 6 integration tests with 60.4% coverage
+  - **Total: 72 tests passing, 30-75% coverage across packages**
 
 ### In Progress
-- 🚧 Milestone 4: Remote repositories (Server-side implementation deferred)
+- Nothing currently
 
 ### Planned
 - Milestone 5: Python domain layer
@@ -52,7 +59,7 @@ A domain-aware, distributed version control system for computational chemistry a
 - ⚠️ Checkout doesn't delete files not in target snapshot (requires manual cleanup)
 - ⚠️ Three-way merge not implemented (diverged branches rejected)
 - ⚠️ No merge conflict detection or resolution
-- ⚠️ Remote server (chemvcs-server) not yet implemented
+- ⚠️ Server authentication is placeholder (tokens not implemented)
 
 ## Documentation
 
@@ -77,14 +84,23 @@ Comprehensive design documentation is available in the `docs/` directory:
 
 ### Building
 
+Build the client:
 ```bash
 cd go
 go build -o chemvcs ./cmd/chemvcs
 ```
 
+Build the server:
+```bash
+go build -o chemvcs-server ./cmd/chemvcs-server
+```
+
 On Windows:
+#### Client Commands
+
 ```bash
 go build -o chemvcs.exe ./cmd/chemvcs
+go build -o chemvcs-server.exe ./cmd/chemvcs-server
 ```
 
 ### Running
@@ -138,7 +154,28 @@ export CHEMVCS_AUTHOR_EMAIL="your.email@example.com"
 
 Or on Windows:
 ```powershell
-$env:CHEMVCS_AUTHOR_NAME="Your Name"
+$en
+
+#### Server Commands
+
+Start the ChemVCS server:
+
+```bash
+# Start server on default port 8080
+chemvcs-server
+
+# Specify custom port and repository root
+chemvcs-server -port 9000 -repo-root /path/to/repos
+```
+
+On Windows:
+```powershell
+# Start server
+.\chemvcs-server.exe
+
+# With custom settings
+.\chemvcs-server.exe -port 9000 -repo-root C:\chemvcs\repos
+```v:CHEMVCS_AUTHOR_NAME="Your Name"
 $env:CHEMVCS_AUTHOR_EMAIL="your.email@example.com"
 ```
 
@@ -165,12 +202,15 @@ go test ./internal/model -v
 ```
 go/
 ├── cmd/
-│   └── chemvcs/          # CLI entry point
+│   ├── chemvcs/          # CLI entry point
+│   └── chemvcs-server/   # HTTP server entry point
 ├── internal/
 │   ├── model/            # Core data structures
 │   ├── objectstore/      # Content-addressable storage
 │   ├── repo/             # Repository operations
-│   └── workspace/        # Working directory mapping
+│   ├── workspace/        # Working directory mapping
+│   ├── remote/           # Remote client and operations
+│   └── server/           # HTTP server implementation
 └── go.mod
 ```
 
