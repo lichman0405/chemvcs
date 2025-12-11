@@ -36,6 +36,8 @@ func main() {
 		err = handleCheckout(args)
 	case "status":
 		err = handleStatus(args)
+	case "merge":
+		err = handleMerge(args)
 	case "version":
 		handleVersion()
 	case "help", "--help", "-h":
@@ -64,6 +66,7 @@ func printUsage() {
 	fmt.Println("  branch [name]         List or create branches")
 	fmt.Println("  checkout <target>     Switch branches or snapshots")
 	fmt.Println("  status                Show working directory changes")
+	fmt.Println("  merge <branch>        Merge a branch into current branch")
 	fmt.Println("  version               Show version information")
 	fmt.Println("  help                  Show this help message")
 	fmt.Println()
@@ -442,6 +445,69 @@ func restoreWorkingDirectory(r *repo.Repository) error {
 	scanner := workspace.NewScanner(r.Store())
 	if err := scanner.RestoreDirectory(snap.Root, "."); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func handleMerge(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: chemvcs merge <branch>")
+	}
+
+	branchName := args[0]
+
+	// Open repository
+	r, err := repo.Open(".")
+	if err != nil {
+		return err
+	}
+
+	// Check if HEAD is detached
+	detached, err := r.IsDetached()
+	if err != nil {
+		return err
+	}
+	if detached {
+		return fmt.Errorf("cannot merge: HEAD is detached (checkout a branch first)")
+	}
+
+	// Get current branch for display
+	currentBranch, err := r.CurrentBranch()
+	if err != nil {
+		return err
+	}
+
+	// Perform merge
+	merged, err := r.Merge(branchName)
+	if err != nil {
+		return err
+	}
+
+	if !merged {
+		// Already up to date
+		fmt.Printf("Already up-to-date with '%s'\n", branchName)
+		return nil
+	}
+
+	// Get new HEAD hash for display
+	newHash, err := r.Refs().ResolveHEAD()
+	if err != nil {
+		return err
+	}
+
+	shortHash := newHash
+	if len(newHash) > 8 {
+		shortHash = newHash[:8]
+	}
+
+	fmt.Printf("Fast-forward merge '%s' into '%s'\n", branchName, currentBranch)
+	fmt.Printf("Updated to %s\n", shortHash)
+
+	// Restore working directory to match new HEAD
+	err = restoreWorkingDirectory(r)
+	if err != nil {
+		return fmt.Errorf("merge succeeded but failed to update working directory: %w", err)
 	}
 
 	return nil

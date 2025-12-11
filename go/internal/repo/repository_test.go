@@ -3,6 +3,7 @@ package repo
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/lishi/chemvcs/internal/model"
@@ -529,5 +530,324 @@ func TestRefsResolveHEAD(t *testing.T) {
 
 	if hash != snapHash {
 		t.Errorf("expected HEAD to resolve to %s, got %s", snapHash, hash)
+	}
+}
+
+func TestIsAncestor(t *testing.T) {
+	tmpDir := t.TempDir()
+	repo, err := Init(tmpDir)
+	if err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
+
+	// Create initial commit
+	obj1 := model.NewObject("generic")
+	obj1.SetMeta("commit", 1)
+	root1, err := repo.Store().PutObject(obj1)
+	if err != nil {
+		t.Fatalf("failed to store object: %v", err)
+	}
+
+	snap1Hash, err := repo.CreateSnapshot(root1, "First commit", "Author <author@example.com>")
+	if err != nil {
+		t.Fatalf("CreateSnapshot failed: %v", err)
+	}
+
+	// Create second commit
+	obj2 := model.NewObject("generic")
+	obj2.SetMeta("commit", 2)
+	root2, err := repo.Store().PutObject(obj2)
+	if err != nil {
+		t.Fatalf("failed to store object: %v", err)
+	}
+
+	snap2Hash, err := repo.CreateSnapshot(root2, "Second commit", "Author <author@example.com>")
+	if err != nil {
+		t.Fatalf("CreateSnapshot failed: %v", err)
+	}
+
+	// Create third commit
+	obj3 := model.NewObject("generic")
+	obj3.SetMeta("commit", 3)
+	root3, err := repo.Store().PutObject(obj3)
+	if err != nil {
+		t.Fatalf("failed to store object: %v", err)
+	}
+
+	snap3Hash, err := repo.CreateSnapshot(root3, "Third commit", "Author <author@example.com>")
+	if err != nil {
+		t.Fatalf("CreateSnapshot failed: %v", err)
+	}
+
+	// Test: snap1 is ancestor of snap3
+	isAncestor, err := repo.IsAncestor(snap1Hash, snap3Hash)
+	if err != nil {
+		t.Fatalf("IsAncestor failed: %v", err)
+	}
+	if !isAncestor {
+		t.Error("expected snap1 to be ancestor of snap3")
+	}
+
+	// Test: snap2 is ancestor of snap3
+	isAncestor, err = repo.IsAncestor(snap2Hash, snap3Hash)
+	if err != nil {
+		t.Fatalf("IsAncestor failed: %v", err)
+	}
+	if !isAncestor {
+		t.Error("expected snap2 to be ancestor of snap3")
+	}
+
+	// Test: snap3 is NOT ancestor of snap1
+	isAncestor, err = repo.IsAncestor(snap3Hash, snap1Hash)
+	if err != nil {
+		t.Fatalf("IsAncestor failed: %v", err)
+	}
+	if isAncestor {
+		t.Error("snap3 should not be ancestor of snap1")
+	}
+
+	// Test: snapshot is ancestor of itself
+	isAncestor, err = repo.IsAncestor(snap2Hash, snap2Hash)
+	if err != nil {
+		t.Fatalf("IsAncestor failed: %v", err)
+	}
+	if !isAncestor {
+		t.Error("snapshot should be ancestor of itself")
+	}
+}
+
+func TestMerge_FastForward(t *testing.T) {
+	tmpDir := t.TempDir()
+	repo, err := Init(tmpDir)
+	if err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
+
+	// Create initial commit on main
+	obj1 := model.NewObject("generic")
+	obj1.SetMeta("version", 1)
+	root1, err := repo.Store().PutObject(obj1)
+	if err != nil {
+		t.Fatalf("failed to store object: %v", err)
+	}
+
+	_, err = repo.CreateSnapshot(root1, "Initial commit", "Author <author@example.com>")
+	if err != nil {
+		t.Fatalf("CreateSnapshot failed: %v", err)
+	}
+
+	// Create branch "feature"
+	if err := repo.CreateBranch("feature"); err != nil {
+		t.Fatalf("CreateBranch failed: %v", err)
+	}
+
+	// Switch to feature branch
+	if err := repo.CheckoutBranch("feature"); err != nil {
+		t.Fatalf("CheckoutBranch failed: %v", err)
+	}
+
+	// Create commit on feature branch
+	obj2 := model.NewObject("generic")
+	obj2.SetMeta("version", 2)
+	root2, err := repo.Store().PutObject(obj2)
+	if err != nil {
+		t.Fatalf("failed to store object: %v", err)
+	}
+
+	featureHash, err := repo.CreateSnapshot(root2, "Feature commit", "Author <author@example.com>")
+	if err != nil {
+		t.Fatalf("CreateSnapshot failed: %v", err)
+	}
+
+	// Switch back to main
+	if err := repo.CheckoutBranch("main"); err != nil {
+		t.Fatalf("CheckoutBranch failed: %v", err)
+	}
+
+	// Merge feature into main (should fast-forward)
+	merged, err := repo.Merge("feature")
+	if err != nil {
+		t.Fatalf("Merge failed: %v", err)
+	}
+
+	if !merged {
+		t.Error("expected merge to succeed (fast-forward)")
+	}
+
+	// Verify main now points to feature commit
+	mainHash, err := repo.Refs().ResolveRef("refs/heads/main")
+	if err != nil {
+		t.Fatalf("failed to resolve main: %v", err)
+	}
+
+	if mainHash != featureHash {
+		t.Errorf("expected main to point to %s, got %s", featureHash, mainHash)
+	}
+}
+
+func TestMerge_AlreadyUpToDate(t *testing.T) {
+	tmpDir := t.TempDir()
+	repo, err := Init(tmpDir)
+	if err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
+
+	// Create initial commit
+	obj1 := model.NewObject("generic")
+	root1, err := repo.Store().PutObject(obj1)
+	if err != nil {
+		t.Fatalf("failed to store object: %v", err)
+	}
+
+	_, err = repo.CreateSnapshot(root1, "Initial commit", "Author <author@example.com>")
+	if err != nil {
+		t.Fatalf("CreateSnapshot failed: %v", err)
+	}
+
+	// Create branch at same point
+	if err := repo.CreateBranch("other"); err != nil {
+		t.Fatalf("CreateBranch failed: %v", err)
+	}
+
+	// Try to merge - should be up to date
+	merged, err := repo.Merge("other")
+	if err != nil {
+		t.Fatalf("Merge failed: %v", err)
+	}
+
+	if merged {
+		t.Error("expected merge to report already up-to-date")
+	}
+}
+
+func TestMerge_DetachedHead(t *testing.T) {
+	tmpDir := t.TempDir()
+	repo, err := Init(tmpDir)
+	if err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
+
+	// Create initial commit
+	obj1 := model.NewObject("generic")
+	root1, err := repo.Store().PutObject(obj1)
+	if err != nil {
+		t.Fatalf("failed to store object: %v", err)
+	}
+
+	snapHash, err := repo.CreateSnapshot(root1, "Initial commit", "Author <author@example.com>")
+	if err != nil {
+		t.Fatalf("CreateSnapshot failed: %v", err)
+	}
+
+	// Create branch
+	if err := repo.CreateBranch("other"); err != nil {
+		t.Fatalf("CreateBranch failed: %v", err)
+	}
+
+	// Checkout as detached HEAD
+	if err := repo.CheckoutSnapshot(snapHash); err != nil {
+		t.Fatalf("CheckoutSnapshot failed: %v", err)
+	}
+
+	// Try to merge - should fail (detached HEAD)
+	_, err = repo.Merge("other")
+	if err == nil {
+		t.Error("expected merge to fail with detached HEAD")
+	}
+}
+
+func TestMerge_BranchNotFound(t *testing.T) {
+	tmpDir := t.TempDir()
+	repo, err := Init(tmpDir)
+	if err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
+
+	// Create initial commit
+	obj1 := model.NewObject("generic")
+	root1, err := repo.Store().PutObject(obj1)
+	if err != nil {
+		t.Fatalf("failed to store object: %v", err)
+	}
+
+	_, err = repo.CreateSnapshot(root1, "Initial commit", "Author <author@example.com>")
+	if err != nil {
+		t.Fatalf("CreateSnapshot failed: %v", err)
+	}
+
+	// Try to merge non-existent branch
+	_, err = repo.Merge("nonexistent")
+	if err == nil {
+		t.Error("expected merge to fail with non-existent branch")
+	}
+}
+
+func TestMerge_DivergedBranches(t *testing.T) {
+	tmpDir := t.TempDir()
+	repo, err := Init(tmpDir)
+	if err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
+
+	// Create initial commit
+	obj1 := model.NewObject("generic")
+	obj1.SetMeta("version", 1)
+	root1, err := repo.Store().PutObject(obj1)
+	if err != nil {
+		t.Fatalf("failed to store object: %v", err)
+	}
+
+	_, err = repo.CreateSnapshot(root1, "Initial commit", "Author <author@example.com>")
+	if err != nil {
+		t.Fatalf("CreateSnapshot failed: %v", err)
+	}
+
+	// Create branch
+	if err := repo.CreateBranch("feature"); err != nil {
+		t.Fatalf("CreateBranch failed: %v", err)
+	}
+
+	// Make commit on main
+	obj2 := model.NewObject("generic")
+	obj2.SetMeta("version", 2)
+	root2, err := repo.Store().PutObject(obj2)
+	if err != nil {
+		t.Fatalf("failed to store object: %v", err)
+	}
+
+	_, err = repo.CreateSnapshot(root2, "Main commit", "Author <author@example.com>")
+	if err != nil {
+		t.Fatalf("CreateSnapshot failed: %v", err)
+	}
+
+	// Switch to feature and make commit
+	if err := repo.CheckoutBranch("feature"); err != nil {
+		t.Fatalf("CheckoutBranch failed: %v", err)
+	}
+
+	obj3 := model.NewObject("generic")
+	obj3.SetMeta("version", 3)
+	root3, err := repo.Store().PutObject(obj3)
+	if err != nil {
+		t.Fatalf("failed to store object: %v", err)
+	}
+
+	_, err = repo.CreateSnapshot(root3, "Feature commit", "Author <author@example.com>")
+	if err != nil {
+		t.Fatalf("CreateSnapshot failed: %v", err)
+	}
+
+	// Switch back to main
+	if err := repo.CheckoutBranch("main"); err != nil {
+		t.Fatalf("CheckoutBranch failed: %v", err)
+	}
+
+	// Try to merge - should fail (branches diverged)
+	_, err = repo.Merge("feature")
+	if err == nil {
+		t.Error("expected merge to fail with diverged branches")
+	}
+	if err != nil && !strings.Contains(err.Error(), "diverged") {
+		t.Errorf("expected error about diverged branches, got: %v", err)
 	}
 }

@@ -283,3 +283,108 @@ func (r *Repository) IsDetached() (bool, error) {
 	}
 	return branch == "", nil
 }
+
+// IsAncestor checks if ancestorHash is an ancestor of descendantHash.
+// This walks the parent chain from descendant to see if ancestor is found.
+func (r *Repository) IsAncestor(ancestorHash, descendantHash string) (bool, error) {
+	if ancestorHash == descendantHash {
+		return true, nil
+	}
+
+	current := descendantHash
+	visited := make(map[string]bool) // Prevent infinite loops
+
+	for current != "" {
+		if visited[current] {
+			// Cycle detected (shouldn't happen in normal operation)
+			return false, nil
+		}
+		visited[current] = true
+
+		if current == ancestorHash {
+			return true, nil
+		}
+
+		snap, err := r.store.GetSnapshot(current)
+		if err != nil {
+			return false, fmt.Errorf("failed to get snapshot %s: %w", current, err)
+		}
+
+		// Follow first parent (linear history for now)
+		if len(snap.Parents) > 0 {
+			current = snap.Parents[0]
+		} else {
+			// Reached root
+			return false, nil
+		}
+	}
+
+	return false, nil
+}
+
+// Merge performs a merge of the specified branch into the current branch.
+// Currently only supports fast-forward merges.
+func (r *Repository) Merge(branchName string) (bool, error) {
+	// Check if on a branch (can't merge into detached HEAD)
+	currentBranch, err := r.refs.CurrentBranch()
+	if err != nil {
+		return false, err
+	}
+	if currentBranch == "" {
+		return false, fmt.Errorf("cannot merge: HEAD is detached")
+	}
+
+	// Resolve current HEAD
+	currentHash, err := r.refs.ResolveHEAD()
+	if err != nil {
+		return false, fmt.Errorf("failed to resolve HEAD: %w", err)
+	}
+	if currentHash == "" {
+		return false, fmt.Errorf("cannot merge: no commits yet")
+	}
+
+	// Resolve target branch
+	targetRef := "refs/heads/" + branchName
+	targetHash, err := r.refs.ResolveRef(targetRef)
+	if err != nil {
+		return false, fmt.Errorf("failed to resolve branch: %w", err)
+	}
+	if targetHash == "" {
+		return false, fmt.Errorf("branch '%s' not found", branchName)
+	}
+
+	// Check if already up to date
+	if currentHash == targetHash {
+		return false, nil // Already up to date
+	}
+
+	// Check if fast-forward is possible
+	// Target must be an ancestor of current, OR current must be an ancestor of target
+	targetIsAncestor, err := r.IsAncestor(targetHash, currentHash)
+	if err != nil {
+		return false, fmt.Errorf("failed to check ancestry: %w", err)
+	}
+
+	if targetIsAncestor {
+		// Target is behind current - already up to date
+		return false, nil
+	}
+
+	// Check if current is ancestor of target (fast-forward possible)
+	currentIsAncestor, err := r.IsAncestor(currentHash, targetHash)
+	if err != nil {
+		return false, fmt.Errorf("failed to check ancestry: %w", err)
+	}
+
+	if !currentIsAncestor {
+		// Diverged branches - need three-way merge (not supported yet)
+		return false, fmt.Errorf("cannot fast-forward: branches have diverged (three-way merge not yet implemented)")
+	}
+
+	// Perform fast-forward merge: update current branch to point to target
+	if err := r.refs.UpdateRef(currentBranch, targetHash); err != nil {
+		return false, fmt.Errorf("failed to update branch: %w", err)
+	}
+
+	return true, nil // Fast-forward merge successful
+}
