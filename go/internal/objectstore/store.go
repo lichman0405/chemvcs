@@ -3,7 +3,6 @@ package objectstore
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -43,7 +42,7 @@ func (s *Store) PutBlob(data []byte) (string, error) {
 		return "", err
 	} else if exists {
 		// Verify existing content matches
-		existing, err := ioutil.ReadFile(path)
+		existing, err := os.ReadFile(path)
 		if err != nil {
 			return "", fmt.Errorf("failed to read existing blob: %w", err)
 		}
@@ -66,7 +65,7 @@ func (s *Store) PutBlob(data []byte) (string, error) {
 func (s *Store) GetBlob(hash string) ([]byte, error) {
 	path := s.objectPath(hash)
 
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, fmt.Errorf("blob not found: %s", hash)
@@ -133,7 +132,7 @@ func (s *Store) PutObject(obj *model.Object) (string, error) {
 func (s *Store) GetObject(hash string) (*model.Object, error) {
 	path := s.objectPath(hash)
 
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, fmt.Errorf("object not found: %s", hash)
@@ -210,7 +209,7 @@ func (s *Store) PutSnapshot(snap *model.Snapshot) (string, error) {
 func (s *Store) GetSnapshot(hash string) (*model.Snapshot, error) {
 	path := s.objectPath(hash)
 
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, fmt.Errorf("snapshot not found: %s", hash)
@@ -278,7 +277,7 @@ func (s *Store) atomicWrite(path string, data []byte) error {
 	}
 
 	// Create temporary file in the same directory
-	tmpFile, err := ioutil.TempFile(dir, ".tmp-*")
+	tmpFile, err := os.CreateTemp(dir, ".tmp-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp file: %w", err)
 	}

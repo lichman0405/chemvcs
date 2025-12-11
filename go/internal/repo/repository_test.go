@@ -1,7 +1,6 @@
 package repo
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -40,7 +39,7 @@ func TestInitRepository(t *testing.T) {
 
 	// Verify HEAD
 	headPath := filepath.Join(chemvcsPath, "HEAD")
-	data, err := ioutil.ReadFile(headPath)
+	data, err := os.ReadFile(headPath)
 	if err != nil {
 		t.Fatalf("failed to read HEAD: %v", err)
 	}

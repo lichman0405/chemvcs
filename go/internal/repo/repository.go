@@ -2,7 +2,6 @@ package repo
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -48,14 +47,14 @@ func Init(path string) (*Repository, error) {
 	// Create initial HEAD pointing to main branch
 	headPath := filepath.Join(chemvcsPath, "HEAD")
 	initialHEAD := "ref: refs/heads/main"
-	if err := ioutil.WriteFile(headPath, []byte(initialHEAD), 0644); err != nil {
+	if err := os.WriteFile(headPath, []byte(initialHEAD), 0644); err != nil {
 		return nil, fmt.Errorf("failed to create HEAD: %w", err)
 	}
 
 	// Create optional config file placeholder
 	configPath := filepath.Join(chemvcsPath, "config")
 	configContent := "# ChemVCS repository configuration\n"
-	if err := ioutil.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
 		return nil, fmt.Errorf("failed to create config: %w", err)
 	}
 

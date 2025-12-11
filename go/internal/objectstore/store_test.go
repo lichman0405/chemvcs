@@ -1,7 +1,6 @@
 package objectstore
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -114,7 +113,7 @@ func TestBlobIntegrityCheck(t *testing.T) {
 
 	// Corrupt the blob file
 	path := store.objectPath(hash)
-	if err := ioutil.WriteFile(path, []byte("corrupted"), 0644); err != nil {
+	if err := os.WriteFile(path, []byte("corrupted"), 0644); err != nil {
 		t.Fatalf("failed to corrupt blob: %v", err)
 	}
 

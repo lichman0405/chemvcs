@@ -2,7 +2,6 @@ package repo
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,7 +27,7 @@ func NewRefManager(repoPath string) *RefManager {
 func (rm *RefManager) ResolveHEAD() (string, error) {
 	headPath := filepath.Join(rm.repoPath, ".chemvcs", "HEAD")
 
-	data, err := ioutil.ReadFile(headPath)
+	data, err := os.ReadFile(headPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return "", nil // HEAD doesn't exist yet
@@ -53,7 +52,7 @@ func (rm *RefManager) ResolveHEAD() (string, error) {
 func (rm *RefManager) ResolveRef(refName string) (string, error) {
 	refPath := filepath.Join(rm.repoPath, ".chemvcs", refName)
 
-	data, err := ioutil.ReadFile(refPath)
+	data, err := os.ReadFile(refPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return "", nil // Ref doesn't exist yet
@@ -69,7 +68,7 @@ func (rm *RefManager) ResolveRef(refName string) (string, error) {
 func (rm *RefManager) CurrentBranch() (string, error) {
 	headPath := filepath.Join(rm.repoPath, ".chemvcs", "HEAD")
 
-	data, err := ioutil.ReadFile(headPath)
+	data, err := os.ReadFile(headPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return "", nil
@@ -125,7 +124,7 @@ func (rm *RefManager) SetHEAD(target string) error {
 func (rm *RefManager) ListBranches() ([]string, error) {
 	headsPath := filepath.Join(rm.repoPath, ".chemvcs", "refs", "heads")
 
-	entries, err := ioutil.ReadDir(headsPath)
+	entries, err := os.ReadDir(headsPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []string{}, nil
@@ -135,9 +134,10 @@ func (rm *RefManager) ListBranches() ([]string, error) {
 
 	branches := []string{}
 	for _, entry := range entries {
-		if !entry.IsDir() {
-			branches = append(branches, entry.Name())
+		if entry.IsDir() {
+			continue
 		}
+		branches = append(branches, entry.Name())
 	}
 
 	return branches, nil
@@ -154,7 +154,7 @@ func atomicWriteFile(path string, data []byte) error {
 	dir := filepath.Dir(path)
 
 	// Create temp file in same directory
-	tmpFile, err := ioutil.TempFile(dir, ".tmp-*")
+	tmpFile, err := os.CreateTemp(dir, ".tmp-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp file: %w", err)
 	}
