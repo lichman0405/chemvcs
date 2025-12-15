@@ -1,6 +1,8 @@
 # ChemVCS TODO List
 
-## Milestone 5: Python Domain Layer (M5) - 100% Core Complete ✅
+# ChemVCS TODO List
+
+## Milestone 5: Python Domain Layer (M5) - ✅ Complete
 
 ### Completed Tasks ✅
 - ✅ Design Python package structure (`chemvcs_py`)
@@ -32,72 +34,102 @@
 - ⏭️ Enhanced diff/merge for molecular structures
 - ⏭️ Advanced Repository API features (relationship tracking)
 
-### Documentation
-- ✅ Python API usage examples
-- ⏭️ Comprehensive API reference documentation
-- ⏭️ Integration guide with QM codes (ORCA, VASP, Gaussian)
-
 ---
 
-## Milestone 6: HPC Integration (M6) - In Progress
+## Milestone 6: HPC Integration (M6) - Phase 1-2 Complete ✅
 
-**Design Document**: docs/09-hpc-integration-design.md
+**Design Document**: docs/09-hpc-integration-design.md  
+**User Guide**: docs/10-hpc-user-guide.md
 
-### Phase 1: Core Infrastructure (Week 1-2)
-- [x] Create M6 design document
-- [ ] Extend Run object with HPC fields
-  - [ ] Add job_id, job_system, queue_name fields
-  - [ ] Add provenance fields (modules, resources, script)
-  - [ ] Add mark_queued(), mark_retrieved() methods
-  - [ ] Update to_core_object() / from_core_object()
-- [ ] Add Run HPC tests
-  - [ ] Test HPC field serialization
-  - [ ] Test mark_queued() method
-  - [ ] Test mark_retrieved() method
-  - [ ] Test round-trip with HPC data
-- [ ] Design JobAdapter interface
-  - [ ] Define abstract base class
-  - [ ] Define JobStatus enum
-  - [ ] Define JobInfo dataclass
-  - [ ] Define exception hierarchy
-- [ ] Implement SlurmAdapter
-  - [ ] Implement submit() with subprocess mock
-  - [ ] Implement get_status() with squeue
-  - [ ] Implement get_info() with sacct
-  - [ ] Implement cancel() with scancel
-  - [ ] Add status parsing logic
-- [ ] Add adapter unit tests (mock-based)
-  - [ ] Test submit() success/failure
-  - [ ] Test get_status() for all states
-  - [ ] Test get_info() parsing
-  - [ ] Test cancel() operation
-  - [ ] Test error handling
+### Phase 1: Core Infrastructure ✅ Complete
 
-### Phase 2: CLI Integration (Week 2-3)
-- [ ] Go: Add `chemvcs submit` command
-  - [ ] Parse arguments (run-id, script path)
-  - [ ] Validate Run object exists
-  - [ ] Call Python HPC module
-  - [ ] Handle errors gracefully
-- [ ] Go: Add `chemvcs jobs` command
-  - [ ] List Run objects with job_id
-  - [ ] Query status for each job
-  - [ ] Format output table
-  - [ ] Add filtering options
-- [ ] Go: Add `chemvcs retrieve` command
-  - [ ] Parse job-id argument
-  - [ ] Find corresponding Run object
-  - [ ] Copy output files
-  - [ ] Create commit
-- [ ] Python: Implement JobSubmitter class
-  - [ ] submit_run() method
-  - [ ] Capture environment
-  - [ ] Update Run object
-  - [ ] Store to repository
-- [ ] Python: Implement JobTracker class
-  - [ ] list_jobs() method
-  - [ ] get_job_status() method
-  - [ ] find_run_by_job_id() method
+- [x] Create M6 design document (53KB comprehensive spec)
+- [x] Extend Run object with HPC fields
+  - [x] Add job_id, job_system, queue_name fields
+  - [x] Add provenance fields (modules_loaded, environment_vars, job_resources)
+  - [x] Add submit_script snapshot field
+  - [x] Add mark_queued(), mark_retrieved() methods
+  - [x] Update to_core_object() / from_core_object()
+- [x] Add Run HPC tests (8 tests in TestRunHPC)
+  - [x] Test HPC field validation
+  - [x] Test mark_queued() method
+  - [x] Test mark_retrieved() method
+  - [x] Test round-trip serialization with HPC data
+- [x] Design JobAdapter interface
+  - [x] Define abstract base class
+  - [x] Define JobStatus enum (PENDING/RUNNING/COMPLETED/etc.)
+  - [x] Define JobInfo dataclass
+  - [x] Define exception hierarchy (HpcError, JobSubmissionError, etc.)
+- [x] Implement SlurmAdapter (220 lines)
+  - [x] Implement submit() with sbatch
+  - [x] Implement get_status() with squeue/sacct fallback
+  - [x] Implement get_info() with sacct parsing
+  - [x] Implement cancel() with scancel
+  - [x] Add status mapping logic
+- [x] Implement provenance capture (180 lines)
+  - [x] capture_modules() - Parse module list
+  - [x] capture_env_vars() - Extract OMP, SLURM vars
+  - [x] parse_slurm_script() - Extract #SBATCH directives
+  - [x] parse_pbs_script() - Extract #PBS directives
+  - [x] detect_script_type() - Auto-detect scheduler
+- [x] Implement high-level HPC API
+  - [x] JobSubmitter class (80 lines)
+  - [x] JobTracker class (130 lines)
+  - [x] JobRetriever class (140 lines)
+- [x] Add adapter unit tests (45 tests total, mock-based)
+  - [x] Test submit() success/failure (21 adapter tests)
+  - [x] Test get_status() for all states
+  - [x] Test get_info() parsing
+  - [x] Test cancel() operation
+  - [x] Test provenance capture (16 tests)
+  - [x] Test error handling
+- [x] Documentation
+  - [x] Design document (docs/09-hpc-integration-design.md)
+  - [x] User guide (docs/10-hpc-user-guide.md - 18KB)
+  - [x] Example workflow (examples/hpc-workflow/)
+
+**Phase 1 Statistics**:
+- New Python code: ~2,800 lines
+- New tests: 45 (118 total Python tests)
+- Documentation: +71KB
+
+### Phase 2: CLI Integration ✅ Complete
+
+- [x] Go: Implement Go-Python integration layer (440 lines)
+  - [x] findPythonExecutable() - Locate python3/python
+  - [x] findChemVCSPyModule() - Find module in repo
+  - [x] runPythonScript() - Execute with PYTHONPATH
+  - [x] SubmitJob(), ListJobs(), CheckJobStatus(), RetrieveResults()
+- [x] Go: Add `chemvcs submit` command
+  - [x] Parse arguments (run-hash, script path)
+  - [x] Validate Run object exists
+  - [x] Call Python HPC module
+  - [x] Handle errors gracefully
+- [x] Go: Add `chemvcs jobs` command
+  - [x] List Run objects with job_id
+  - [x] Query status for each job
+  - [x] Format output table
+  - [x] Add filtering options (--status, -v)
+- [x] Go: Add `chemvcs retrieve` command
+  - [x] Parse run-hash argument
+  - [x] Find corresponding Run object
+  - [x] Copy output files with patterns
+  - [x] Support destination directory
+- [x] Add CLI integration tests (5 test suites, 330 lines)
+  - [x] Package structure tests
+  - [x] Python availability detection
+  - [x] CLI help message validation
+  - [x] Command error handling tests
+  - [x] Mock workflow demonstrations
+- [x] Update documentation
+  - [x] Add CLI commands to user guide
+  - [x] Complete command reference
+  - [x] Update FEATURE_STATUS, README, CHANGELOG
+
+**Phase 2 Statistics**:
+- New Go code: ~770 lines
+- New tests: 5 (85 total Go tests)
+- Total tests: 203 (85 Go + 118 Python)
 - [ ] Python: Implement JobRetriever class
   - [ ] retrieve_results() method
   - [ ] Copy output files
@@ -115,51 +147,48 @@
   - [ ] parse_slurm_script() method
   - [ ] save_script_snapshot() method
 - [ ] Add provenance tests
-  - [ ] Test module capture (mocked)
-  - [ ] Test script parsing
-  - [ ] Test resource extraction
-- [ ] Integrate into submit workflow
-  - [ ] Capture before submission
-  - [ ] Store in Run object
-  - [ ] Verify in tests
 
-### Phase 4: Testing & Documentation (Week 4-5)
-- [ ] End-to-end workflow tests
-  - [ ] Test complete submit → query → retrieve
-  - [ ] Test error scenarios
-  - [ ] Test concurrent jobs
-- [ ] Create user guide (docs/10-hpc-user-guide.md)
-  - [ ] Quick start guide
-  - [ ] Command reference
-  - [ ] Example workflows
-  - [ ] Troubleshooting
-- [ ] Create example repository
-  - [ ] examples/hpc-workflow/
-  - [ ] Sample structure files
-  - [ ] Sample job scripts
-  - [ ] Tutorial walkthrough
-- [ ] Update project documentation
-  - [ ] README.md with M6 features
-  - [ ] FEATURE_STATUS.md mark M6 complete
-  - [ ] CHANGELOG.md add v0.6.0
+### Phase 3-5: Optional Enhancements (Not Started)
 
-### Phase 5: Polish (Week 5-6)
-- [ ] Code review and refactoring
-- [ ] Performance optimization
-- [ ] Additional error handling
-- [ ] Documentation improvements
-- [ ] Release v0.6.0
+These are **enhancement features** that can be added based on future needs:
 
-### Optional Extensions
-- [ ] PBS/Torque adapter
-- [ ] SGE adapter
-- [ ] Local adapter (fork processes)
-- [ ] Job array support
+**Phase 3: Additional HPC Adapters**
+- [ ] PBS/Torque adapter (similar to SlurmAdapter)
+- [ ] LSF adapter (IBM Spectrum LSF)
+- [ ] SGE adapter (Sun Grid Engine)
+- [ ] Local adapter (fork processes for testing)
+
+**Phase 4: Enhanced CLI Features**
+- [ ] Interactive job monitoring (watch mode with auto-refresh)
+- [ ] Batch job submission (submit multiple runs)
+- [ ] Job cancellation command (`chemvcs cancel <job-id>`)
 - [ ] Job dependency chains
+- [ ] Job array support
+
+**Phase 5: Optimization & Polish**
+- [ ] Performance optimization for large repositories
+- [ ] Enhanced error messages and recovery
+- [ ] Additional provenance metadata
+- [ ] Integration with job accounting systems
+- [ ] Release v0.7.0
 
 ---
 
-## Future Enhancements (Post-MVP)
+## Future Enhancements (Post-M6)
+
+### Essential Git Features
+- [ ] **Hooks system** - Automation for workflows
+  - [ ] pre-commit, post-commit hooks
+  - [ ] pre-push, post-receive hooks
+  - [ ] Hook configuration and management
+- [ ] **Tags** - Version markers for releases
+  - [ ] Lightweight tags
+  - [ ] Annotated tags with messages
+  - [ ] Tag listing and filtering
+- [ ] **Submodules** - Dependency management
+  - [ ] Add/remove submodules
+  - [ ] Submodule update
+  - [ ] Recursive operations
 
 ### Performance
 - [ ] Implement packfile format for efficient storage

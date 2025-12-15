@@ -1,7 +1,7 @@
 # ChemVCS Feature Status Overview
 
 **Last Updated**: December 2025  
-**Current Version**: M6 Phase 1 Complete
+**Current Version**: M6 Phase 2 Complete
 
 ---
 
@@ -121,9 +121,10 @@
   - Enhanced relationship tracking
   - Advanced query and filtering
 
-### M6: HPC Integration (Phase 1: 100% Core Complete) ✅
+### M6: HPC Integration (Phase 1-2: 100% Complete) ✅
 
 #### ✅ Phase 1: Core Infrastructure (Completed 2025-12)
+#### ✅ Phase 2: CLI Commands (Completed 2025-12)
 
 - ✅ **Comprehensive design document** (`docs/09-hpc-integration-design.md`)
   - Architecture and motivation

@@ -1,6 +1,6 @@
 # ChemVCS - Computational Chemistry Version Control System
 
-ChemVCS is a domain-specific version control system designed for computational chemistry workflows. It provides Git-like version control optimized for managing complex molecular structures, calculation outputs, and computational workflows.
+ChemVCS is a domain-specific version control system designed for computational chemistry workflows. It provides Git-like version control optimized for managing complex molecular structures, calculation outputs, and computational workflows with **integrated HPC job management**.
 
 ## Features
 
@@ -12,39 +12,62 @@ ChemVCS is a domain-specific version control system designed for computational c
 - **Remote repositories**: Push, pull, fetch operations via HTTP
 - **Working directory management**: Clean checkout with automatic file cleanup
 
-### Python Domain Layer (Milestone 5) 🚧 85% Complete
+### Python Domain Layer (Milestone 5) ✅ Complete
 - **Chemistry domain objects**: Structure, Run (calculations), Workflow (DAGs)
 - **File format parsers**: XYZ (molecular), POSCAR (VASP)
 - **Repository integration**: Python API for ChemVCS operations
-- **Comprehensive tests**: 28 Python tests covering all components
+- **Comprehensive tests**: 73 Python tests covering all components
 - **Example scripts**: Demonstrating molecular structures and computational workflows
+
+### HPC Integration (Milestone 6 Phase 1-2) ✅ Complete
+- **SLURM adapter**: Full job lifecycle management (submit/status/retrieve)
+- **Provenance capture**: Automatic tracking of modules, environment, resources
+- **CLI commands**: `chemvcs submit/jobs/retrieve` for HPC operations
+- **Python API**: JobSubmitter, JobTracker, JobRetriever classes
+- **Complete testing**: 45 Python HPC tests + 5 Go CLI tests
+- **Documentation**: Comprehensive user guide with examples
 
 ## Status
 
-**Current Version**: Milestone 5 (100% Core Complete)
+**Current Version**: Milestone 6 Phase 2 Complete
 
 **Test Coverage**: 
-- Go: 80 tests passing across 7 packages
-- Python: 73 tests passing across 5 test files
+- Go: 85 tests passing across 8 packages
+- Python: 118 tests passing across 8 test files
+- **Total: 203 automated tests**
 
 ### Completed Milestones
 - ✅ **M1**: Local VCS core (objects, snapshots, refs) - 38 tests
 - ✅ **M2**: Working directory and status tracking - 51 tests
 - ✅ **M3**: Fast-forward merge - 57 tests
 - ✅ **M4**: Remote repositories (client + HTTP server) - 72 tests
-- 🚧 **M5**: Python domain layer (Structure, Run, Workflow, parsers) - 100% core complete
+- ✅ **M5**: Python domain layer (Structure, Run, Workflow, parsers) - 73 tests
+- ✅ **M6 Phase 1**: HPC core infrastructure (Python) - 45 tests
+- ✅ **M6 Phase 2**: HPC CLI commands (Go) - 5 tests
 
-### Recent Additions (M5)
-1. ✅ **JSON API** - Go CLI now outputs JSON for Python integration
-2. ✅ **Python package** - chemvcs_py with 4 subpackages
-3. ✅ **Structure domain object** - Molecular/crystal structures with NumPy arrays
-4. ✅ **Run domain object** - Calculation tracking with lifecycle management
-5. ✅ **Workflow domain object** - DAG workflows with dependency management
-6. ✅ **XYZ parser** - Read/write molecular structure files
-7. ✅ **POSCAR parser** - VASP format support (Direct/Cartesian coordinates)
-8. ✅ **Python test suite** - Comprehensive pytest coverage (73 tests)
+### Recent Additions (M6 Phase 1-2)
 
-### Optional M5 Extensions
+**M6 Phase 1: Python HPC Core**
+1. ✅ **Extended Run object** - 7 HPC fields (job_id, modules, resources, etc.)
+2. ✅ **JobAdapter interface** - Abstract base for scheduler adapters
+3. ✅ **SlurmAdapter** - Complete SLURM integration (220 lines)
+4. ✅ **Provenance capture** - Modules, env vars, script parsing (180 lines)
+5. ✅ **JobSubmitter/Tracker/Retriever** - High-level HPC API (350 lines)
+6. ✅ **HPC test suite** - 45 tests with mock-based testing
+7. ✅ **Design document** - 53KB comprehensive specification
+8. ✅ **Example workflow** - Complete VASP workflow demonstration
+
+**M6 Phase 2: Go CLI Commands**
+1. ✅ **Go-Python integration** - Python executor with PYTHONPATH management
+2. ✅ **chemvcs submit** - Submit HPC jobs from CLI
+3. ✅ **chemvcs jobs** - List and filter tracked jobs
+4. ✅ **chemvcs retrieve** - Fetch completed results
+5. ✅ **CLI tests** - 5 test suites for CLI integration
+6. ✅ **Updated user guide** - CLI command reference and examples
+
+### Optional Extensions
+- ⏭️ M6 Phase 3: Additional adapters (PBS, LSF)
+- ⏭️ M6 Phase 4: Enhanced CLI (interactive monitoring, batch submission)
 - ⏭️ CIF parser (crystallographic format)
 - ⏭️ Enhanced Repository API (advanced queries)
 
@@ -135,6 +158,21 @@ chemvcs pull origin main
 chemvcs fetch origin main
 ```
 
+### HPC Operations (M6)
+
+```bash
+# Submit HPC job
+chemvcs submit <run-hash> script.slurm
+
+# List tracked jobs
+chemvcs jobs
+chemvcs jobs --status=RUNNING
+
+# Retrieve completed results
+chemvcs retrieve <run-hash>
+chemvcs retrieve <run-hash> --patterns="*.out,*.log"
+```
+
 ### Start Server
 
 ```bash
@@ -147,35 +185,57 @@ chemvcs-server -port 9000 -repo-root /path/to/repos
 
 On Windows:
 ```powershell
-.\chemvcs-server.exe -port 9000 -repo-root C:\chemvcs\
-chemvcs commit -m "Your commit message"
+.\chemvcs-server.exe -port 9000 -repo-root C:\chemvcs\repos
 ```
 
-### Branching
-```bash
+## Testing
 
-Run all tests:
-```bash
-cd go
-go test ./...
-```
+### Go Tests
 
 Run tests with coverage:
 ```bash
 go test -cover ./...
 ```
 
+### Go Tests
+
+Run all tests:
+```bash
+cd go
+go test ./...
+# 85 tests passing
+```
+
+Run with verbose output:
+```bash
+go test ./... -v
+```
+
 Run tests for a specific package:
 ```bash
-go test ./internal/model -v
+go test ./internal/hpc -v
 ```
 
-Run tests matching a pattern:
+### Python Tests
+
+Run all tests:
 ```bash
-go test -run TestMerge ./internal/repo
+cd python
+pytest tests/ -v
+# 118 tests passing
 ```
 
-### Project Structure
+Run with coverage:
+```bash
+pytest tests/ --cov=chemvcs_py --cov-report=html
+```
+
+Run specific test file:
+```bash
+pytest tests/test_run.py -v
+```
+
+## Project Structure
 
 ```
 chemvcs/
@@ -189,8 +249,20 @@ chemvcs/
 │   │   ├── repo/             # Repository operations (commit, branch, merge)
 │   │   ├── workspace/        # Working directory scanning and restoration
 │   │   ├── remote/           # Remote client (push/pull/fetch)
-│   │   └── server/           # HTTP server implementation
+│   │   ├── server/           # HTTP server implementation
+│   │   └── hpc/              # HPC integration (Go-Python bridge)
 │   └── go.mod
+├── python/
+│   ├── chemvcs_py/
+│   │   ├── core/             # Repository and CoreObject interfaces
+│   │   ├── domain/           # Structure, Run, Workflow objects
+│   │   ├── io/               # File parsers (XYZ, POSCAR)
+│   │   ├── util/             # Utilities and error handling
+│   │   └── hpc/              # HPC integration (adapters, submission, tracking)
+│   ├── tests/                # Python test suite
+│   └── examples/             # Usage examples
+├── examples/
+│   └── hpc-workflow/         # Complete HPC workflow example
 ├── docs/                      # Design documentation
 │   ├── 01-vision-and-scope.md
 │   ├── 02-architecture-overview.md
@@ -199,22 +271,14 @@ chemvcs/
 │   ├── 05-remote-protocol-and-server.md
 │   ├── 06-python-domain-layer.md
 │   ├── 07-hpc-adapter-design.md
-│   └── 08-testing-and-quality.md
-└── README.md
-```
-# Add remote
-chemvcs remote add origin http://server:8080/repo
-
-# Push changes
-chemvcs push origin main
-
-# Pull changes
-chemvcs pull origin main
-```
-
-### Start Server
-```bash
-chemvcs-server -port 8080 -repo-root /path/to/repos
+│   ├── 08-testing-and-quality.md
+│   ├── 09-hpc-integration-design.md
+│   └── 10-hpc-user-guide.md
+├── README.md
+├── FEATURE_STATUS.md
+├── PROJECT_STATUS.md
+├── TODO.md
+└── CHANGELOG.md
 ```
 
 ## Development

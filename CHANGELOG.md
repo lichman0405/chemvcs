@@ -8,16 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- M6 Phase 2-5: Go CLI commands for HPC (`chemvcs submit/jobs/retrieve`)
 - Additional HPC adapters (PBS, LSF)
 - CIF file parser (crystallography format)
 - Enhanced Repository query API
 - Hooks system
 - Tag support
 
-## [0.6.0] - 2025-12 (M6 Phase 1: HPC Integration)
+## [0.6.0] - 2025-12 (M6: HPC Integration Complete)
 
-### Added - Milestone 6 Phase 1: HPC Core Infrastructure
+### Added - Milestone 6 Phase 1-2: Full HPC Integration
+
+#### Phase 1: HPC Core Infrastructure (Python)
 
 #### HPC Module (`chemvcs_py.hpc`)
 
@@ -157,22 +158,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Demonstrates: initialization, submission, tracking, retrieval, provenance viewing
 - Multi-step workflow: relaxation → static calculation
 
-### Changed
-
-**Run Domain Object Enhancements**
-- Added 7 HPC-related fields
-- Added 2 new lifecycle methods
-- Updated serialization for backward compatibility
-- Enhanced RunStatus enum with RETRIEVED state
-
-**Python Package Structure**
-- New `hpc/` subpackage (7 modules)
-- Updated `__init__.py` exports
-- Enhanced test suite organization
-
-## [0.6.1] - 2025-12 (M6 Phase 2: Go CLI Commands)
-
-### Added - Go CLI Commands for HPC
+#### Phase 2: Go CLI Commands
 
 **Go-Python Integration Layer** (`go/internal/hpc/hpc.go` - 440 lines)
 - `findPythonExecutable()`: Locate Python interpreter (python3 or python)
@@ -206,6 +192,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+**Run Domain Object Enhancements**
+- Added 7 HPC-related fields
+- Added 2 new lifecycle methods (mark_queued, mark_retrieved)
+- Updated serialization for backward compatibility
+- Enhanced RunStatus enum with RETRIEVED state
+
+**Python Package Structure**
+- New `hpc/` subpackage (7 modules)
+- Updated `__init__.py` exports
+- Enhanced test suite organization
+
 **CLI Help Message**
 - Added "HPC Commands:" section
 - Submit, jobs, and retrieve command descriptions
@@ -237,16 +234,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Go: 85 tests (M1-M4: 80 + M6: 5)
 - Python: 118 tests (M5: 73 + M6: 45)
 
-### Git Commits (Phase 2)
-- `2cfd282`: "feat(M6): Phase 2 - Go CLI commands for HPC integration"
-
----
-
-### Code Statistics (M6 Phase 1)
-
-**New Python Code**: ~2,800 lines
-- Production: ~1,100 lines (7 HPC modules)
-- Tests: ~1,700 lines (3 test files, 45 tests)
+### Git Commits
+- Phase 1: `979a40e` - "feat(M6): Phase 1 - HPC core infrastructure complete"
+- Phase 1 docs: `24ea0b1` - "docs: Add M6 Phase 1 documentation"
+- Phase 2: `2cfd282` - "feat(M6): Phase 2 - Go CLI commands for HPC integration"
+- Phase 2 docs: `8cbb376` - "docs: Update user guide with CLI commands"
 
 **Total Python Codebase**: ~8,400 lines
 - Production: ~4,600 lines (pre-M6: 1,800 + M6: 2,800)

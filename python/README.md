@@ -1,14 +1,15 @@
 # ChemVCS Python Layer
 
-Python domain layer for ChemVCS, providing chemistry-specific abstractions on top of the Go-based VCS core.
+Python domain layer for ChemVCS, providing chemistry-specific abstractions and HPC integration on top of the Go-based VCS core.
 
 ## Features
 
 - **Repository Interface**: Interact with ChemVCS repositories from Python
 - **Domain Objects**: Chemistry-specific objects (Structure, Run, Workflow)
 - **File Parsers**: Read/write common chemistry file formats (XYZ, POSCAR)
+- **HPC Integration**: Submit and track HPC jobs with automatic provenance capture
 - **Type-safe API**: Dataclass-based models with validation
-- **Comprehensive tests**: 28 pytest tests covering all components
+- **Comprehensive tests**: 118 pytest tests covering all components
 
 ## Installation
 
@@ -151,9 +152,9 @@ tests/
 ```
 
 **Statistics**:
-- Production code: ~1,800 lines
-- Test code: ~1,100 lines
-- Test coverage: 28/28 tests passing
+- Production code: ~4,600 lines (including HPC module)
+- Test code: ~3,800 lines
+- Test coverage: 118/118 tests passing
 
 ## Development
 
