@@ -1,7 +1,7 @@
 """XYZ file format parser for molecular structures."""
 
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 
 import numpy as np
 
@@ -109,13 +109,15 @@ def read_xyz(filepath: Union[str, Path]) -> Structure:
         raise ParseError(f"Failed to parse XYZ file: {e}") from e
 
 
-def write_xyz(structure: Structure, filepath: Union[str, Path]) -> None:
+def write_xyz(structure: Structure, filepath: Union[str, Path], 
+              comment: Optional[str] = None) -> None:
     """
     Write structure to XYZ file.
     
     Args:
         structure: Structure to write
         filepath: Output file path
+        comment: Optional comment line (defaults to structure title or formula)
         
     Raises:
         ValueError: If structure has no atoms
@@ -129,8 +131,11 @@ def write_xyz(structure: Structure, filepath: Union[str, Path]) -> None:
         # Line 1: Number of atoms
         f.write(f"{structure.num_atoms}\n")
         
-        # Line 2: Comment (use title from metadata or formula)
-        title = structure.metadata.get("title", structure.formula)
+        # Line 2: Comment (use provided comment, title from metadata, or formula)
+        if comment is not None:
+            title = comment
+        else:
+            title = structure.metadata.get("title", structure.formula)
         f.write(f"{title}\n")
         
         # Lines 3+: Atom coordinates

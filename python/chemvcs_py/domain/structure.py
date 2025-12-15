@@ -77,6 +77,8 @@ class Structure:
         """
         meta = {
             "formula": self.formula,
+            "num_atoms": self.num_atoms,
+            "is_periodic": self.is_periodic,
             "positions": self.positions.tolist(),
             "species": self.species,
         }
@@ -125,7 +127,7 @@ class Structure:
         lattice = np.array(lattice_data) if lattice_data is not None else None
         
         # Extract additional metadata (exclude known fields)
-        known_keys = {"formula", "positions", "species", "lattice"}
+        known_keys = {"formula", "positions", "species", "lattice", "num_atoms", "is_periodic"}
         metadata = {k: v for k, v in obj.meta.items() if k not in known_keys}
         
         return cls(
@@ -146,24 +148,14 @@ class Structure:
         """
         return np.mean(self.positions, axis=0)
 
-    def translate(self, vector: np.ndarray) -> "Structure":
+    def translate(self, vector: np.ndarray) -> None:
         """
-        Create a new structure translated by vector.
+        Translate structure by vector (in-place).
         
         Args:
             vector: 3D translation vector
-            
-        Returns:
-            New Structure instance
         """
-        new_positions = self.positions + np.array(vector)
-        return Structure(
-            formula=self.formula,
-            positions=new_positions,
-            species=self.species.copy(),
-            lattice=self.lattice.copy() if self.lattice is not None else None,
-            metadata=self.metadata.copy()
-        )
+        self.positions = self.positions + np.array(vector)
 
     def __repr__(self) -> str:
         periodic = "periodic" if self.is_periodic else "non-periodic"

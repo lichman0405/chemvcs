@@ -788,14 +788,14 @@ func handleInspectObject(args []string) error {
 		fmt.Printf("Object: %s\n", hash)
 		fmt.Printf("Type: %s\n", obj.Type)
 		fmt.Printf("Version: %d\n", obj.Version)
-		
+
 		if len(obj.Meta) > 0 {
 			fmt.Println("\nMetadata:")
 			for k, v := range obj.Meta {
 				fmt.Printf("  %s: %v\n", k, v)
 			}
 		}
-		
+
 		if len(obj.Refs) > 0 {
 			fmt.Println("\nReferences:")
 			for i, ref := range obj.Refs {
@@ -859,4 +859,3 @@ func handleListObjects(args []string) error {
 
 	return nil
 }
-
