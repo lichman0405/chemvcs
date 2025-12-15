@@ -20,9 +20,9 @@ Traditional VCS tools like Git work for some of this, but ChemVCS is designed fr
 
 ## Current Status
 
-**Version**: Milestone 5 (100% Core Complete)  
-**Stability**: Core VCS + Python domain layer working  
-**Test Coverage**: 80 Go tests + 73 Python tests passing  
+**Version**: Milestone 6 Phase 1 Complete  
+**Stability**: Core VCS + Python domain layer + HPC integration working  
+**Test Coverage**: 80 Go tests + 118 Python tests passing  
 **Production Ready**: Not yet - under active development
 
 ChemVCS currently provides:
@@ -30,7 +30,7 @@ ChemVCS currently provides:
 - ✅ **Remote repositories**: Push, pull, fetch via HTTP
 - ✅ **Python domain layer**: Chemistry-specific objects (Structure, Run, Workflow)
 - ✅ **File format support**: XYZ and POSCAR (VASP) parsers
-- 🚧 **HPC integration**: Planned for M6
+- ✅ **HPC integration**: SLURM adapter with job tracking and provenance capture (Phase 1)
 
 See [FEATURE_STATUS.md](FEATURE_STATUS.md) for detailed feature tracking.
 
@@ -249,6 +249,18 @@ chemvcs pull origin main
 | `chemvcs checkout <branch>` | Switch branches |
 | `chemvcs merge <branch>` | Merge a branch |
 
+### HPC Integration (M6 Phase 1) 🆕
+
+| Command | Description |
+|---------|-------------|
+| Python: `JobSubmitter.submit_run()` | Submit HPC job with provenance |
+| Python: `JobTracker.check_status()` | Query job status |
+| Python: `JobRetriever.retrieve_results()` | Fetch completed results |
+
+**Note**: Go CLI commands (`chemvcs submit/jobs/retrieve`) coming in Phase 2.
+
+See [docs/10-hpc-user-guide.md](docs/10-hpc-user-guide.md) for complete HPC documentation.
+
 ### Remote Operations
 
 | Command | Description |
@@ -288,26 +300,30 @@ See [docs/10-chemvcs-vs-git.md](docs/10-chemvcs-vs-git.md) for detailed comparis
 
 ChemVCS is **under development**. Key remaining work:
 
-- ⏭️ **CIF file parser** (crystallography format)
-- ⏭️ **HPC integration** (SLURM adapter, job tracking)
-- ⏭️ **Enhanced Repository API** (advanced queries and filtering)
-- ❌ **Hooks system**
-- ❌ **Submodules**
-- ❌ **Tag support** (planned)
+- ✅ **M6 Phase 1 complete** - HPC core infrastructure with SLURM adapter
+- ⏭️ **M6 Phase 2-5** - Go CLI commands (`chemvcs submit/jobs/retrieve`)
+- ⏭️ **Additional HPC adapters** - PBS, LSF support
+- ⏭️ **CIF file parser** - Crystallography format
+- ⏭️ **Enhanced Repository API** - Advanced queries and filtering
+- ❌ **Hooks system** - Workflow automation
+- ❌ **Submodules** - Dependency management
+- ❌ **Tag support** - Version markers
 
 See [FEATURE_STATUS.md](FEATURE_STATUS.md) and [TODO.md](TODO.md) for detailed roadmap.
 
 ## Documentation
 
-- **[FEATURE_STATUS.md](FEATURE_STATUS.md)** - Comprehensive feature tracking (NEW!)
+- **[FEATURE_STATUS.md](FEATURE_STATUS.md)** - Comprehensive feature tracking (updated with M6!)
 - [PROJECT_STATUS.md](PROJECT_STATUS.md) - Development progress and milestones
 - [TODO.md](TODO.md) - Roadmap and planned features
 - [docs/](docs/) - Detailed design specifications
   - [01-vision-and-scope.md](docs/01-vision-and-scope.md) - Project vision
   - [02-architecture-overview.md](docs/02-architecture-overview.md) - System design
   - [06-python-domain-layer.md](docs/06-python-domain-layer.md) - Python package design
-  - [10-chemvcs-vs-git.md](docs/10-chemvcs-vs-git.md) - ChemVCS vs Git comparison
+  - [09-hpc-integration-design.md](docs/09-hpc-integration-design.md) - HPC integration design 🆕
+  - [10-hpc-user-guide.md](docs/10-hpc-user-guide.md) - HPC user guide 🆕
 - [python/README.md](python/README.md) - Python package documentation
+- [examples/hpc-workflow/](examples/hpc-workflow/) - Complete HPC workflow example 🆕
 
 ## Contributing
 
@@ -326,7 +342,7 @@ go test ./...
 ```bash
 cd python
 python -m pytest tests/ -v
-# Output: 28 tests passing
+# Output: 118 tests passing (73 pre-M6 + 45 M6)
 ```
 
 ### Project Structure
