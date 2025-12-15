@@ -1,6 +1,6 @@
 # HPC Workflow Example
 
-This example demonstrates a complete computational chemistry workflow using ChemVCS M6 HPC integration.
+This example demonstrates a complete computational chemistry workflow using ChemVCS M6 HPC integration (All Phases Complete).
 
 ## Overview
 
@@ -9,9 +9,9 @@ This example demonstrates a complete computational chemistry workflow using Chem
 **Workflow**:
 1. Create structure from XYZ file
 2. Create relaxation Run
-3. Submit to SLURM
-4. Monitor job status
-5. Retrieve results
+3. Submit to HPC scheduler (SLURM/PBS/LSF)
+4. Monitor job status with real-time updates
+5. Retrieve results (or cancel if needed)
 6. Create single-point Run
 7. Submit and retrieve
 
@@ -25,8 +25,8 @@ This example demonstrates a complete computational chemistry workflow using Chem
 
 ## Prerequisites
 
-- ChemVCS v0.6.0+
-- Access to SLURM cluster
+- ChemVCS v0.6.0 (M6 Complete)
+- Access to HPC cluster (SLURM, PBS, or LSF)
 - VASP installed
 
 ## Quick Start
@@ -106,8 +106,9 @@ relax_hash = repo.store_object(obj)
 repo.commit('Add geometry relaxation plan')
 ```
 
-### Step 3: Submit to SLURM
+### Step 3: Submit to HPC Scheduler
 
+**Option A: Using SLURM**
 ```python
 from chemvcs_py.hpc import SlurmAdapter, JobSubmitter
 
@@ -123,8 +124,51 @@ relax_job_id = submitter.submit_run(
 print(f"Submitted relaxation: job {relax_job_id}")
 ```
 
+**Option B: Using PBS/Torque**
+```python
+from chemvcs_py.hpc import PbsAdapter, JobSubmitter
+
+adapter = PbsAdapter()
+submitter = JobSubmitter(repo, adapter)
+
+relax_job_id = submitter.submit_run(
+    relax_run,
+    'vasp_relax.pbs',
+    job_name='water-relax',
+    queue='batch'
+)
+```
+
+**Option C: Using LSF**
+```python
+from chemvcs_py.hpc import LsfAdapter, JobSubmitter
+
+adapter = LsfAdapter()
+submitter = JobSubmitter(repo, adapter)
+
+relax_job_id = submitter.submit_run(
+    relax_run,
+    'vasp_relax.lsf',
+    job_name='water-relax',
+    cores=16  # LSF uses cores instead of nodes
+)
+```
+
+**Option D: Using CLI**
+```bash
+# Submit using CLI (auto-detects scheduler)
+chemvcs submit vasp_relax.slurm --job-name water-relax
+
+# View all jobs
+chemvcs jobs
+
+# Check specific job
+chemvcs jobs --job-id 12345
+```
+
 ### Step 4: Monitor Status
 
+**Option A: Using Python JobTracker**
 ```python
 from chemvcs_py.hpc import JobTracker
 import time
@@ -139,6 +183,58 @@ while True:
         break
     
     time.sleep(60)  # Check every minute
+```
+
+**Option B: Using JobWatcher (M6 Phase 4)**
+```python
+from chemvcs_py.hpc import JobWatcher
+
+watcher = JobWatcher(repo, adapter)
+
+# Watch with real-time updates (emoji indicators)
+final_status = watcher.watch_job(
+    relax_job_id,
+    interval=30,     # Check every 30 seconds
+    timeout=3600     # Give up after 1 hour
+)
+
+print(f"Final status: {final_status}")
+```
+
+**Option C: Using CLI watch command**
+```bash
+# Interactive monitoring with timestamps
+chemvcs watch 12345 --interval 30 --timeout 3600
+
+# Output shows real-time updates:
+# [2025-12-15 10:30:00] Job 12345: ⏳ PENDING
+# [2025-12-15 10:30:30] Job 12345: ⏳ PENDING
+# [2025-12-15 10:31:00] Job 12345: ⏳ RUNNING
+# [2025-12-15 10:45:00] Job 12345: ✅ COMPLETED
+```
+
+### Step 4b: Cancel Job (if needed)
+
+**Using Python**
+```python
+from chemvcs_py.hpc import JobTracker
+
+tracker = JobTracker(repo, adapter)
+
+# Cancel specific job
+success = tracker.cancel_job(relax_job_id)
+
+# Or cancel by run hash
+success = tracker.cancel_run(relax_hash)
+```
+
+**Using CLI**
+```bash
+# Cancel by job ID
+chemvcs cancel 12345
+
+# Cancel by run hash
+chemvcs cancel abc123def456
 ```
 
 ### Step 5: Retrieve Results
@@ -209,7 +305,7 @@ For each Run, ChemVCS automatically captures:
 
 ```python
 relax_run.job_id           # '12345'
-relax_run.job_system       # 'slurm'
+relax_run.job_system       # 'slurm' / 'pbs' / 'lsf'
 relax_run.modules_loaded   # ['vasp/6.3.0', 'intel/2021.4']
 relax_run.job_resources    # {'nodes': 2, 'ntasks_per_node': 28, ...}
 relax_run.submit_script    # Full script content
@@ -224,6 +320,7 @@ obj = repo.get_object(relax_hash)
 run = Run.from_core_object(obj)
 
 print(f"Job ID: {run.job_id}")
+print(f"Scheduler: {run.job_system}")
 print(f"Modules: {run.modules_loaded}")
 print(f"Submitted: {run.metadata['submitted_at']}")
 print(f"Finished: {run.metadata['finished_at']}")
@@ -235,7 +332,8 @@ print(f"Resources: {run.job_resources}")
 ```python
 from chemvcs_py.hpc.exceptions import (
     JobSubmissionError,
-    InvalidJobStateError
+    InvalidJobStateError,
+    JobCancellationError
 )
 
 try:
@@ -244,9 +342,15 @@ except JobSubmissionError as e:
     print(f"Submission failed: {e}")
 except InvalidJobStateError as e:
     print(f"Invalid state: {e}")
+
+# Cancel with error handling
+try:
+    tracker.cancel_job(job_id)
+except JobCancellationError as e:
+    print(f"Cancellation failed: {e}")
 ```
 
-## Testing Without SLURM
+## Testing Without HPC Cluster
 
 Use mock adapter for local testing:
 
@@ -290,11 +394,32 @@ submitter = JobSubmitter(repo, adapter)
 
 ## Troubleshooting
 
-**Job fails immediately**: Check VASP input files (INCAR, POTCAR, KPOINTS)
+**Job submission fails**: Check scheduler-specific requirements (PBS needs queue, LSF needs cores)
 
 **Module capture empty**: Source module init in job script
 
-**Cannot find completed job**: Job may be purged, check `sacct`
+**Cannot find completed job**: Job may be purged, check scheduler history (sacct/bjobs -a/qstat -x)
+
+**Watch command hangs**: Set reasonable timeout, check network connectivity
+
+## CLI Quick Reference
+
+```bash
+# Submit job
+chemvcs submit script.slurm --job-name my-job
+
+# List all jobs
+chemvcs jobs
+
+# Watch job (real-time)
+chemvcs watch 12345 --interval 30
+
+# Cancel job
+chemvcs cancel 12345
+
+# Retrieve results
+chemvcs retrieve 12345 --output-dir results/
+```
 
 ## References
 
