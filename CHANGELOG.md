@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.5.0] - 2025-12-15
 
-### Added - Milestone 5: Python Domain Layer (85% Complete)
+### Added - Milestone 5: Python Domain Layer (100% Core Complete)
 
 #### Python Package (`chemvcs_py`)
 - **Structure domain object** (195 lines)
@@ -68,8 +68,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - JSON serialization/deserialization
 
 #### Testing
-- **Python test suite** (582 lines, 28 tests)
+- **Python test suite** (1,100+ lines, 73 tests)
   - test_structure.py: 10 tests (creation, validation, operations, conversion)
+  - test_run.py: 18 tests (lifecycle, status transitions, result management, conversion)
+  - test_workflow.py: 27 tests (node/edge, cycle detection, topological sort, conversion)
   - test_xyz.py: 8 tests (read, write, errors, round-trip)
   - test_poscar.py: 10 tests (Direct/Cartesian, validation, round-trip)
   - pytest configuration with fixtures and temp files
@@ -98,11 +100,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed: empty results return [] instead of null
 
 #### Documentation
-- **FEATURE_STATUS.md** (251 lines)
+- **FEATURE_STATUS.md** (280 lines)
   - Comprehensive feature tracking document
   - M1-M4: 100% complete
-  - M5: 85% complete with detailed breakdown
-  - Clear remaining work items
+  - M5: 100% core complete (optional extensions remaining)
+  - Clear remaining work items and priorities
+  - Fixed duplicate content issues
 
 - **STRUCTURE.md** (250+ lines)
   - Complete directory layout with line counts
@@ -114,7 +117,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Updated README.md**
   - Python installation instructions
   - Python usage examples (Structure, Run, Workflow)
-  - Current status updated to M5 85%
+  - Current status updated to M5 100% core complete
+  - Test coverage: 80 Go + 73 Python tests
   - Links to comprehensive documentation
 
 - **Updated python/README.md**

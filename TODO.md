@@ -1,6 +1,6 @@
 # ChemVCS TODO List
 
-## Milestone 5: Python Domain Layer (M5) - 85% Complete ✅
+## Milestone 5: Python Domain Layer (M5) - 100% Core Complete ✅
 
 ### Completed Tasks ✅
 - ✅ Design Python package structure (`chemvcs_py`)
@@ -17,18 +17,20 @@
   - ✅ XYZ files (read/write with validation)
   - ✅ POSCAR files (VASP format, Direct/Cartesian coords)
 - ✅ Write Python tests and examples
-  - ✅ 28 pytest tests (Structure, XYZ, POSCAR)
+  - ✅ 73 pytest tests (Structure, Run, Workflow, XYZ, POSCAR)
   - ✅ basic_usage.py example
   - ✅ run_workflow_example.py with DAG demonstration
 - ✅ Document Python API
   - ✅ Python package README
   - ✅ Design doc (06-python-domain-layer.md)
+- ✅ Clean up documentation
+  - ✅ Remove duplicate content from FEATURE_STATUS.md
+  - ✅ Update test counts and completion status
 
-### Remaining Tasks (Lower Priority)
+### Optional Extensions (Lower Priority)
 - ⏭️ CIF file parser (crystallography format)
-- ⏭️ Additional domain object tests (Run, Workflow specific)
 - ⏭️ Enhanced diff/merge for molecular structures
-- ⏭️ Advanced Repository API features
+- ⏭️ Advanced Repository API features (relationship tracking)
 
 ### Documentation
 - ✅ Python API usage examples
