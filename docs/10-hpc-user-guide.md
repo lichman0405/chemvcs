@@ -26,8 +26,9 @@ This guide covers installation, configuration, and common workflows.
 - Access to an HPC cluster (optional for local testing)
 
 ### Supported Schedulers
-- **SLURM** (fully implemented)
-- **PBS/Torque** (script parsing only, adapter TBD)
+- **SLURM** (fully implemented) - sbatch, squeue, sacct, scancel
+- **PBS/Torque** (fully implemented) - qsub, qstat, qdel
+- **LSF** (fully implemented) - bsub, bjobs, bkill
 - **SGE** (script parsing only, adapter TBD)
 
 ---
@@ -156,13 +157,19 @@ repo.commit('Add VASP single-point calculation')
 print(f"Run: {run_hash}")
 ```
 
-**3. Submit to SLURM**
+**3. Submit to HPC Scheduler**
 
 ```python
-from chemvcs_py.hpc import SlurmAdapter, JobSubmitter
+from chemvcs_py.hpc import SlurmAdapter, PbsAdapter, LsfAdapter, JobSubmitter
 
-# Initialize adapter and submitter
+# Choose adapter based on your cluster:
+# For SLURM:
 adapter = SlurmAdapter()
+# For PBS/Torque:
+# adapter = PbsAdapter()
+# For LSF:
+# adapter = LsfAdapter()
+
 submitter = JobSubmitter(repo, adapter)
 
 # Submit (captures environment automatically)
@@ -201,9 +208,9 @@ print(f"Energy: {run.get_energy()} eV")
 
 ---
 
-## SLURM Job Scripts
+## Job Scheduler Scripts
 
-### Basic VASP Script
+### SLURM Script Example
 
 ```bash
 #!/bin/bash
@@ -227,7 +234,7 @@ ChemVCS automatically:
 - Parses resource requests (2 nodes, 28 tasks/node, 24h walltime)
 - Saves complete script snapshot
 
-### PBS/Torque Script
+### PBS/Torque Script Example
 
 ```bash
 #!/bin/bash
@@ -235,10 +242,25 @@ ChemVCS automatically:
 #PBS -l nodes=2:ppn=16
 #PBS -l walltime=12:00:00
 #PBS -q batch
+#PBS -o vasp.out
 
 cd $PBS_O_WORKDIR
 module load vasp
 mpirun vasp_std
+```
+
+### LSF Script Example
+
+```bash
+#!/bin/bash
+#BSUB -J vasp_water
+#BSUB -n 32
+#BSUB -W 12:00
+#BSUB -q normal
+#BSUB -o vasp.out
+
+module load vasp
+mpirun -np 32 vasp_std
 ```
 
 ---

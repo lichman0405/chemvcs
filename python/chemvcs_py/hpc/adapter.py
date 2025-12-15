@@ -23,6 +23,7 @@ class JobInfo:
     status: JobStatus
     queue: Optional[str] = None
     nodes: Optional[int] = None
+    cores: Optional[int] = None  # CPU cores/slots (for LSF, etc.)
     start_time: Optional[str] = None
     end_time: Optional[str] = None
     exit_code: Optional[int] = None

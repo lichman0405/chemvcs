@@ -6,6 +6,8 @@ for submitting computational runs and tracking their execution.
 
 from .adapter import JobAdapter, JobStatus, JobInfo
 from .slurm_adapter import SlurmAdapter
+from .pbs_adapter import PbsAdapter
+from .lsf_adapter import LsfAdapter
 from .exceptions import (
     HpcError,
     JobSubmissionError,
@@ -23,6 +25,8 @@ __all__ = [
     "JobStatus",
     "JobInfo",
     "SlurmAdapter",
+    "PbsAdapter",
+    "LsfAdapter",
     "HpcError",
     "JobSubmissionError",
     "JobNotFoundError",
