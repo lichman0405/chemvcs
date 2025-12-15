@@ -309,3 +309,196 @@ class TestRun:
         assert "running" in repr_str
         assert "ORCA" in repr_str
         assert "struct_" in repr_str
+
+
+class TestRunHPC:
+    """Test cases for Run HPC integration (M6)."""
+    
+    def test_mark_queued(self):
+        """Test marking run as queued in job scheduler."""
+        run = Run(
+            structure_id="struct_001",
+            code="VASP",
+            status="planned"
+        )
+        
+        run.mark_queued(job_id="12345", job_system="slurm", queue="batch")
+        
+        assert run.job_id == "12345"
+        assert run.job_system == "slurm"
+        assert run.queue_name == "batch"
+        assert "queued_at" in run.metadata
+    
+    def test_mark_queued_without_queue(self):
+        """Test marking run as queued without specifying queue."""
+        run = Run(
+            structure_id="struct_001",
+            code="VASP",
+            status="planned"
+        )
+        
+        run.mark_queued(job_id="12345", job_system="slurm")
+        
+        assert run.job_id == "12345"
+        assert run.job_system == "slurm"
+        assert run.queue_name is None
+    
+    def test_mark_retrieved(self):
+        """Test marking run as retrieved with output data."""
+        run = Run(
+            structure_id="struct_001",
+            code="VASP",
+            status="finished"
+        )
+        
+        output_data = {
+            "total_energy": -123.456,
+            "forces": [[0.1, 0.2, 0.3]]
+        }
+        
+        run.mark_retrieved(output_data=output_data)
+        
+        assert "retrieved_at" in run.metadata
+        assert run.results["total_energy"] == -123.456
+        assert run.results["forces"] == [[0.1, 0.2, 0.3]]
+    
+    def test_mark_retrieved_without_data(self):
+        """Test marking run as retrieved without output data."""
+        run = Run(
+            structure_id="struct_001",
+            code="VASP",
+            status="finished"
+        )
+        
+        run.mark_retrieved()
+        
+        assert "retrieved_at" in run.metadata
+        assert run.results == {}
+    
+    def test_hpc_fields_in_to_core_object(self):
+        """Test HPC fields are serialized to CoreObject."""
+        run = Run(
+            structure_id="struct_001",
+            code="VASP",
+            status="submitted"
+        )
+        
+        run.job_id = "12345"
+        run.job_system = "slurm"
+        run.queue_name = "batch"
+        run.submit_script = "#!/bin/bash\n#SBATCH --nodes=2"
+        run.modules_loaded = ["vasp/6.3.0", "intel/2021.4"]
+        run.environment_vars = {"OMP_NUM_THREADS": "4"}
+        run.job_resources = {"nodes": 2, "ntasks_per_node": 28}
+        
+        core_obj = run.to_core_object()
+        
+        assert core_obj.meta["job_id"] == "12345"
+        assert core_obj.meta["job_system"] == "slurm"
+        assert core_obj.meta["queue_name"] == "batch"
+        assert "#!/bin/bash" in core_obj.meta["submit_script"]
+        assert core_obj.meta["modules_loaded"] == ["vasp/6.3.0", "intel/2021.4"]
+        assert core_obj.meta["environment_vars"] == {"OMP_NUM_THREADS": "4"}
+        assert core_obj.meta["job_resources"] == {"nodes": 2, "ntasks_per_node": 28}
+    
+    def test_hpc_fields_in_from_core_object(self):
+        """Test HPC fields are deserialized from CoreObject."""
+        core_obj = CoreObject(
+            version=1,
+            type="run",
+            meta={
+                "structure_id": "struct_001",
+                "code": "VASP",
+                "status": "submitted",
+                "job_id": "12345",
+                "job_system": "slurm",
+                "queue_name": "batch",
+                "submit_script": "#!/bin/bash\n#SBATCH --nodes=2",
+                "modules_loaded": ["vasp/6.3.0", "intel/2021.4"],
+                "environment_vars": {"OMP_NUM_THREADS": "4"},
+                "job_resources": {"nodes": 2, "ntasks_per_node": 28}
+            },
+            refs=[]
+        )
+        
+        run = Run.from_core_object(core_obj)
+        
+        assert run.job_id == "12345"
+        assert run.job_system == "slurm"
+        assert run.queue_name == "batch"
+        assert "#!/bin/bash" in run.submit_script
+        assert run.modules_loaded == ["vasp/6.3.0", "intel/2021.4"]
+        assert run.environment_vars == {"OMP_NUM_THREADS": "4"}
+        assert run.job_resources == {"nodes": 2, "ntasks_per_node": 28}
+    
+    def test_hpc_round_trip_conversion(self):
+        """Test round-trip conversion preserves HPC data."""
+        original = Run(
+            structure_id="struct_001",
+            code="VASP",
+            status="submitted",
+            job_id="12345",
+            job_system="slurm",
+            queue_name="batch",
+            submit_script="#!/bin/bash\n#SBATCH --nodes=2",
+            modules_loaded=["vasp/6.3.0", "intel/2021.4"],
+            environment_vars={"OMP_NUM_THREADS": "4"},
+            job_resources={"nodes": 2, "ntasks_per_node": 28}
+        )
+        
+        core_obj = original.to_core_object()
+        reconstructed = Run.from_core_object(core_obj)
+        
+        assert reconstructed.job_id == original.job_id
+        assert reconstructed.job_system == original.job_system
+        assert reconstructed.queue_name == original.queue_name
+        assert reconstructed.submit_script == original.submit_script
+        assert reconstructed.modules_loaded == original.modules_loaded
+        assert reconstructed.environment_vars == original.environment_vars
+        assert reconstructed.job_resources == original.job_resources
+    
+    def test_complete_hpc_workflow(self):
+        """Test complete HPC workflow: plan → submit → queue → retrieve."""
+        # 1. Create planned run
+        run = Run(
+            structure_id="struct_001",
+            code="VASP",
+            parameters={"encut": 400},
+            status="planned"
+        )
+        
+        assert run.status == "planned"
+        assert run.job_id is None
+        
+        # 2. Submit to scheduler (mark_submitted sets status, mark_queued adds job info)
+        run.mark_submitted()
+        assert run.status == "submitted"
+        
+        run.mark_queued(job_id="12345", job_system="slurm", queue="batch")
+        run.submit_script = "#!/bin/bash\n#SBATCH --nodes=2"
+        run.modules_loaded = ["vasp/6.3.0"]
+        
+        assert run.job_id == "12345"
+        assert run.job_system == "slurm"
+        
+        # 3. Job starts running
+        run.mark_running()
+        assert run.status == "running"
+        
+        # 4. Job completes
+        run.mark_finished()
+        assert run.status == "finished"
+        
+        # 5. Retrieve results
+        run.mark_retrieved(output_data={"total_energy": -123.456})
+        assert "retrieved_at" in run.metadata
+        assert run.results["total_energy"] == -123.456
+        
+        # 6. Verify all metadata preserved
+        core_obj = run.to_core_object()
+        reconstructed = Run.from_core_object(core_obj)
+        
+        assert reconstructed.status == "finished"
+        assert reconstructed.job_id == "12345"
+        assert reconstructed.results["total_energy"] == -123.456
+

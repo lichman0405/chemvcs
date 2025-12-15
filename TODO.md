@@ -39,29 +39,123 @@
 
 ---
 
-## Milestone 6: HPC Integration (M6)
+## Milestone 6: HPC Integration (M6) - In Progress
 
-### Core Tasks
-- [ ] Design SLURM adapter interface
-- [ ] Implement job submission tracking
-  - [ ] Capture job ID in commit metadata
-  - [ ] Link outputs back to commits
-- [ ] Add HPC-specific commands
-  - [ ] `chemvcs submit` - Submit job and commit
-  - [ ] `chemvcs jobs` - List tracked jobs
-  - [ ] `chemvcs retrieve` - Fetch completed job outputs
-- [ ] Implement job status monitoring
-- [ ] Add provenance metadata for computational jobs
-  - [ ] Compute environment (modules, versions)
-  - [ ] Job script
-  - [ ] Resource usage
-- [ ] Write integration tests with SLURM
-- [ ] Document HPC workflow patterns
+**Design Document**: docs/09-hpc-integration-design.md
 
-### Documentation
-- [ ] HPC setup guide
-- [ ] SLURM integration examples
-- [ ] Best practices for computational provenance
+### Phase 1: Core Infrastructure (Week 1-2)
+- [x] Create M6 design document
+- [ ] Extend Run object with HPC fields
+  - [ ] Add job_id, job_system, queue_name fields
+  - [ ] Add provenance fields (modules, resources, script)
+  - [ ] Add mark_queued(), mark_retrieved() methods
+  - [ ] Update to_core_object() / from_core_object()
+- [ ] Add Run HPC tests
+  - [ ] Test HPC field serialization
+  - [ ] Test mark_queued() method
+  - [ ] Test mark_retrieved() method
+  - [ ] Test round-trip with HPC data
+- [ ] Design JobAdapter interface
+  - [ ] Define abstract base class
+  - [ ] Define JobStatus enum
+  - [ ] Define JobInfo dataclass
+  - [ ] Define exception hierarchy
+- [ ] Implement SlurmAdapter
+  - [ ] Implement submit() with subprocess mock
+  - [ ] Implement get_status() with squeue
+  - [ ] Implement get_info() with sacct
+  - [ ] Implement cancel() with scancel
+  - [ ] Add status parsing logic
+- [ ] Add adapter unit tests (mock-based)
+  - [ ] Test submit() success/failure
+  - [ ] Test get_status() for all states
+  - [ ] Test get_info() parsing
+  - [ ] Test cancel() operation
+  - [ ] Test error handling
+
+### Phase 2: CLI Integration (Week 2-3)
+- [ ] Go: Add `chemvcs submit` command
+  - [ ] Parse arguments (run-id, script path)
+  - [ ] Validate Run object exists
+  - [ ] Call Python HPC module
+  - [ ] Handle errors gracefully
+- [ ] Go: Add `chemvcs jobs` command
+  - [ ] List Run objects with job_id
+  - [ ] Query status for each job
+  - [ ] Format output table
+  - [ ] Add filtering options
+- [ ] Go: Add `chemvcs retrieve` command
+  - [ ] Parse job-id argument
+  - [ ] Find corresponding Run object
+  - [ ] Copy output files
+  - [ ] Create commit
+- [ ] Python: Implement JobSubmitter class
+  - [ ] submit_run() method
+  - [ ] Capture environment
+  - [ ] Update Run object
+  - [ ] Store to repository
+- [ ] Python: Implement JobTracker class
+  - [ ] list_jobs() method
+  - [ ] get_job_status() method
+  - [ ] find_run_by_job_id() method
+- [ ] Python: Implement JobRetriever class
+  - [ ] retrieve_results() method
+  - [ ] Copy output files
+  - [ ] Update Run object
+  - [ ] Create commit
+- [ ] Add CLI integration tests
+  - [ ] Test submit workflow
+  - [ ] Test jobs listing
+  - [ ] Test retrieve workflow
+
+### Phase 3: Provenance (Week 3-4)
+- [ ] Implement EnvironmentCapture
+  - [ ] capture_modules() method
+  - [ ] capture_env_vars() method
+  - [ ] parse_slurm_script() method
+  - [ ] save_script_snapshot() method
+- [ ] Add provenance tests
+  - [ ] Test module capture (mocked)
+  - [ ] Test script parsing
+  - [ ] Test resource extraction
+- [ ] Integrate into submit workflow
+  - [ ] Capture before submission
+  - [ ] Store in Run object
+  - [ ] Verify in tests
+
+### Phase 4: Testing & Documentation (Week 4-5)
+- [ ] End-to-end workflow tests
+  - [ ] Test complete submit → query → retrieve
+  - [ ] Test error scenarios
+  - [ ] Test concurrent jobs
+- [ ] Create user guide (docs/10-hpc-user-guide.md)
+  - [ ] Quick start guide
+  - [ ] Command reference
+  - [ ] Example workflows
+  - [ ] Troubleshooting
+- [ ] Create example repository
+  - [ ] examples/hpc-workflow/
+  - [ ] Sample structure files
+  - [ ] Sample job scripts
+  - [ ] Tutorial walkthrough
+- [ ] Update project documentation
+  - [ ] README.md with M6 features
+  - [ ] FEATURE_STATUS.md mark M6 complete
+  - [ ] CHANGELOG.md add v0.6.0
+
+### Phase 5: Polish (Week 5-6)
+- [ ] Code review and refactoring
+- [ ] Performance optimization
+- [ ] Additional error handling
+- [ ] Documentation improvements
+- [ ] Release v0.6.0
+
+### Optional Extensions
+- [ ] PBS/Torque adapter
+- [ ] SGE adapter
+- [ ] Local adapter (fork processes)
+- [ ] Job array support
+- [ ] Job dependency chains
 
 ---
 

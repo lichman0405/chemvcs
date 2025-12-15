@@ -23,6 +23,15 @@ class Run:
         resources: Computational resources requested/used
         metadata: Additional metadata
         id: Optional hash if loaded from repository
+        
+        # HPC Integration (M6)
+        job_id: Job ID from scheduler (SLURM, PBS, etc.)
+        job_system: Job scheduler type ("slurm", "pbs", "sge", "local")
+        queue_name: Queue/partition name where job was submitted
+        submit_script: Full content of the job submission script
+        modules_loaded: List of environment modules loaded
+        environment_vars: Environment variables captured at submission
+        job_resources: Detailed resource requirements from script
     """
     structure_id: str
     code: str
@@ -33,6 +42,15 @@ class Run:
     resources: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
     id: Optional[str] = None
+    
+    # HPC fields (M6)
+    job_id: Optional[str] = None
+    job_system: Optional[str] = None
+    queue_name: Optional[str] = None
+    submit_script: Optional[str] = None
+    modules_loaded: List[str] = field(default_factory=list)
+    environment_vars: Dict[str, str] = field(default_factory=dict)
+    job_resources: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         """Validate run data."""
@@ -110,6 +128,32 @@ class Run:
         self.metadata["failed_at"] = datetime.now().isoformat()
         if error:
             self.metadata["error"] = error
+    
+    def mark_queued(self, job_id: str, job_system: str, queue: Optional[str] = None) -> None:
+        """
+        Mark run as queued in job scheduler.
+        
+        Args:
+            job_id: Job ID from scheduler
+            job_system: Scheduler type (e.g., "slurm", "pbs")
+            queue: Optional queue/partition name
+        """
+        self.job_id = job_id
+        self.job_system = job_system
+        if queue:
+            self.queue_name = queue
+        self.metadata["queued_at"] = datetime.now().isoformat()
+    
+    def mark_retrieved(self, output_data: Optional[Dict[str, Any]] = None) -> None:
+        """
+        Mark run as retrieved (outputs fetched from compute system).
+        
+        Args:
+            output_data: Optional output data to store in results
+        """
+        self.metadata["retrieved_at"] = datetime.now().isoformat()
+        if output_data:
+            self.results.update(output_data)
 
     def to_core_object(self) -> CoreObject:
         """
@@ -129,6 +173,22 @@ class Run:
         
         if self.code_version:
             meta["code_version"] = self.code_version
+        
+        # Add HPC fields if present (M6)
+        if self.job_id:
+            meta["job_id"] = self.job_id
+        if self.job_system:
+            meta["job_system"] = self.job_system
+        if self.queue_name:
+            meta["queue_name"] = self.queue_name
+        if self.submit_script:
+            meta["submit_script"] = self.submit_script
+        if self.modules_loaded:
+            meta["modules_loaded"] = self.modules_loaded
+        if self.environment_vars:
+            meta["environment_vars"] = self.environment_vars
+        if self.job_resources:
+            meta["job_resources"] = self.job_resources
         
         # Merge additional metadata
         meta.update(self.metadata)
@@ -175,10 +235,22 @@ class Run:
         results = obj.get_meta("results", {})
         resources = obj.get_meta("resources", {})
         
+        # Extract HPC fields (M6)
+        job_id = obj.get_meta("job_id")
+        job_system = obj.get_meta("job_system")
+        queue_name = obj.get_meta("queue_name")
+        submit_script = obj.get_meta("submit_script")
+        modules_loaded = obj.get_meta("modules_loaded", [])
+        environment_vars = obj.get_meta("environment_vars", {})
+        job_resources = obj.get_meta("job_resources", {})
+        
         # Extract additional metadata (exclude known fields)
         known_keys = {
             "structure_id", "code", "code_version", "status",
-            "parameters", "results", "resources"
+            "parameters", "results", "resources",
+            # HPC fields
+            "job_id", "job_system", "queue_name", "submit_script",
+            "modules_loaded", "environment_vars", "job_resources"
         }
         metadata = {k: v for k, v in obj.meta.items() if k not in known_keys}
         
@@ -191,7 +263,15 @@ class Run:
             results=results,
             resources=resources,
             metadata=metadata,
-            id=obj.hash
+            id=obj.hash,
+            # HPC fields
+            job_id=job_id,
+            job_system=job_system,
+            queue_name=queue_name,
+            submit_script=submit_script,
+            modules_loaded=modules_loaded,
+            environment_vars=environment_vars,
+            job_resources=job_resources
         )
 
     def __repr__(self) -> str:
