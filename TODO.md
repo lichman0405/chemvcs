@@ -1,7 +1,5 @@
 # ChemVCS TODO List
 
-# ChemVCS TODO List
-
 ## Milestone 5: Python Domain Layer (M5) - ✅ Complete
 
 ### Completed Tasks ✅
