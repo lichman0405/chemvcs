@@ -19,22 +19,24 @@ ChemVCS is a domain-specific version control system designed for computational c
 - **Comprehensive tests**: 73 Python tests covering all components
 - **Example scripts**: Demonstrating molecular structures and computational workflows
 
-### HPC Integration (Milestone 6 Phase 1-2) ✅ Complete
-- **SLURM adapter**: Full job lifecycle management (submit/status/retrieve)
+### HPC Integration (Milestone 6 - All Phases) ✅ Complete
+- **Multi-scheduler support**: SLURM, PBS/Torque, LSF adapters
+- **Full job lifecycle**: Submit, track, retrieve, cancel, monitor
 - **Provenance capture**: Automatic tracking of modules, environment, resources
-- **CLI commands**: `chemvcs submit/jobs/retrieve` for HPC operations
-- **Python API**: JobSubmitter, JobTracker, JobRetriever classes
-- **Complete testing**: 45 Python HPC tests + 5 Go CLI tests
+- **CLI commands**: `chemvcs submit/jobs/retrieve/cancel/watch` for HPC operations
+- **Python API**: JobSubmitter, JobTracker, JobRetriever, JobWatcher classes
+- **Interactive monitoring**: Real-time job status updates with `watch` command
+- **Complete testing**: 84 Python HPC tests + 5 Go CLI tests
 - **Documentation**: Comprehensive user guide with examples
 
 ## Status
 
-**Current Version**: Milestone 6 Phase 2 Complete
+**Current Version**: Milestone 6 Complete (All Phases)
 
 **Test Coverage**: 
 - Go: 85 tests passing across 8 packages
-- Python: 118 tests passing across 8 test files
-- **Total: 203 automated tests**
+- Python: 157 tests passing across 10 test files
+- **Total: 242 automated tests**
 
 ### Completed Milestones
 - ✅ **M1**: Local VCS core (objects, snapshots, refs) - 38 tests
@@ -44,8 +46,10 @@ ChemVCS is a domain-specific version control system designed for computational c
 - ✅ **M5**: Python domain layer (Structure, Run, Workflow, parsers) - 73 tests
 - ✅ **M6 Phase 1**: HPC core infrastructure (Python) - 45 tests
 - ✅ **M6 Phase 2**: HPC CLI commands (Go) - 5 tests
+- ✅ **M6 Phase 3**: Additional adapters (PBS, LSF) - 39 tests
+- ✅ **M6 Phase 4**: Enhanced CLI (cancel, watch) - 0 new tests (integrated)
 
-### Recent Additions (M6 Phase 1-2)
+### Recent Additions (M6 Phase 1-4)
 
 **M6 Phase 1: Python HPC Core**
 1. ✅ **Extended Run object** - 7 HPC fields (job_id, modules, resources, etc.)
@@ -65,9 +69,30 @@ ChemVCS is a domain-specific version control system designed for computational c
 5. ✅ **CLI tests** - 5 test suites for CLI integration
 6. ✅ **Updated user guide** - CLI command reference and examples
 
-### Optional Extensions
-- ⏭️ M6 Phase 3: Additional adapters (PBS, LSF)
-- ⏭️ M6 Phase 4: Enhanced CLI (interactive monitoring, batch submission)
+**M6 Phase 3: Additional Adapters**
+1. ✅ **PbsAdapter** - PBS/Torque integration (209 lines)
+2. ✅ **LsfAdapter** - LSF integration (212 lines)
+3. ✅ **Comprehensive tests** - 18 PBS tests + 21 LSF tests (39 total)
+4. ✅ **Extended JobInfo** - Added cores field for LSF
+5. ✅ **Updated documentation** - PBS/LSF examples in user guide
+
+**M6 Phase 4: Enhanced CLI Features**
+1. ✅ **Job cancellation** - `chemvcs cancel` command
+   - Cancel by run hash or job ID
+   - Automatic adapter detection
+   - Updates Run status to cancelled
+2. ✅ **Interactive monitoring** - `chemvcs watch` command
+   - Real-time status updates with timestamps
+   - Configurable polling interval
+   - Optional timeout support
+   - Clean emoji indicators (⏳⏸️✅❌🚫)
+3. ✅ **JobWatcher class** - Python monitoring API (195 lines)
+4. ✅ **Updated help messages** - Complete CLI reference
+
+### Optional Future Extensions
+- ⏭️ Job arrays and dependencies
+- ⏭️ Batch workflow submission
+- ⏭️ Web dashboard for job monitoring
 - ⏭️ CIF parser (crystallographic format)
 - ⏭️ Enhanced Repository API (advanced queries)
 
