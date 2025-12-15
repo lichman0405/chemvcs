@@ -349,3 +349,78 @@ except Exception as e:
 
 	return result.Files, nil
 }
+
+// CancelJob cancels an HPC job by run hash or job ID
+func CancelJob(repoPath string, identifier string) error {
+	script := `
+import sys
+import json
+from pathlib import Path
+from chemvcs_py import Repo
+from chemvcs_py.hpc import SlurmAdapter, PbsAdapter, LsfAdapter, JobTracker
+from chemvcs_py.hpc.exceptions import JobNotFoundError, JobCancellationError
+
+repo_path = sys.argv[1]
+identifier = sys.argv[2]
+
+try:
+    repo = Repo(repo_path)
+    
+    # Try each adapter until one works
+    adapters = [SlurmAdapter(), PbsAdapter(), LsfAdapter()]
+    success = False
+    
+    for adapter in adapters:
+        if not adapter.validate():
+            continue
+        
+        tracker = JobTracker(repo, adapter)
+        
+        # Try cancelling by run hash first
+        try:
+            if tracker.cancel_run(identifier):
+                success = True
+                result = {
+                    "status": "cancelled",
+                    "identifier": identifier,
+                    "adapter": adapter.name
+                }
+                print(json.dumps(result))
+                sys.exit(0)
+        except JobNotFoundError:
+            # Try cancelling by job ID
+            try:
+                if tracker.cancel_job(identifier):
+                    success = True
+                    result = {
+                        "status": "cancelled",
+                        "identifier": identifier,
+                        "adapter": adapter.name
+                    }
+                    print(json.dumps(result))
+                    sys.exit(0)
+            except JobNotFoundError:
+                continue
+    
+    if not success:
+        raise JobNotFoundError(f"Job or run not found: {identifier}")
+    
+except Exception as e:
+    print(json.dumps({"error": str(e)}), file=sys.stderr)
+    sys.exit(1)
+`
+
+	output, err := runPythonScript(script, repoPath, identifier)
+	if err != nil {
+		return err
+	}
+
+	var result struct {
+		Status string `json:"status"`
+	}
+	if err := json.Unmarshal(output, &result); err != nil {
+		return fmt.Errorf("failed to parse cancellation result: %w", err)
+	}
+
+	return nil
+}

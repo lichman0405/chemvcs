@@ -13,7 +13,8 @@ from .exceptions import (
     JobSubmissionError,
     JobNotFoundError,
     AdapterNotAvailableError,
-    InvalidJobStateError
+    InvalidJobStateError,
+    JobCancellationError,
 )
 from .provenance import EnvironmentCapture
 from .submission import JobSubmitter
@@ -32,6 +33,7 @@ __all__ = [
     "JobNotFoundError",
     "AdapterNotAvailableError",
     "InvalidJobStateError",
+    "JobCancellationError",
     "EnvironmentCapture",
     "JobSubmitter",
     "JobTracker",

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from ..core.repo import Repo
 from ..domain.run import Run
 from .adapter import JobAdapter, JobStatus
-from .exceptions import JobNotFoundError
+from .exceptions import JobNotFoundError, JobCancellationError
 
 
 @dataclass
@@ -154,6 +154,72 @@ class JobTracker:
                 continue
         
         return runs
+    
+    def cancel_job(self, job_id: str) -> bool:
+        """
+        Cancel a running or pending job.
+        
+        Args:
+            job_id: Job identifier
+            
+        Returns:
+            True if cancellation successful
+            
+        Raises:
+            JobNotFoundError: If job or run not found
+            JobCancellationError: If cancellation fails
+        """
+        # Find the associated Run
+        run = self.find_run_by_job_id(job_id)
+        if not run:
+            raise JobNotFoundError(f"No run found for job {job_id}")
+        
+        # Cancel via adapter
+        success = self.adapter.cancel(job_id)
+        if not success:
+            raise JobCancellationError(f"Failed to cancel job {job_id}")
+        
+        # Update Run status
+        run.status = "cancelled"
+        run.metadata['cancelled_at'] = self._get_timestamp()
+        
+        # Store updated Run
+        obj = run.to_core_object()
+        self.repo.store_object(obj)
+        
+        return True
+    
+    def cancel_run(self, run_hash: str) -> bool:
+        """
+        Cancel a job by Run hash.
+        
+        Args:
+            run_hash: Hash of the Run object
+            
+        Returns:
+            True if cancellation successful
+            
+        Raises:
+            JobNotFoundError: If run not found or no job_id
+            JobCancellationError: If cancellation fails
+        """
+        # Get Run object
+        try:
+            obj = self.repo.get_object(run_hash)
+            run = Run.from_core_object(obj)
+        except Exception as e:
+            raise JobNotFoundError(f"Run {run_hash} not found: {e}")
+        
+        if not run.job_id:
+            raise JobNotFoundError(f"Run {run_hash} has no associated job")
+        
+        return self.cancel_job(run.job_id)
+    
+    @staticmethod
+    def _get_timestamp() -> str:
+        """Get current timestamp in ISO format."""
+        from datetime import datetime
+        return datetime.utcnow().isoformat() + 'Z'
     
     @staticmethod
     def _run_status_to_job_status(run_status: str) -> JobStatus:

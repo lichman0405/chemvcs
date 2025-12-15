@@ -60,6 +60,8 @@ func main() {
 		err = handleJobs(args)
 	case "retrieve":
 		err = handleRetrieve(args)
+	case "cancel":
+		err = handleCancel(args)
 	case "version":
 		handleVersion()
 	case "help", "--help", "-h":
@@ -101,6 +103,7 @@ func printUsage() {
 	fmt.Println("  jobs [--status=<status>]          List tracked HPC jobs")
 	fmt.Println("  retrieve <run-hash> [--patterns=<patterns>] [--dest=<path>]")
 	fmt.Println("                                    Retrieve job results")
+	fmt.Println("  cancel <run-hash|job-id>          Cancel a running job")
 	fmt.Println()
 	fmt.Println("Other Commands:")
 	fmt.Println("  version               Show version information")
@@ -1032,6 +1035,35 @@ func handleRetrieve(args []string) error {
 	for _, file := range files {
 		fmt.Printf("  %s\n", file)
 	}
+
+	return nil
+}
+
+// handleCancel handles the cancel command
+func handleCancel(args []string) error {
+	// Check arguments
+	if len(args) < 1 {
+		return fmt.Errorf("usage: chemvcs cancel <run-hash|job-id>")
+	}
+
+	identifier := args[0]
+
+	// Open repository
+	r, err := repo.Open(".")
+	if err != nil {
+		return fmt.Errorf("failed to open repository: %w", err)
+	}
+
+	repoPath := r.Path()
+
+	// Cancel job
+	fmt.Printf("Cancelling job/run %s...\n", identifier)
+	err = hpc.CancelJob(repoPath, identifier)
+	if err != nil {
+		return fmt.Errorf("failed to cancel job: %w", err)
+	}
+
+	fmt.Println("Job cancelled successfully!")
 
 	return nil
 }

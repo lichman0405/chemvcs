@@ -24,3 +24,8 @@ class AdapterNotAvailableError(HpcError):
 class InvalidJobStateError(HpcError):
     """Operation invalid for current job state."""
     pass
+
+
+class JobCancellationError(HpcError):
+    """Failed to cancel job."""
+    pass
