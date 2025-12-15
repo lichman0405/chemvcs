@@ -130,14 +130,82 @@
 - New Go code: ~770 lines
 - New tests: 5 (85 total Go tests)
 - Total tests: 203 (85 Go + 118 Python)
-- [ ] Python: Implement JobRetriever class
-  - [ ] retrieve_results() method
-  - [ ] Copy output files
-  - [ ] Update Run object
-  - [ ] Create commit
-- [ ] Add CLI integration tests
-  - [ ] Test submit workflow
-  - [ ] Test jobs listing
+
+### Phase 3: Additional HPC Adapters ✅ Complete
+
+- [x] PBS/Torque adapter (pbs_adapter.py - 209 lines)
+  - [x] qsub command for job submission
+  - [x] qstat command for status queries
+  - [x] qdel command for job cancellation
+  - [x] Status mapping (Q/W/H → PENDING, R/E → RUNNING, C → COMPLETED)
+  - [x] Job info parsing (queue, nodes, start time, exit code)
+- [x] LSF adapter (lsf_adapter.py - 212 lines)
+  - [x] bsub command for job submission
+  - [x] bjobs command for status queries
+  - [x] bkill command for job cancellation
+  - [x] Status mapping (PEND/WAIT → PENDING, RUN → RUNNING, DONE → COMPLETED, EXIT → FAILED)
+  - [x] Slots/cores support (LSF-specific)
+- [x] Extended JobInfo dataclass
+  - [x] Added cores field for LSF
+- [x] Comprehensive test suites
+  - [x] 18 PBS tests (submit, status, info, cancel)
+  - [x] 21 LSF tests (submit, status, info, cancel)
+  - [x] All mock-based, no real scheduler required
+- [x] Update documentation
+  - [x] Add PBS/LSF to supported schedulers
+  - [x] Add PBS/LSF script examples
+  - [x] Update user guide
+
+**Phase 3 Statistics**:
+- New Python code: ~421 lines (209 PBS + 212 LSF)
+- New tests: 39 (18 PBS + 21 LSF)
+- Total tests: 242 (85 Go + 157 Python)
+
+### Phase 4: Enhanced CLI Features ✅ Complete
+
+- [x] Job cancellation command
+  - [x] JobTracker.cancel_job() method (by job ID)
+  - [x] JobTracker.cancel_run() method (by run hash)
+  - [x] JobCancellationError exception
+  - [x] Go: CancelJob() function
+  - [x] CLI: `chemvcs cancel <run-hash|job-id>`
+  - [x] Automatic adapter detection
+  - [x] Update Run status to cancelled
+- [x] Interactive monitoring command
+  - [x] JobWatcher class (monitoring.py - 195 lines)
+  - [x] watch_job() method - Monitor until completion
+  - [x] Real-time status updates with timestamps
+  - [x] Configurable polling interval (default: 30s)
+  - [x] Optional timeout support
+  - [x] Clean emoji indicators (⏳⏸️✅❌🚫)
+  - [x] Go: WatchJob() function
+  - [x] CLI: `chemvcs watch <identifier> [--interval] [--timeout]`
+- [x] Update CLI help messages
+  - [x] Add cancel command
+  - [x] Add watch command
+  - [x] Complete command reference
+
+**Phase 4 Statistics**:
+- New Python code: ~265 lines (70 cancel + 195 monitoring)
+- New Go code: ~140 lines (cancel + watch functions)
+- Total tests: 242 (stable - integrated into existing tests)
+
+### M6 Complete Summary
+
+**Total Implementation**:
+- Python HPC module: ~3,700 lines (9 modules)
+- Go HPC integration: ~510 lines
+- Tests: 242 passing (85 Go + 157 Python)
+- CLI commands: 5 HPC commands (submit, jobs, retrieve, cancel, watch)
+- Adapters: 3 schedulers (SLURM, PBS, LSF)
+- Documentation: 85KB+ (design + user guide + examples)
+
+**Git Commits**:
+- Phase 1: `979a40e`, `24ea0b1`
+- Phase 2: `2cfd282`, `8cbb376`
+- Phase 3: `7aee1d8`
+- Phase 4: `fb4c3bc`, `61f6323`
+- Docs: `d0b6b76`, `17c1c32`
   - [ ] Test retrieve workflow
 
 ### Phase 3: Provenance (Week 3-4)

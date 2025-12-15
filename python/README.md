@@ -152,9 +152,9 @@ tests/
 ```
 
 **Statistics**:
-- Production code: ~4,600 lines (including HPC module)
-- Test code: ~3,800 lines
-- Test coverage: 118/118 tests passing
+- Production code: ~5,100 lines (including full HPC module)
+- Test code: ~4,200 lines
+- Test coverage: 157/157 tests passing
 
 ## Development
 

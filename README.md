@@ -20,9 +20,9 @@ Traditional VCS tools like Git work for some of this, but ChemVCS is designed fr
 
 ## Current Status
 
-**Version**: Milestone 6 Phase 2 Complete  
-**Stability**: Core VCS + Python domain layer + HPC integration + CLI commands working  
-**Test Coverage**: 85 Go tests + 118 Python tests (203 total) passing  
+**Version**: Milestone 6 Complete (All Phases)  
+**Stability**: Full HPC integration with multi-scheduler support  
+**Test Coverage**: 85 Go tests + 157 Python tests (242 total) passing  
 **Production Ready**: Not yet - under active development
 
 ChemVCS currently provides:
@@ -30,8 +30,9 @@ ChemVCS currently provides:
 - ✅ **Remote repositories**: Push, pull, fetch via HTTP
 - ✅ **Python domain layer**: Chemistry-specific objects (Structure, Run, Workflow)
 - ✅ **File format support**: XYZ and POSCAR (VASP) parsers
-- ✅ **HPC integration**: SLURM adapter with job tracking and provenance capture
-- ✅ **HPC CLI commands**: Submit jobs, track status, retrieve results (Phase 1-2)
+- ✅ **HPC integration**: Multi-scheduler support (SLURM, PBS, LSF)
+- ✅ **HPC CLI commands**: Full job lifecycle (submit, track, retrieve, cancel, watch)
+- ✅ **Interactive monitoring**: Real-time job status updates
 
 See [FEATURE_STATUS.md](FEATURE_STATUS.md) for detailed feature tracking.
 

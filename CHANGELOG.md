@@ -8,13 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Additional HPC adapters (PBS, LSF)
+- Job arrays and dependencies
+- Batch workflow submission
+- Web dashboard for job monitoring
 - CIF file parser (crystallography format)
 - Enhanced Repository query API
 - Hooks system
 - Tag support
 
-## [0.6.0] - 2025-12 (M6: HPC Integration Complete)
+## [0.6.0] - 2025-12 (M6: HPC Integration - All Phases Complete)
 
 ### Added - Milestone 6 Phase 1-2: Full HPC Integration
 
@@ -230,15 +232,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Design document: 53KB
 - User guide: 32KB (updated)
 
-**Total Tests**: 203 passing
+**Total Tests**: 203 passing (Phase 1-2)
 - Go: 85 tests (M1-M4: 80 + M6: 5)
 - Python: 118 tests (M5: 73 + M6: 45)
 
-### Git Commits
+### Git Commits (Phase 1-2)
 - Phase 1: `979a40e` - "feat(M6): Phase 1 - HPC core infrastructure complete"
 - Phase 1 docs: `24ea0b1` - "docs: Add M6 Phase 1 documentation"
 - Phase 2: `2cfd282` - "feat(M6): Phase 2 - Go CLI commands for HPC integration"
 - Phase 2 docs: `8cbb376` - "docs: Update user guide with CLI commands"
+
+#### Phase 3: Additional HPC Scheduler Adapters
+
+**Features**:
+- PBS/Torque adapter (`pbs_adapter.py`)
+  - Command integration: qsub, qstat, qdel
+  - Status mappings: Q/W/H→PENDING, R/E→RUNNING, C→COMPLETED
+- LSF adapter (`lsf_adapter.py`)
+  - Command integration: bsub, bjobs, bkill
+  - LSF-specific: slots/cores model, shell redirection for bsub
+  - Status mappings: PEND/WAIT→PENDING, RUN→RUNNING, DONE→COMPLETED
+- Extended JobInfo dataclass with `cores` field
+- Updated exports in hpc/__init__.py
+- Comprehensive test coverage (18 PBS + 21 LSF tests)
+
+**Code Statistics** (Phase 3): +421 lines Python
+- PbsAdapter: 209 lines
+- LsfAdapter: 212 lines
+- Tests: 39 new tests (all passing)
+
+#### Phase 4: Enhanced CLI Features (Job Management)
+
+**Features**:
+- **Job Cancellation**
+  - JobTracker.cancel_job() and cancel_run() methods
+  - JobCancellationError exception
+  - Go CancelJob() function (~70 lines)
+  - CLI command: `chemvcs cancel <identifier>`
+  - Updates Run status to "cancelled"
+  
+- **Interactive Job Monitoring**
+  - JobWatcher class (195 lines, monitoring.py)
+  - watch_job() for single job, watch_multiple() for batch monitoring
+  - Real-time status updates with timestamp logging
+  - Emoji status indicators: ⏳ PENDING, ⏸️ SUSPENDED, ✅ COMPLETED, ❌ FAILED, 🚫 CANCELLED
+  - Configurable polling interval (default 30s) and optional timeout
+  - Go WatchJob() function (~50 lines)
+  - CLI command: `chemvcs watch <identifier> [--interval] [--timeout]`
+
+**Code Statistics** (Phase 4): ~405 lines total
+- Python: ~265 lines (monitoring.py, tracking.py, exceptions.py updates)
+- Go: ~140 lines (CancelJob and WatchJob functions, CLI handlers)
+- Tests: All 242 tests passing (85 Go + 157 Python)
+
+### Git Commits (Phase 3-4)
+- Phase 3: `7aee1d8` - "feat(M6): Phase 3 - PBS and LSF adapter implementations"
+- Phase 4a: `fb4c3bc` - "feat(M6): Phase 4a - Job cancellation functionality"
+- Phase 4b: `61f6323` - "feat(M6): Phase 4b - Interactive job monitoring"
+- Documentation: `17c1c32` - "docs(M6): Update PROJECT_STATUS with Phase 3-5 completion"
+
+**M6 Complete Statistics**:
+- Python HPC: ~3,700 lines (9 modules: adapter, slurm_adapter, pbs_adapter, lsf_adapter, tracking, monitoring, validation, template, exceptions)
+- Go HPC: ~510 lines (hpc.go with 5 operations)
+- Total Tests: 242 passing (85 Go + 157 Python)
+- CLI Commands: 5 HPC operations (submit, jobs, retrieve, cancel, watch)
+- HPC Adapters: 3 schedulers (SLURM, PBS, LSF)
 
 **Total Python Codebase**: ~8,400 lines
 - Production: ~4,600 lines (pre-M6: 1,800 + M6: 2,800)
