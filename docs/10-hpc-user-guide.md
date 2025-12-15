@@ -60,7 +60,65 @@ python -c "from chemvcs_py.hpc import SlurmAdapter; print('HPC module OK')"
 
 ## Quick Start
 
-### Example: Submit a VASP Calculation
+This guide shows two ways to use HPC integration: **CLI commands** (simple) and **Python API** (advanced).
+
+### Option 1: Using CLI Commands (Recommended)
+
+**1. Create a Run in the repository** (using Python API or manually)
+
+```python
+from chemvcs_py import Repo
+from chemvcs_py.domain import Run, RunStatus
+
+repo = Repo('.')
+run = Run(
+    name="water-relax",
+    status=RunStatus.PLANNED,
+    structure_hash="abc123...",  # Your structure hash
+    command="mpirun vasp_std",
+    working_dir="/scratch/user/water"
+)
+run_hash = repo.add_run(run)
+print(f"Run created: {run_hash}")
+```
+
+**2. Submit job via CLI**
+
+```bash
+chemvcs submit <run-hash> vasp.slurm
+
+# With options:
+chemvcs submit <run-hash> vasp.slurm --capture-env=false
+```
+
+**3. List tracked jobs**
+
+```bash
+# List all jobs
+chemvcs jobs
+
+# Filter by status
+chemvcs jobs --status=RUNNING
+chemvcs jobs --status=COMPLETED
+
+# Verbose output
+chemvcs jobs -v
+```
+
+**4. Retrieve results**
+
+```bash
+# Retrieve all files
+chemvcs retrieve <run-hash>
+
+# Retrieve specific patterns
+chemvcs retrieve <run-hash> --patterns="*.out,*.log"
+
+# Specify destination
+chemvcs retrieve <run-hash> --dest=./results
+```
+
+### Option 2: Using Python API (Advanced)
 
 **1. Create a structure**
 
@@ -186,6 +244,122 @@ mpirun vasp_std
 ---
 
 ## Command Reference
+
+### CLI Commands
+
+#### chemvcs submit
+
+Submit an HPC job for a computational run.
+
+**Syntax:**
+```bash
+chemvcs submit <run-hash> <script-path> [--capture-env=<bool>]
+```
+
+**Arguments:**
+- `<run-hash>`: Hash of the Run object to submit (must exist in repository)
+- `<script-path>`: Path to the SLURM/PBS submission script
+
+**Options:**
+- `--capture-env=<bool>`: Capture environment provenance (default: true)
+
+**Examples:**
+```bash
+# Submit with automatic environment capture
+chemvcs submit a1b2c3d4 vasp_relax.slurm
+
+# Submit without environment capture
+chemvcs submit a1b2c3d4 vasp_relax.slurm --capture-env=false
+```
+
+**Output:**
+```
+Submitting HPC job for run a1b2c3d4...
+Job submitted successfully!
+  Job ID: 12345
+  Job System: slurm
+  Run: a1b2c3d4
+```
+
+#### chemvcs jobs
+
+List all tracked HPC jobs in the repository.
+
+**Syntax:**
+```bash
+chemvcs jobs [--status=<status>] [-v]
+```
+
+**Options:**
+- `--status=<status>`: Filter by job status (PENDING, RUNNING, COMPLETED, FAILED, CANCELLED)
+- `-v`: Verbose output (show submission time, queue, etc.)
+
+**Examples:**
+```bash
+# List all jobs
+chemvcs jobs
+
+# List only running jobs
+chemvcs jobs --status=RUNNING
+
+# List completed jobs with details
+chemvcs jobs --status=COMPLETED -v
+```
+
+**Output:**
+```
+Found 3 job(s):
+
+Job ID: 12345
+  Run:        a1b2c3d4
+  Status:     RUNNING
+  System:     slurm
+  Queue:      batch
+
+Job ID: 12346
+  Run:        e5f6g7h8
+  Status:     COMPLETED
+  System:     slurm
+```
+
+#### chemvcs retrieve
+
+Retrieve results from a completed HPC job.
+
+**Syntax:**
+```bash
+chemvcs retrieve <run-hash> [--patterns=<patterns>] [--dest=<path>]
+```
+
+**Arguments:**
+- `<run-hash>`: Hash of the Run object whose results to retrieve
+
+**Options:**
+- `--patterns=<patterns>`: Comma-separated glob patterns for files to retrieve (e.g., `*.out,*.log`)
+- `--dest=<path>`: Destination directory (default: current directory)
+
+**Examples:**
+```bash
+# Retrieve all files to current directory
+chemvcs retrieve a1b2c3d4
+
+# Retrieve specific file types
+chemvcs retrieve a1b2c3d4 --patterns="OUTCAR,OSZICAR,*.xml"
+
+# Retrieve to specific directory
+chemvcs retrieve a1b2c3d4 --patterns="*.out" --dest=./results
+```
+
+**Output:**
+```
+Retrieving results for run a1b2c3d4...
+Retrieved 3 file(s):
+  ./OUTCAR
+  ./OSZICAR
+  ./vasprun.xml
+```
+
+---
 
 ### Python API
 

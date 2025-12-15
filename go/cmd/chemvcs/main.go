@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/lishi/chemvcs/internal/hpc"
 	"github.com/lishi/chemvcs/internal/objectstore"
 	"github.com/lishi/chemvcs/internal/remote"
 	"github.com/lishi/chemvcs/internal/repo"
@@ -53,6 +54,12 @@ func main() {
 		err = handleInspectObject(args)
 	case "list-objects":
 		err = handleListObjects(args)
+	case "submit":
+		err = handleSubmit(args)
+	case "jobs":
+		err = handleJobs(args)
+	case "retrieve":
+		err = handleRetrieve(args)
 	case "version":
 		handleVersion()
 	case "help", "--help", "-h":
@@ -88,6 +95,14 @@ func printUsage() {
 	fmt.Println("  fetch <remote> <branch>  Fetch objects from remote")
 	fmt.Println("  inspect-object <hash> [--format=json]  Inspect an object")
 	fmt.Println("  list-objects [--type=<type>]           List all objects")
+	fmt.Println()
+	fmt.Println("HPC Commands:")
+	fmt.Println("  submit <run-hash> <script>        Submit HPC job for a run")
+	fmt.Println("  jobs [--status=<status>]          List tracked HPC jobs")
+	fmt.Println("  retrieve <run-hash> [--patterns=<patterns>] [--dest=<path>]")
+	fmt.Println("                                    Retrieve job results")
+	fmt.Println()
+	fmt.Println("Other Commands:")
 	fmt.Println("  version               Show version information")
 	fmt.Println("  help                  Show this help message")
 	fmt.Println()
@@ -855,6 +870,167 @@ func handleListObjects(args []string) error {
 			}
 			fmt.Printf("  %s  %s\n", shortHash, obj.Type)
 		}
+	}
+
+	return nil
+}
+
+func handleSubmit(args []string) error {
+	// Parse flags
+	fs := flag.NewFlagSet("submit", flag.ExitOnError)
+	captureEnv := fs.Bool("capture-env", true, "Capture environment (modules, env vars)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	// Check arguments
+	remainingArgs := fs.Args()
+	if len(remainingArgs) < 2 {
+		return fmt.Errorf("usage: chemvcs submit <run-hash> <script> [--capture-env]")
+	}
+
+	runHash := remainingArgs[0]
+	scriptPath := remainingArgs[1]
+
+	// Verify script exists
+	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
+		return fmt.Errorf("script file not found: %s", scriptPath)
+	}
+
+	// Get absolute script path
+	absScriptPath, err := filepath.Abs(scriptPath)
+	if err != nil {
+		return fmt.Errorf("failed to resolve script path: %w", err)
+	}
+
+	// Open repository
+	r, err := repo.Open(".")
+	if err != nil {
+		return fmt.Errorf("failed to open repository: %w", err)
+	}
+
+	repoPath := r.Path()
+
+	// Submit job
+	fmt.Printf("Submitting HPC job for run %s...\n", runHash[:8])
+	result, err := hpc.SubmitJob(repoPath, hpc.SubmitOptions{
+		RunHash:    runHash,
+		ScriptPath: absScriptPath,
+		CaptureEnv: *captureEnv,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to submit job: %w", err)
+	}
+
+	fmt.Printf("Job submitted successfully!\n")
+	fmt.Printf("  Job ID: %s\n", result.JobID)
+	fmt.Printf("  Job System: %s\n", result.JobSystem)
+	fmt.Printf("  Run: %s\n", runHash[:8])
+
+	return nil
+}
+
+func handleJobs(args []string) error {
+	// Parse flags
+	fs := flag.NewFlagSet("jobs", flag.ExitOnError)
+	statusFilter := fs.String("status", "", "Filter by status (e.g., RUNNING, COMPLETED)")
+	verbose := fs.Bool("v", false, "Verbose output")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	// Open repository
+	r, err := repo.Open(".")
+	if err != nil {
+		return fmt.Errorf("failed to open repository: %w", err)
+	}
+
+	repoPath := r.Path()
+
+	// List jobs
+	jobs, err := hpc.ListJobs(repoPath, *statusFilter)
+	if err != nil {
+		return fmt.Errorf("failed to list jobs: %w", err)
+	}
+
+	if len(jobs) == 0 {
+		if *statusFilter != "" {
+			fmt.Printf("No jobs found with status: %s\n", *statusFilter)
+		} else {
+			fmt.Println("No tracked jobs found")
+		}
+		return nil
+	}
+
+	// Display jobs
+	fmt.Printf("Found %d job(s):\n\n", len(jobs))
+	for _, job := range jobs {
+		shortHash := job.RunHash
+		if len(job.RunHash) > 8 {
+			shortHash = job.RunHash[:8]
+		}
+
+		fmt.Printf("Job ID: %s\n", job.JobID)
+		fmt.Printf("  Run:        %s\n", shortHash)
+		fmt.Printf("  Status:     %s\n", job.Status)
+		fmt.Printf("  System:     %s\n", job.JobSystem)
+		if job.Queue != "" {
+			fmt.Printf("  Queue:      %s\n", job.Queue)
+		}
+		if *verbose && job.Submitted != "" {
+			fmt.Printf("  Submitted:  %s\n", job.Submitted)
+		}
+		fmt.Println()
+	}
+
+	return nil
+}
+
+func handleRetrieve(args []string) error {
+	// Parse flags
+	fs := flag.NewFlagSet("retrieve", flag.ExitOnError)
+	patterns := fs.String("patterns", "", "Comma-separated file patterns (e.g., *.out,*.log)")
+	destination := fs.String("dest", ".", "Destination directory for retrieved files")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	// Check arguments
+	remainingArgs := fs.Args()
+	if len(remainingArgs) < 1 {
+		return fmt.Errorf("usage: chemvcs retrieve <run-hash> [--patterns=<patterns>] [--dest=<path>]")
+	}
+
+	runHash := remainingArgs[0]
+
+	// Open repository
+	r, err := repo.Open(".")
+	if err != nil {
+		return fmt.Errorf("failed to open repository: %w", err)
+	}
+
+	repoPath := r.Path()
+
+	// Parse patterns
+	var patternList []string
+	if *patterns != "" {
+		patternList = strings.Split(*patterns, ",")
+	}
+
+	// Retrieve results
+	fmt.Printf("Retrieving results for run %s...\n", runHash[:8])
+	files, err := hpc.RetrieveResults(repoPath, hpc.RetrieveOptions{
+		RunHash:     runHash,
+		Patterns:    patternList,
+		Destination: *destination,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to retrieve results: %w", err)
+	}
+
+	fmt.Printf("Retrieved %d file(s):\n", len(files))
+	for _, file := range files {
+		fmt.Printf("  %s\n", file)
 	}
 
 	return nil
