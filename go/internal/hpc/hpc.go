@@ -424,3 +424,55 @@ except Exception as e:
 
 	return nil
 }
+
+// WatchJob monitors a job until completion or timeout
+func WatchJob(repoPath string, identifier string, interval int, timeout int) error {
+	script := `
+import sys
+import json
+from pathlib import Path
+from chemvcs_py import Repo
+from chemvcs_py.hpc import SlurmAdapter, PbsAdapter, LsfAdapter, JobWatcher
+
+repo_path = sys.argv[1]
+identifier = sys.argv[2]
+interval = int(sys.argv[3]) if len(sys.argv) > 3 else 30
+timeout = int(sys.argv[4]) if len(sys.argv) > 4 and sys.argv[4] != "0" else None
+
+try:
+    repo = Repo(repo_path)
+    
+    # Try each adapter until one works
+    for adapter in [SlurmAdapter(), PbsAdapter(), LsfAdapter()]:
+        if not adapter.validate():
+            continue
+        
+        watcher = JobWatcher(repo, adapter)
+        
+        try:
+            job = watcher.watch_job(identifier, interval=interval, timeout=timeout)
+            result = {
+                "job_id": job.job_id,
+                "status": job.status.value,
+                "run_id": job.run_id
+            }
+            print(json.dumps(result), file=sys.stderr)
+            sys.exit(0)
+        except Exception as e:
+            # Try next adapter
+            continue
+    
+    raise Exception(f"No valid adapter found or job not found: {identifier}")
+    
+except Exception as e:
+    print(json.dumps({"error": str(e)}), file=sys.stderr)
+    sys.exit(1)
+`
+
+	intervalStr := fmt.Sprintf("%d", interval)
+	timeoutStr := fmt.Sprintf("%d", timeout)
+
+	_, err := runPythonScript(script, repoPath, identifier, intervalStr, timeoutStr)
+	// Ignore output since Python prints directly to stdout
+	return err
+}

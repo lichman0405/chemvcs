@@ -62,6 +62,8 @@ func main() {
 		err = handleRetrieve(args)
 	case "cancel":
 		err = handleCancel(args)
+	case "watch":
+		err = handleWatch(args)
 	case "version":
 		handleVersion()
 	case "help", "--help", "-h":
@@ -104,6 +106,8 @@ func printUsage() {
 	fmt.Println("  retrieve <run-hash> [--patterns=<patterns>] [--dest=<path>]")
 	fmt.Println("                                    Retrieve job results")
 	fmt.Println("  cancel <run-hash|job-id>          Cancel a running job")
+	fmt.Println("  watch <run-hash|job-id> [--interval=<sec>] [--timeout=<sec>]")
+	fmt.Println("                                    Monitor job until completion")
 	fmt.Println()
 	fmt.Println("Other Commands:")
 	fmt.Println("  version               Show version information")
@@ -1064,6 +1068,41 @@ func handleCancel(args []string) error {
 	}
 
 	fmt.Println("Job cancelled successfully!")
+
+	return nil
+}
+
+// handleWatch handles the watch command
+func handleWatch(args []string) error {
+	fs := flag.NewFlagSet("watch", flag.ExitOnError)
+	interval := fs.Int("interval", 30, "Polling interval in seconds")
+	timeout := fs.Int("timeout", 0, "Maximum watch time in seconds (0 for indefinite)")
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	// Check arguments
+	remainingArgs := fs.Args()
+	if len(remainingArgs) < 1 {
+		return fmt.Errorf("usage: chemvcs watch <run-hash|job-id> [--interval=<sec>] [--timeout=<sec>]")
+	}
+
+	identifier := remainingArgs[0]
+
+	// Open repository
+	r, err := repo.Open(".")
+	if err != nil {
+		return fmt.Errorf("failed to open repository: %w", err)
+	}
+
+	repoPath := r.Path()
+
+	// Watch job
+	err = hpc.WatchJob(repoPath, identifier, *interval, *timeout)
+	if err != nil {
+		return fmt.Errorf("failed to watch job: %w", err)
+	}
 
 	return nil
 }

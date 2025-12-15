@@ -20,6 +20,7 @@ from .provenance import EnvironmentCapture
 from .submission import JobSubmitter
 from .tracking import JobTracker, TrackedJob
 from .retrieval import JobRetriever
+from .monitoring import JobWatcher
 
 __all__ = [
     "JobAdapter",
@@ -39,4 +40,5 @@ __all__ = [
     "JobTracker",
     "TrackedJob",
     "JobRetriever",
+    "JobWatcher",
 ]
