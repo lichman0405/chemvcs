@@ -20,24 +20,30 @@ Traditional VCS tools like Git work for some of this, but ChemVCS is designed fr
 
 ## Current Status
 
-**Version**: Milestone 4 Complete  
-**Stability**: Core features working, 80 tests passing  
+**Version**: Milestone 5 (85% Complete)  
+**Stability**: Core VCS + Python domain layer working  
+**Test Coverage**: 80 Go tests + 28 Python tests passing  
 **Production Ready**: Not yet - under active development
 
-ChemVCS currently provides a solid Git-like foundation with:
-- Content-addressable storage
-- Full commit history and branching
-- Three-way merge with conflict detection
-- Remote repositories via HTTP
+ChemVCS currently provides:
+- ✅ **Git-like foundation**: Content-addressable storage, commits, branches, merges
+- ✅ **Remote repositories**: Push, pull, fetch via HTTP
+- ✅ **Python domain layer**: Chemistry-specific objects (Structure, Run, Workflow)
+- ✅ **File format support**: XYZ and POSCAR (VASP) parsers
+- 🚧 **HPC integration**: Planned for M6
 
-**Chemistry-specific features** (M5-M6) are planned but not yet implemented. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for detailed progress.
+See [FEATURE_STATUS.md](FEATURE_STATUS.md) for detailed feature tracking.
 
 ## Installation
 
 ### Prerequisites
-- Go 1.19 or higher
+- **Go 1.19+** (for core VCS)
+- **Python 3.8+** (for chemistry domain layer)
+- **NumPy 1.20+** (Python dependency)
 
 ### Build from Source
+
+#### 1. Build Go CLI and Server
 
 ```bash
 # Clone the repository
@@ -52,6 +58,15 @@ go build -o chemvcs-server ./cmd/chemvcs-server
 ```
 
 On Windows, executables will be `chemvcs.exe` and `chemvcs-server.exe`.
+
+#### 2. Install Python Package (Optional)
+
+```bash
+cd ../python
+pip install -e .
+```
+
+This installs the `chemvcs_py` package for working with chemistry domain objects.
 
 ## Quick Start
 
@@ -118,6 +133,73 @@ chemvcs merge optimization
 ```
 
 ChemVCS supports both fast-forward and three-way merging with conflict detection.
+
+## Using Python Domain Layer
+
+### Working with Molecular Structures
+
+```python
+from chemvcs_py import Structure, Repo
+from chemvcs_py.io import read_xyz, write_xyz
+import numpy as np
+
+# Create a water molecule
+water = Structure(
+    formula="H2O",
+    positions=np.array([
+        [0.0, 0.0, 0.0],     # O
+        [0.0, 0.757, 0.586],  # H
+        [0.0, -0.757, 0.586]  # H
+    ]),
+    species=["O", "H", "H"]
+)
+
+# Write to XYZ file
+write_xyz(water, "water.xyz")
+
+# Read from file
+structure = read_xyz("water.xyz")
+
+# Convert to CoreObject for storage
+core_obj = structure.to_core_object()
+print(f"Structure: {structure.formula}, {structure.num_atoms} atoms")
+```
+
+### Tracking Computational Runs
+
+```python
+from chemvcs_py import Run, Workflow
+
+# Create a calculation run
+opt_run = Run(
+    structure_id="struct_001",
+    code="ORCA",
+    code_version="5.0.3",
+    parameters={
+        "method": "DFT",
+        "functional": "B3LYP",
+        "basis": "def2-TZVP"
+    },
+    status="planned"
+)
+
+# Track lifecycle
+opt_run.mark_submitted(job_id="12345")
+opt_run.mark_running()
+opt_run.mark_finished()
+opt_run.set_result("energy", -76.4321)
+
+# Build workflow DAG
+workflow = Workflow(name="Water Study")
+workflow.add_node("opt", "run", {"description": "Optimize"})
+workflow.add_node("freq", "run", {"description": "Frequencies"})
+workflow.add_edge("opt", "freq")  # freq depends on opt
+
+# Get execution order
+order = workflow.topological_sort()  # ['opt', 'freq']
+```
+
+See [python/examples/](python/examples/) for complete examples.
 
 ## Working with Remote Repositories
 
@@ -204,24 +286,28 @@ See [docs/10-chemvcs-vs-git.md](docs/10-chemvcs-vs-git.md) for detailed comparis
 
 ## What's Missing?
 
-ChemVCS is **under development**. Currently missing:
+ChemVCS is **under development**. Key remaining work:
 
-- ❌ Chemistry-specific features (molecular diffs, structure tracking)
-- ❌ HPC integration (job tracking, SLURM correlation)
-- ❌ Hooks system
-- ❌ Submodules
-- ❌ Tag support (planned)
+- ⏭️ **CIF file parser** (crystallography format)
+- ⏭️ **HPC integration** (SLURM adapter, job tracking)
+- ⏭️ **Enhanced Repository API** (advanced queries and filtering)
+- ❌ **Hooks system**
+- ❌ **Submodules**
+- ❌ **Tag support** (planned)
 
-See [TODO.md](TODO.md) for the roadmap.
+See [FEATURE_STATUS.md](FEATURE_STATUS.md) and [TODO.md](TODO.md) for detailed roadmap.
 
 ## Documentation
 
+- **[FEATURE_STATUS.md](FEATURE_STATUS.md)** - Comprehensive feature tracking (NEW!)
 - [PROJECT_STATUS.md](PROJECT_STATUS.md) - Development progress and milestones
 - [TODO.md](TODO.md) - Roadmap and planned features
 - [docs/](docs/) - Detailed design specifications
   - [01-vision-and-scope.md](docs/01-vision-and-scope.md) - Project vision
   - [02-architecture-overview.md](docs/02-architecture-overview.md) - System design
+  - [06-python-domain-layer.md](docs/06-python-domain-layer.md) - Python package design
   - [10-chemvcs-vs-git.md](docs/10-chemvcs-vs-git.md) - ChemVCS vs Git comparison
+- [python/README.md](python/README.md) - Python package documentation
 
 ## Contributing
 
@@ -229,16 +315,25 @@ ChemVCS is in early development. Contributions welcome, but expect frequent chan
 
 ### Running Tests
 
+**Go tests:**
 ```bash
 cd go
 go test ./...
+# Output: 80 tests passing
+```
+
+**Python tests:**
+```bash
+cd python
+python -m pytest tests/ -v
+# Output: 28 tests passing
 ```
 
 ### Project Structure
 
 ```
 chemvcs/
-├── go/
+├── go/                       # Go core VCS implementation
 │   ├── cmd/
 │   │   ├── chemvcs/          # CLI client
 │   │   └── chemvcs-server/   # HTTP server
@@ -246,6 +341,29 @@ chemvcs/
 │       ├── model/            # Core data structures
 │       ├── objectstore/      # Content-addressable storage
 │       ├── repo/             # Repository operations
+│       ├── workspace/        # Working directory management
+│       ├── remote/           # Remote repository client
+│       └── server/           # HTTP server implementation
+├── python/                   # Python domain layer
+│   ├── chemvcs_py/
+│   │   ├── core/            # Repository and CoreObject
+│   │   ├── domain/          # Chemistry objects (Structure, Run, Workflow)
+│   │   ├── io/              # File parsers (XYZ, POSCAR)
+│   │   └── util/            # Error handling utilities
+│   ├── examples/            # Usage examples
+│   │   ├── basic_usage.py
+│   │   └── run_workflow_example.py
+│   └── tests/               # Python test suite (28 tests)
+├── docs/                    # Design specifications
+│   ├── 01-vision-and-scope.md
+│   ├── 02-architecture-overview.md
+│   ├── 06-python-domain-layer.md
+│   └── ...
+├── README.md                # This file
+├── FEATURE_STATUS.md        # Detailed feature tracking
+├── PROJECT_STATUS.md        # Milestone progress
+└── TODO.md                  # Development roadmap
+```
 │       ├── workspace/        # Working directory management
 │       ├── remote/           # Remote client
 │       └── server/           # HTTP server

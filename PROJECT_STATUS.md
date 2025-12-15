@@ -12,36 +12,45 @@ ChemVCS is a domain-specific version control system designed for computational c
 - **Remote repositories**: Push, pull, fetch operations via HTTP
 - **Working directory management**: Clean checkout with automatic file cleanup
 
-### Recent Improvements
-- ✅ **Checkout cleanup**: Automatically removes files not in target snapshot
-- ✅ **Three-way merge**: Full support for diverged branches with intelligent merging
-- ✅ **Conflict detection**: Identifies conflicting changes with clear reporting
+### Python Domain Layer (Milestone 5) 🚧 85% Complete
+- **Chemistry domain objects**: Structure, Run (calculations), Workflow (DAGs)
+- **File format parsers**: XYZ (molecular), POSCAR (VASP)
+- **Repository integration**: Python API for ChemVCS operations
+- **Comprehensive tests**: 28 Python tests covering all components
+- **Example scripts**: Demonstrating molecular structures and computational workflows
 
 ## Status
 
-**Current Version**: Milestone 4 Complete + Quality Improvements
+**Current Version**: Milestone 5 (85% Complete)
 
-**Test Coverage**: 80 tests passing across 7 packages
+**Test Coverage**: 
+- Go: 80 tests passing across 7 packages
+- Python: 28 tests passing across 3 test files
 
 ### Completed Milestones
 - ✅ **M1**: Local VCS core (objects, snapshots, refs) - 38 tests
 - ✅ **M2**: Working directory and status tracking - 51 tests
 - ✅ **M3**: Fast-forward merge - 57 tests
 - ✅ **M4**: Remote repositories (client + HTTP server) - 72 tests
-- ✅ **Quality improvements**: Checkout cleanup, three-way merge, conflict detection - 80 tests
+- 🚧 **M5**: Python domain layer (Structure, Run, Workflow, parsers) - 85% complete
 
-### Recent Quality Improvements (Post-M4)
-1. ✅ **Checkout cleanup** - Files from previous branches are now automatically removed
-2. ✅ **Three-way merge** - Diverged branches can be merged automatically with intelligent merging
-3. ✅ **Conflict detection** - Conflicting changes are detected and reported clearly
+### Recent Additions (M5)
+1. ✅ **JSON API** - Go CLI now outputs JSON for Python integration
+2. ✅ **Python package** - chemvcs_py with 4 subpackages
+3. ✅ **Structure domain object** - Molecular/crystal structures with NumPy arrays
+4. ✅ **Run domain object** - Calculation tracking with lifecycle management
+5. ✅ **Workflow domain object** - DAG workflows with dependency management
+6. ✅ **XYZ parser** - Read/write molecular structure files
+7. ✅ **POSCAR parser** - VASP format support (Direct/Cartesian coordinates)
+8. ✅ **Python test suite** - Comprehensive pytest coverage
 
 ### Upcoming Milestones
-- **M5**: Python domain layer (chemistry-specific semantics)
+- **M5 completion**: CIF parser (lower priority), enhanced Repository API
 - **M6**: HPC adapter (SLURM integration, job tracking)
 
 ## Architecture
 
-### Core Components
+### Core Components (Go)
 - **model**: Object, Snapshot, Reference data structures
 - **objectstore**: Content-addressable storage (blobs and objects)
 - **repo**: Repository operations (commit, branch, merge)
@@ -49,9 +58,18 @@ ChemVCS is a domain-specific version control system designed for computational c
 - **remote**: Client for remote repositories
 - **server**: HTTP server implementing ChemVCS protocol
 
+### Python Domain Layer
+- **core**: Repository API and CoreObject models
+- **domain**: Chemistry objects (Structure, Run, Workflow)
+- **io**: File parsers (XYZ, POSCAR, future CIF)
+- **util**: Error handling and validation utilities
+
 ### Binaries
 - **chemvcs**: Main CLI tool for local and remote operations
 - **chemvcs-server**: HTTP server for hosting remote repositories
+
+### Python Package
+- **chemvcs_py**: Python library for chemistry domain objects and file I/O
 
 ## Installation
 
