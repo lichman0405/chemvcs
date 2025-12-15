@@ -20,9 +20,9 @@ Traditional VCS tools like Git work for some of this, but ChemVCS is designed fr
 
 ## Current Status
 
-**Version**: Milestone 5 (85% Complete)  
+**Version**: Milestone 5 (100% Core Complete)  
 **Stability**: Core VCS + Python domain layer working  
-**Test Coverage**: 80 Go tests + 28 Python tests passing  
+**Test Coverage**: 80 Go tests + 73 Python tests passing  
 **Production Ready**: Not yet - under active development
 
 ChemVCS currently provides:

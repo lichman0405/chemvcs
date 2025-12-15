@@ -21,18 +21,18 @@ ChemVCS is a domain-specific version control system designed for computational c
 
 ## Status
 
-**Current Version**: Milestone 5 (85% Complete)
+**Current Version**: Milestone 5 (100% Core Complete)
 
 **Test Coverage**: 
 - Go: 80 tests passing across 7 packages
-- Python: 28 tests passing across 3 test files
+- Python: 73 tests passing across 5 test files
 
 ### Completed Milestones
 - ✅ **M1**: Local VCS core (objects, snapshots, refs) - 38 tests
 - ✅ **M2**: Working directory and status tracking - 51 tests
 - ✅ **M3**: Fast-forward merge - 57 tests
 - ✅ **M4**: Remote repositories (client + HTTP server) - 72 tests
-- 🚧 **M5**: Python domain layer (Structure, Run, Workflow, parsers) - 85% complete
+- 🚧 **M5**: Python domain layer (Structure, Run, Workflow, parsers) - 100% core complete
 
 ### Recent Additions (M5)
 1. ✅ **JSON API** - Go CLI now outputs JSON for Python integration
@@ -42,11 +42,11 @@ ChemVCS is a domain-specific version control system designed for computational c
 5. ✅ **Workflow domain object** - DAG workflows with dependency management
 6. ✅ **XYZ parser** - Read/write molecular structure files
 7. ✅ **POSCAR parser** - VASP format support (Direct/Cartesian coordinates)
-8. ✅ **Python test suite** - Comprehensive pytest coverage
+8. ✅ **Python test suite** - Comprehensive pytest coverage (73 tests)
 
-### Upcoming Milestones
-- **M5 completion**: CIF parser (lower priority), enhanced Repository API
-- **M6**: HPC adapter (SLURM integration, job tracking)
+### Optional M5 Extensions
+- ⏭️ CIF parser (crystallographic format)
+- ⏭️ Enhanced Repository API (advanced queries)
 
 ## Architecture
 
