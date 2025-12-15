@@ -388,3 +388,63 @@ func (s *Store) WriteFile(relativePath string, data []byte) error {
 
 	return nil
 }
+
+// ObjectInfo contains metadata about a stored object.
+type ObjectInfo struct {
+	Hash string
+	Type string
+}
+
+// ListObjects returns information about all objects in the store.
+// If typeFilter is non-empty, only objects of that type are returned.
+func (s *Store) ListObjects(typeFilter string) ([]ObjectInfo, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var objects []ObjectInfo
+
+	// Walk all shard directories (00-ff)
+	for i := 0; i < 256; i++ {
+		shard := fmt.Sprintf("%02x", i)
+		shardPath := filepath.Join(s.root, shard)
+
+		// Check if shard directory exists
+		if _, err := os.Stat(shardPath); os.IsNotExist(err) {
+			continue
+		}
+
+		// Read all files in this shard
+		entries, err := os.ReadDir(shardPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read shard %s: %w", shard, err)
+		}
+
+		for _, entry := range entries {
+			if entry.IsDir() {
+				continue
+			}
+
+			// The filename is the full hash (not just the suffix)
+			hash := entry.Name()
+
+			// Read object to get its type
+			obj, err := s.GetObject(hash)
+			if err != nil {
+				// Skip objects that can't be read (might be blobs or snapshots)
+				continue
+			}
+
+			// Apply type filter if specified
+			if typeFilter != "" && obj.Type != typeFilter {
+				continue
+			}
+
+			objects = append(objects, ObjectInfo{
+				Hash: hash,
+				Type: obj.Type,
+			})
+		}
+	}
+
+	return objects, nil
+}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -47,6 +48,10 @@ func main() {
 		err = handlePull(args)
 	case "fetch":
 		err = handleFetch(args)
+	case "inspect-object":
+		err = handleInspectObject(args)
+	case "list-objects":
+		err = handleListObjects(args)
 	case "version":
 		handleVersion()
 	case "help", "--help", "-h":
@@ -80,6 +85,8 @@ func printUsage() {
 	fmt.Println("  push <remote> <branch>   Push a branch to remote")
 	fmt.Println("  pull <remote> <branch>   Pull a branch from remote")
 	fmt.Println("  fetch <remote> <branch>  Fetch objects from remote")
+	fmt.Println("  inspect-object <hash> [--format=json]  Inspect an object")
+	fmt.Println("  list-objects [--type=<type>]           List all objects")
 	fmt.Println("  version               Show version information")
 	fmt.Println("  help                  Show this help message")
 	fmt.Println()
@@ -740,3 +747,111 @@ func extractRepoID(url string) string {
 
 	return "default/repo"
 }
+
+func handleInspectObject(args []string) error {
+	// Parse flags
+	fs := flag.NewFlagSet("inspect-object", flag.ExitOnError)
+	format := fs.String("format", "text", "Output format: text or json")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	if fs.NArg() < 1 {
+		return fmt.Errorf("usage: chemvcs inspect-object <hash> [--format=json]")
+	}
+
+	hash := fs.Arg(0)
+
+	// Open repository
+	r, err := repo.Open(".")
+	if err != nil {
+		return fmt.Errorf("failed to open repository: %w", err)
+	}
+
+	// Get object
+	obj, err := r.Store().GetObject(hash)
+	if err != nil {
+		return fmt.Errorf("failed to get object: %w", err)
+	}
+
+	// Output based on format
+	if *format == "json" {
+		// Pretty-print JSON
+		data, err := obj.MarshalCanonical()
+		if err != nil {
+			return fmt.Errorf("failed to marshal object: %w", err)
+		}
+		fmt.Println(string(data))
+	} else {
+		// Human-readable text format
+		fmt.Printf("Object: %s\n", hash)
+		fmt.Printf("Type: %s\n", obj.Type)
+		fmt.Printf("Version: %d\n", obj.Version)
+		
+		if len(obj.Meta) > 0 {
+			fmt.Println("\nMetadata:")
+			for k, v := range obj.Meta {
+				fmt.Printf("  %s: %v\n", k, v)
+			}
+		}
+		
+		if len(obj.Refs) > 0 {
+			fmt.Println("\nReferences:")
+			for i, ref := range obj.Refs {
+				fmt.Printf("  [%d] kind=%s id=%s\n", i, ref.Kind, ref.ID)
+			}
+		}
+	}
+
+	return nil
+}
+
+func handleListObjects(args []string) error {
+	// Parse flags
+	fs := flag.NewFlagSet("list-objects", flag.ExitOnError)
+	typeFilter := fs.String("type", "", "Filter by object type")
+	format := fs.String("format", "text", "Output format: text or json")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	// Open repository
+	r, err := repo.Open(".")
+	if err != nil {
+		return fmt.Errorf("failed to open repository: %w", err)
+	}
+
+	// List objects
+	objects, err := r.Store().ListObjects(*typeFilter)
+	if err != nil {
+		return fmt.Errorf("failed to list objects: %w", err)
+	}
+
+	// Output based on format
+	if *format == "json" {
+		// Output as JSON array
+		data, err := json.Marshal(objects)
+		if err != nil {
+			return fmt.Errorf("failed to marshal objects: %w", err)
+		}
+		fmt.Println(string(data))
+	} else {
+		// Human-readable text format
+		if len(objects) == 0 {
+			fmt.Println("No objects found")
+			return nil
+		}
+
+		fmt.Printf("Found %d object(s):\n", len(objects))
+		for _, obj := range objects {
+			shortHash := obj.Hash
+			if len(obj.Hash) > 12 {
+				shortHash = obj.Hash[:12]
+			}
+			fmt.Printf("  %s  %s\n", shortHash, obj.Type)
+		}
+	}
+
+	return nil
+}
+
