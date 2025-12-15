@@ -1,0 +1,2 @@
+# ChemVCS Python requirements
+numpy>=1.20.0

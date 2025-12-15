@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/lishi/chemvcs/internal/objectstore"
 	"github.com/lishi/chemvcs/internal/remote"
 	"github.com/lishi/chemvcs/internal/repo"
 	"github.com/lishi/chemvcs/internal/workspace"
@@ -829,6 +830,10 @@ func handleListObjects(args []string) error {
 
 	// Output based on format
 	if *format == "json" {
+		// Ensure we output [] instead of null for empty results
+		if objects == nil {
+			objects = []objectstore.ObjectInfo{}
+		}
 		// Output as JSON array
 		data, err := json.Marshal(objects)
 		if err != nil {
