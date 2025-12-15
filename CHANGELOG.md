@@ -170,6 +170,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `__init__.py` exports
 - Enhanced test suite organization
 
+## [0.6.1] - 2025-12 (M6 Phase 2: Go CLI Commands)
+
+### Added - Go CLI Commands for HPC
+
+**Go-Python Integration Layer** (`go/internal/hpc/hpc.go` - 440 lines)
+- `findPythonExecutable()`: Locate Python interpreter (python3 or python)
+- `findChemVCSPyModule()`: Find chemvcs_py module in repository structure
+- `runPythonScript()`: Execute Python scripts with proper PYTHONPATH
+- `SubmitJob()`: Submit HPC job by calling Python JobSubmitter
+- `ListJobs()`: List tracked jobs from repository
+- `CheckJobStatus()`: Query job status via Python JobTracker
+- `RetrieveResults()`: Fetch completed results via Python JobRetriever
+- Data structures: JobStatus, JobInfo, SubmitOptions, RetrieveOptions
+
+**CLI Command Handlers** (`go/cmd/chemvcs/main.go`)
+- `chemvcs submit <run-hash> <script> [--capture-env]`: Submit HPC job
+- `chemvcs jobs [--status=<status>] [-v]`: List tracked jobs
+- `chemvcs retrieve <run-hash> [--patterns] [--dest]`: Retrieve results
+- Updated help message with HPC Commands section
+- User-friendly output formatting
+
+**CLI Integration Tests** (`go/internal/hpc/hpc_test.go` - 330 lines)
+- TestHPCPackageStructure: Data structure validation
+- TestPythonAvailability: Python interpreter detection
+- TestCLIIntegration: End-to-end CLI command testing
+- TestMockWorkflow: Mock workflow demonstration
+- All 85 Go tests passing (80 pre-M6 + 5 M6)
+
+**Documentation Updates**
+- Updated `docs/10-hpc-user-guide.md` with CLI commands section
+- Added Quick Start with CLI and Python API options
+- Complete CLI command reference with examples and output
+- Side-by-side comparison of CLI vs Python API usage
+
+### Changed
+
+**CLI Help Message**
+- Added "HPC Commands:" section
+- Submit, jobs, and retrieve command descriptions
+
+**User Guide Organization**
+- Quick Start now shows CLI commands first (recommended approach)
+- Python API section remains for advanced usage
+
+### Code Statistics (M6 Phase 1-2 Combined)
+
+**New Python Code** (Phase 1): ~2,800 lines
+- Production: ~1,100 lines (7 HPC modules)
+- Tests: ~1,700 lines (3 test files, 45 tests)
+
+**New Go Code** (Phase 2): ~770 lines
+- Production: ~440 lines (1 HPC module)
+- Tests: ~330 lines (1 test file, 5 test suites)
+
+**Total Codebase**:
+- Python: ~8,400 lines (4,600 production + 3,800 tests)
+- Go: ~7,120 lines (3,952 production + 3,168 tests)
+- Combined: ~15,520 lines
+
+**Documentation**: +85KB
+- Design document: 53KB
+- User guide: 32KB (updated)
+
+**Total Tests**: 203 passing
+- Go: 85 tests (M1-M4: 80 + M6: 5)
+- Python: 118 tests (M5: 73 + M6: 45)
+
+### Git Commits (Phase 2)
+- `2cfd282`: "feat(M6): Phase 2 - Go CLI commands for HPC integration"
+
+---
+
 ### Code Statistics (M6 Phase 1)
 
 **New Python Code**: ~2,800 lines

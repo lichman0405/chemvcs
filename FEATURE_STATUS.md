@@ -247,17 +247,52 @@
 - **Documentation**: 71KB (design + user guide)
 - **Git commit**: `979a40e` - "feat(M6): Phase 1 - HPC core infrastructure complete"
 
-#### ❌ Phase 2-5: CLI and Integration (Pending)
+#### ✅ Phase 2: Go CLI Commands (Completed 2025-12)
 
-- ❌ **Go CLI commands**
-  - `chemvcs submit` - submit jobs from CLI
-  - `chemvcs jobs` - list tracked jobs
-  - `chemvcs retrieve` - fetch completed results
-  - Go-Python integration layer
+- ✅ **Go-Python integration layer** (`go/internal/hpc/hpc.go` - 440 lines)
+  - `findPythonExecutable()`: Locate Python interpreter (python3/python)
+  - `findChemVCSPyModule()`: Find chemvcs_py in repository
+  - `runPythonScript()`: Execute Python with proper PYTHONPATH
+  - `SubmitJob()`: Submit HPC job via Python
+  - `ListJobs()`: List tracked jobs from repository
+  - `CheckJobStatus()`: Query job status
+  - `RetrieveResults()`: Fetch completed job outputs
+
+- ✅ **Go CLI commands** (`go/cmd/chemvcs/main.go`)
+  - `chemvcs submit <run-hash> <script>`: Submit HPC job
+  - `chemvcs jobs [--status] [-v]`: List tracked jobs
+  - `chemvcs retrieve <run-hash> [--patterns] [--dest]`: Fetch results
+  - Command handlers: handleSubmit(), handleJobs(), handleRetrieve()
+  - Updated help message with HPC Commands section
   
-- ❌ **CLI integration tests**
-  - End-to-end workflow testing
-  - Error handling validation
+- ✅ **CLI integration tests** (`go/internal/hpc/hpc_test.go` - 330 lines)
+  - Package structure tests (JobStatus, JobInfo, options)
+  - Python availability detection
+  - CLI integration tests (help, submit, jobs, retrieve)
+  - Mock workflow demonstrations
+  - All 85 Go tests passing (80 original + 5 HPC)
+
+- ✅ **Documentation updates**
+  - Updated user guide with CLI commands section
+  - Complete CLI command reference with examples
+  - Side-by-side CLI vs Python API comparison
+
+**Phase 2 Statistics**:
+- **New Go code**: ~770 lines (440 implementation + 330 tests)
+- **Total Go tests**: 85 passing (80 pre-M6 + 5 M6)
+- **CLI commands**: 3 new commands (submit, jobs, retrieve)
+- **Git commit**: `2cfd282` - "feat(M6): Phase 2 - Go CLI commands for HPC integration"
+
+#### ❌ Phase 3-5: Additional Features (Pending)
+
+- ❌ **Additional HPC adapters**
+  - PBS/Torque adapter
+  - LSF adapter
+  
+- ❌ **Enhanced CLI features**
+  - Interactive job monitoring (watch mode)
+  - Batch job submission
+  - Job cancellation command
   
 - ❌ **Additional adapters**
   - PBS/Torque adapter

@@ -249,15 +249,16 @@ chemvcs pull origin main
 | `chemvcs checkout <branch>` | Switch branches |
 | `chemvcs merge <branch>` | Merge a branch |
 
-### HPC Integration (M6 Phase 1) 🆕
+### HPC Integration (M6 Phase 1-2) 🆕
 
 | Command | Description |
 |---------|-------------|
-| Python: `JobSubmitter.submit_run()` | Submit HPC job with provenance |
-| Python: `JobTracker.check_status()` | Query job status |
-| Python: `JobRetriever.retrieve_results()` | Fetch completed results |
-
-**Note**: Go CLI commands (`chemvcs submit/jobs/retrieve`) coming in Phase 2.
+| `chemvcs submit <run> <script>` | Submit HPC job for a run |
+| `chemvcs jobs [--status]` | List tracked HPC jobs |
+| `chemvcs retrieve <run> [--patterns]` | Fetch completed results |
+| Python: `JobSubmitter.submit_run()` | Submit HPC job with provenance (API) |
+| Python: `JobTracker.check_status()` | Query job status (API) |
+| Python: `JobRetriever.retrieve_results()` | Fetch completed results (API) |
 
 See [docs/10-hpc-user-guide.md](docs/10-hpc-user-guide.md) for complete HPC documentation.
 
@@ -300,9 +301,9 @@ See [docs/10-chemvcs-vs-git.md](docs/10-chemvcs-vs-git.md) for detailed comparis
 
 ChemVCS is **under development**. Key remaining work:
 
-- ✅ **M6 Phase 1 complete** - HPC core infrastructure with SLURM adapter
-- ⏭️ **M6 Phase 2-5** - Go CLI commands (`chemvcs submit/jobs/retrieve`)
-- ⏭️ **Additional HPC adapters** - PBS, LSF support
+- ✅ **M6 Phase 1-2 complete** - HPC core infrastructure + CLI commands
+- ⏭️ **M6 Phase 3-5** - Additional adapters (PBS, LSF) and enhanced features
+- ⏭️ **Additional HPC adapters** - PBS, LSF full support
 - ⏭️ **CIF file parser** - Crystallography format
 - ⏭️ **Enhanced Repository API** - Advanced queries and filtering
 - ❌ **Hooks system** - Workflow automation
