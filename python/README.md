@@ -342,4 +342,4 @@ ChemVCS is in active development. Contributions welcome!
 - [Main ChemVCS README](../README.md)
 - [Feature Status Tracking](../FEATURE_STATUS.md)
 - [Python Domain Layer Design](../docs/06-python-domain-layer.md)
-- [Project Structure](../STRUCTURE.md)
+- [Repository Overview and Structure](../README.md)

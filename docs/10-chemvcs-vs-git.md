@@ -439,4 +439,4 @@ True differentiation emerges when:
 - Git Official Documentation: https://git-scm.com/doc
 - ChemVCS Vision and Scope: [01-vision-and-scope.md](01-vision-and-scope.md)
 - ChemVCS Architecture: [02-architecture-overview.md](02-architecture-overview.md)
-- ChemVCS Roadmap: [TODO.md](../TODO.md)
+- ChemVCS Feature Status / Roadmap Notes: [FEATURE_STATUS.md](../FEATURE_STATUS.md)

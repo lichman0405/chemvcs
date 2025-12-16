@@ -12,21 +12,52 @@ import (
 
 // Client represents a client for interacting with a remote ChemVCS server.
 type Client struct {
-	BaseURL string       // Base URL of the remote server (e.g., "https://example.com/chemvcs/v1")
-	Token   string       // Authentication token (optional)
-	HTTP    *http.Client // HTTP client for requests
+	BaseURL string // Base URL of the remote server (e.g., "https://example.com/chemvcs/v1")
+	// DefaultRepoID is used when callers pass an empty repoID.
+	// It may be inferred from BaseURL when it contains "/repos/{owner}/{repo}".
+	DefaultRepoID string
+	Token         string       // Authentication token (optional)
+	HTTP          *http.Client // HTTP client for requests
 }
 
 // NewClient creates a new remote client with the given base URL and token.
 func NewClient(baseURL, token string) *Client {
+	// If the user provided a repo-scoped URL like:
+	//   http://host/chemvcs/v1/repos/owner/repo
+	// infer repo ID and normalize BaseURL to the API root.
+	// This keeps client path building consistent.
+	defaultRepoID := ""
+	if idx := strings.Index(baseURL, "/repos/"); idx >= 0 {
+		// Split into prefix + repoID
+		prefix := baseURL[:idx]
+		rest := baseURL[idx+len("/repos/"):]
+		rest = strings.Trim(rest, "/")
+		parts := strings.Split(rest, "/")
+		if len(parts) >= 2 {
+			defaultRepoID = parts[0] + "/" + parts[1]
+			baseURL = prefix
+		}
+	}
+
 	if !strings.HasSuffix(baseURL, "/") {
 		baseURL += "/"
 	}
 	return &Client{
-		BaseURL: baseURL,
-		Token:   token,
-		HTTP:    &http.Client{},
+		BaseURL:       baseURL,
+		DefaultRepoID: defaultRepoID,
+		Token:         token,
+		HTTP:          &http.Client{},
 	}
+}
+
+func (c *Client) normalizeRepoID(repoID string) (string, error) {
+	if repoID != "" {
+		return repoID, nil
+	}
+	if c.DefaultRepoID != "" {
+		return c.DefaultRepoID, nil
+	}
+	return "", fmt.Errorf("repoID is required")
 }
 
 // RepositoryInfo represents basic information about a remote repository.
@@ -103,6 +134,10 @@ func (c *Client) doRequest(method, path string, body io.Reader) (*http.Response,
 
 // GetRepositoryInfo retrieves information about a specific repository.
 func (c *Client) GetRepositoryInfo(repoID string) (*RepositoryInfo, error) {
+	repoID, err := c.normalizeRepoID(repoID)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := c.doRequest("GET", "repos/"+repoID, nil)
 	if err != nil {
 		return nil, err
@@ -119,6 +154,10 @@ func (c *Client) GetRepositoryInfo(repoID string) (*RepositoryInfo, error) {
 
 // ListRefs retrieves all refs in a repository.
 func (c *Client) ListRefs(repoID string) ([]RefInfo, error) {
+	repoID, err := c.normalizeRepoID(repoID)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := c.doRequest("GET", "repos/"+repoID+"/refs", nil)
 	if err != nil {
 		return nil, err
@@ -137,6 +176,10 @@ func (c *Client) ListRefs(repoID string) ([]RefInfo, error) {
 
 // GetRef retrieves a specific ref from a repository.
 func (c *Client) GetRef(repoID, refName string) (*RefInfo, error) {
+	repoID, err := c.normalizeRepoID(repoID)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := c.doRequest("GET", "repos/"+repoID+"/refs/"+refName, nil)
 	if err != nil {
 		return nil, err
@@ -153,6 +196,10 @@ func (c *Client) GetRef(repoID, refName string) (*RefInfo, error) {
 
 // UpdateRef updates a ref on the remote server.
 func (c *Client) UpdateRef(repoID, refName string, oldTarget, newTarget string) error {
+	repoID, err := c.normalizeRepoID(repoID)
+	if err != nil {
+		return err
+	}
 	reqBody := RefUpdateRequest{
 		OldTarget: oldTarget,
 		NewTarget: newTarget,
@@ -174,6 +221,10 @@ func (c *Client) UpdateRef(repoID, refName string, oldTarget, newTarget string) 
 
 // CheckObjectsExist checks which objects exist on the remote server.
 func (c *Client) CheckObjectsExist(repoID string, objectIDs []string) (*ObjectExistsResponse, error) {
+	repoID, err := c.normalizeRepoID(repoID)
+	if err != nil {
+		return nil, err
+	}
 	reqBody := ObjectExistsRequest{IDs: objectIDs}
 
 	data, err := json.Marshal(reqBody)
@@ -197,6 +248,10 @@ func (c *Client) CheckObjectsExist(repoID string, objectIDs []string) (*ObjectEx
 
 // UploadObject uploads a single object to the remote server.
 func (c *Client) UploadObject(repoID, objectID string, data []byte) error {
+	repoID, err := c.normalizeRepoID(repoID)
+	if err != nil {
+		return err
+	}
 	// Simple framing: hash\nlength\nbytes
 	var buf bytes.Buffer
 	buf.WriteString(objectID + "\n")
@@ -234,6 +289,10 @@ func (c *Client) UploadObject(repoID, objectID string, data []byte) error {
 
 // DownloadObject downloads a single object from the remote server.
 func (c *Client) DownloadObject(repoID, objectID string) ([]byte, error) {
+	repoID, err := c.normalizeRepoID(repoID)
+	if err != nil {
+		return nil, err
+	}
 	url := c.BaseURL + "repos/" + repoID + "/objects/" + objectID
 
 	req, err := http.NewRequest("GET", url, nil)

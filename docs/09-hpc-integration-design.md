@@ -18,6 +18,16 @@ This milestone (M6) implements HPC integration, specifically:
 - Capturing computational provenance
 - Automatically retrieving results and updating version history
 
+### 1.3 Remote HPC Gateway (Scheme C)
+
+In addition to the original **local** workflow (Go CLI calling the Python HPC layer on the same machine as the scheduler), ChemVCS now supports a **remote, no-SSH** workflow:
+
+- The laptop CLI talks HTTP to `chemvcs-server`.
+- `chemvcs-server` executes SLURM commands (`sbatch/squeue/sacct/scancel`) on the server side.
+- HPC state is persisted as blob records referenced by `refs/hpc/...` to avoid rewriting existing domain objects.
+
+This remote gateway is described in detail in `docs/11-remote-hpc-design.md`.
+
 ### 1.2 Design Goals
 
 1. **Scheduler Agnostic**: Abstract interface supporting multiple job systems (SLURM, PBS, SGE)

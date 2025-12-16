@@ -2,6 +2,15 @@
 
 A version control system designed for computational chemistry workflows.
 
+## Contents
+
+- [What is ChemVCS?](#what-is-chemvcs)
+- [Current Status](#current-status)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Remote HPC (No SSH)](#remote-hpc-no-ssh)
+- [Documentation](#documentation)
+
 ## What is ChemVCS?
 
 ChemVCS brings Git-like version control to computational chemistry. It helps you track molecular structures, calculation parameters, and computational results with the same rigor as source code version control.
@@ -14,7 +23,7 @@ Computational chemistry generates complex data across long-running calculations:
 - **Reproducibility**: Track exact molecular structures, calculation parameters, and software versions
 - **Collaboration**: Share computational workflows and results with team members
 - **Provenance**: Maintain complete history of how results were obtained
-- **HPC Integration**: (Planned) Correlate version control with batch job systems
+- **HPC Integration**: Track job submission, status, and retrieval (local or via a remote gateway)
 
 Traditional VCS tools like Git work for some of this, but ChemVCS is designed from the ground up to handle chemistry-specific needs.
 
@@ -136,6 +145,28 @@ chemvcs merge optimization
 
 ChemVCS supports both fast-forward and three-way merging with conflict detection.
 
+## Remote HPC (No SSH)
+
+If your laptop cannot run SLURM commands locally, you can submit/track jobs via `chemvcs-server` acting as an HTTP gateway on the SLURM host.
+
+```bash
+# Add a repo-scoped remote (recommended)
+chemvcs remote add slurm http://<host>:<port>/chemvcs/v1/repos/<owner>/<repo>
+
+# If the server requires auth, provide a token (global or per-remote)
+export CHEMVCS_REMOTE_TOKEN="<token>"
+# or: export CHEMVCS_REMOTE_TOKEN_SLURM="<token>"
+
+# Submit / monitor / retrieve via the gateway
+chemvcs submit   --remote=slurm <run-hash> job.slurm
+chemvcs jobs     --remote=slurm
+chemvcs watch    --remote=slurm <run-hash|job-id> --interval=10
+chemvcs cancel   --remote=slurm <run-hash|job-id>
+chemvcs retrieve --remote=slurm <run-hash> --patterns="*.out,*.log" --dest=./results
+```
+
+For details, see [docs/11-remote-hpc-design.md](docs/11-remote-hpc-design.md).
+
 ## Using Python Domain Layer
 
 ### Working with Molecular Structures
@@ -210,7 +241,10 @@ See [python/examples/](python/examples/) for complete examples.
 On a central machine:
 
 ```bash
-chemvcs-server -port 8080 -repo-root /path/to/repos
+chemvcs-server -port 8080 -repo-root /path/to/repos \
+    --auth-token "<token>" \
+    --auth-repos "owner/repo" \
+    --admin-token "<admin-token>"
 ```
 
 ### Clone, Push, Pull
@@ -251,13 +285,14 @@ chemvcs pull origin main
 | `chemvcs checkout <branch>` | Switch branches |
 | `chemvcs merge <branch>` | Merge a branch |
 
-### HPC Integration (M6 Phase 1-2) 🆕
+### HPC Integration (M6)
 
 | Command | Description |
 |---------|-------------|
 | `chemvcs submit <run> <script>` | Submit HPC job for a run |
 | `chemvcs jobs [--status]` | List tracked HPC jobs |
 | `chemvcs retrieve <run> [--patterns]` | Fetch completed results |
+| `chemvcs submit/jobs/retrieve/cancel/watch --remote=<name>` | Use remote HPC gateway (SLURM) |
 | Python: `JobSubmitter.submit_run()` | Submit HPC job with provenance (API) |
 | Python: `JobTracker.check_status()` | Query job status (API) |
 | Python: `JobRetriever.retrieve_results()` | Fetch completed results (API) |
@@ -312,19 +347,18 @@ ChemVCS is **under development**. Key remaining work:
 - ❌ **Submodules** - Dependency management
 - ❌ **Tag support** - Version markers
 
-See [FEATURE_STATUS.md](FEATURE_STATUS.md) and [TODO.md](TODO.md) for detailed roadmap.
+See [FEATURE_STATUS.md](FEATURE_STATUS.md) for detailed feature tracking and roadmap notes.
 
 ## Documentation
 
 - **[FEATURE_STATUS.md](FEATURE_STATUS.md)** - Comprehensive feature tracking (updated with M6!)
-- [PROJECT_STATUS.md](PROJECT_STATUS.md) - Development progress and milestones
-- [TODO.md](TODO.md) - Roadmap and planned features
 - [docs/](docs/) - Detailed design specifications
   - [01-vision-and-scope.md](docs/01-vision-and-scope.md) - Project vision
   - [02-architecture-overview.md](docs/02-architecture-overview.md) - System design
   - [06-python-domain-layer.md](docs/06-python-domain-layer.md) - Python package design
   - [09-hpc-integration-design.md](docs/09-hpc-integration-design.md) - HPC integration design 🆕
   - [10-hpc-user-guide.md](docs/10-hpc-user-guide.md) - HPC user guide 🆕
+    - [11-remote-hpc-design.md](docs/11-remote-hpc-design.md) - Remote HPC gateway (no SSH) 🆕
 - [python/README.md](python/README.md) - Python package documentation
 - [examples/hpc-workflow/](examples/hpc-workflow/) - Complete HPC workflow example 🆕
 
@@ -338,14 +372,12 @@ ChemVCS is in early development. Contributions welcome, but expect frequent chan
 ```bash
 cd go
 go test ./...
-# Output: 80 tests passing
 ```
 
 **Python tests:**
 ```bash
 cd python
 python -m pytest tests/ -v
-# Output: 118 tests passing (73 pre-M6 + 45 M6)
 ```
 
 ### Project Structure
@@ -380,13 +412,7 @@ chemvcs/
 │   └── ...
 ├── README.md                # This file
 ├── FEATURE_STATUS.md        # Detailed feature tracking
-├── PROJECT_STATUS.md        # Milestone progress
-└── TODO.md                  # Development roadmap
-```
-│       ├── workspace/        # Working directory management
-│       ├── remote/           # Remote client
-│       └── server/           # HTTP server
-└── docs/                      # Design documentation
+└── CHANGELOG.md             # Project history
 ```
 
 ## License

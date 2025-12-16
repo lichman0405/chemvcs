@@ -281,3 +281,159 @@ func TestRefOperations(t *testing.T) {
 		t.Errorf("expected target %s, got %s", snapHash, getResp["target"])
 	}
 }
+
+func TestAuthRepoScoped(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Create test repository
+	repoPath := filepath.Join(tmpDir, "owner", "repo")
+	os.MkdirAll(repoPath, 0755)
+	if _, err := repo.Init(repoPath); err != nil {
+		t.Fatalf("Failed to init repo: %v", err)
+	}
+
+	config := Config{
+		RepoRoot:   tmpDir,
+		Port:       8080,
+		AuthToken:  "user-token",
+		AuthRepos:  []string{"owner/repo"},
+		AdminToken: "admin-token",
+	}
+	srv, err := NewServer(config)
+	if err != nil {
+		t.Fatalf("NewServer failed: %v", err)
+	}
+
+	// No auth -> 401
+	{
+		req := httptest.NewRequest("GET", "/chemvcs/v1/repos/owner/repo", nil)
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d", w.Code)
+		}
+	}
+
+	// Wrong token -> 401
+	{
+		req := httptest.NewRequest("GET", "/chemvcs/v1/repos/owner/repo", nil)
+		req.Header.Set("Authorization", "Bearer wrong")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d", w.Code)
+		}
+	}
+
+	// Right user token but wrong repo -> 403
+	{
+		req := httptest.NewRequest("GET", "/chemvcs/v1/repos/other/repo", nil)
+		req.Header.Set("Authorization", "Bearer user-token")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("expected 403, got %d", w.Code)
+		}
+	}
+
+	// Right user token and allowed repo -> 200
+	{
+		req := httptest.NewRequest("GET", "/chemvcs/v1/repos/owner/repo", nil)
+		req.Header.Set("Authorization", "Bearer user-token")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", w.Code)
+		}
+	}
+
+	// Repo listing requires admin token
+	{
+		req := httptest.NewRequest("GET", "/chemvcs/v1/repos", nil)
+		req.Header.Set("Authorization", "Bearer user-token")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("expected 403, got %d", w.Code)
+		}
+	}
+	{
+		req := httptest.NewRequest("GET", "/chemvcs/v1/repos", nil)
+		req.Header.Set("Authorization", "Bearer admin-token")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", w.Code)
+		}
+	}
+}
+
+func TestRefUpdateRequiresExpectedOldTarget(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Create test repository with two commits
+	repoPath := filepath.Join(tmpDir, "test", "repo")
+	os.MkdirAll(repoPath, 0755)
+	r, err := repo.Init(repoPath)
+	if err != nil {
+		t.Fatalf("Failed to init repo: %v", err)
+	}
+
+	blobHash2, _ := r.Store().PutBlob([]byte("v2"))
+	obj2 := model.NewObject("folder")
+	obj2.AddRef(model.NewBlobRef(blobHash2))
+	obj2.SetMeta("name", "root")
+	objHash2, _ := r.Store().PutObject(obj2)
+	snap2, _ := r.CreateSnapshot(objHash2, "c2", "Test <test@example.com>")
+
+	blobHash3, _ := r.Store().PutBlob([]byte("v3"))
+	obj3 := model.NewObject("folder")
+	obj3.AddRef(model.NewBlobRef(blobHash3))
+	obj3.SetMeta("name", "root")
+	objHash3, _ := r.Store().PutObject(obj3)
+	snap3, _ := r.CreateSnapshot(objHash3, "c3", "Test <test@example.com>")
+
+	currentTarget, err := r.ResolveRef("refs/heads/main")
+	if err != nil {
+		t.Fatalf("failed to resolve current ref: %v", err)
+	}
+	if currentTarget == "" {
+		t.Fatalf("expected current ref target to be set")
+	}
+	if currentTarget != snap3 {
+		t.Fatalf("expected current ref to be latest snapshot")
+	}
+
+	config := Config{RepoRoot: tmpDir, Port: 8080}
+	srv, err := NewServer(config)
+	if err != nil {
+		t.Fatalf("NewServer failed: %v", err)
+	}
+
+	// Attempt to update ref without old_target should conflict when ref exists.
+	reqBody, _ := json.Marshal(map[string]string{
+		"new_target": snap2,
+	})
+	req := httptest.NewRequest("POST", "/chemvcs/v1/repos/test/repo/refs/heads/main", bytes.NewReader(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	srv.ServeHTTP(w, req)
+	if w.Code != http.StatusConflict {
+		t.Fatalf("expected 409, got %d", w.Code)
+	}
+
+	// Now update with correct old_target should succeed.
+	reqBody, _ = json.Marshal(map[string]string{
+		"old_target": currentTarget,
+		"new_target": snap2,
+	})
+	req = httptest.NewRequest("POST", "/chemvcs/v1/repos/test/repo/refs/heads/main", bytes.NewReader(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+
+	srv.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}

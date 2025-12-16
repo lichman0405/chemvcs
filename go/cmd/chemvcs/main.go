@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/lishi/chemvcs/internal/hpc"
 	"github.com/lishi/chemvcs/internal/objectstore"
@@ -624,7 +625,7 @@ func handlePush(args []string) error {
 	}
 
 	// Create client
-	client := remote.NewClient(remoteURL, "")
+	client := remote.NewClient(remoteURL, remoteTokenFor(remoteName))
 
 	// Parse repository ID from URL (simplified: assume URL ends with repo ID)
 	// In a full implementation, this would be more sophisticated
@@ -669,7 +670,7 @@ func handlePull(args []string) error {
 	}
 
 	// Create client
-	client := remote.NewClient(remoteURL, "")
+	client := remote.NewClient(remoteURL, remoteTokenFor(remoteName))
 
 	repoID := extractRepoID(remoteURL)
 
@@ -723,7 +724,7 @@ func handleFetch(args []string) error {
 	}
 
 	// Create client
-	client := remote.NewClient(remoteURL, "")
+	client := remote.NewClient(remoteURL, remoteTokenFor(remoteName))
 
 	repoID := extractRepoID(remoteURL)
 
@@ -769,6 +770,42 @@ func extractRepoID(url string) string {
 	}
 
 	return "default/repo"
+}
+
+// remoteTokenFor resolves the auth token to use for a given remote.
+//
+// Priority:
+// 1) CHEMVCS_REMOTE_TOKEN_<REMOTE_NAME>
+// 2) CHEMVCS_REMOTE_TOKEN
+func remoteTokenFor(remoteName string) string {
+	if remoteName != "" {
+		key := "CHEMVCS_REMOTE_TOKEN_" + envKeySuffix(remoteName)
+		if v := os.Getenv(key); v != "" {
+			return v
+		}
+	}
+	return os.Getenv("CHEMVCS_REMOTE_TOKEN")
+}
+
+func envKeySuffix(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return ""
+	}
+	var b strings.Builder
+	b.Grow(len(s))
+	for _, r := range s {
+		if r >= 'a' && r <= 'z' {
+			b.WriteRune(r - ('a' - 'A'))
+			continue
+		}
+		if (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+			continue
+		}
+		b.WriteByte('_')
+	}
+	return b.String()
 }
 
 func handleInspectObject(args []string) error {
@@ -886,6 +923,7 @@ func handleSubmit(args []string) error {
 	// Parse flags
 	fs := flag.NewFlagSet("submit", flag.ExitOnError)
 	captureEnv := fs.Bool("capture-env", true, "Capture environment (modules, env vars)")
+	remoteName := fs.String("remote", "", "Remote name (submit via chemvcs-server HPC gateway)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -920,6 +958,36 @@ func handleSubmit(args []string) error {
 
 	// Submit job
 	fmt.Printf("Submitting HPC job for run %s...\n", runHash[:8])
+
+	if *remoteName != "" {
+		remoteURL, err := remote.GetRemoteURL(r, *remoteName)
+		if err != nil {
+			return err
+		}
+		client := remote.NewClient(remoteURL, remoteTokenFor(*remoteName))
+		repoID := extractRepoID(remoteURL)
+
+		scriptBytes, err := os.ReadFile(absScriptPath)
+		if err != nil {
+			return fmt.Errorf("failed to read script: %w", err)
+		}
+
+		resp, err := client.SubmitHPC(repoID, remote.SubmitHPCRequest{
+			RunHash:    runHash,
+			Script:     string(scriptBytes),
+			CaptureEnv: *captureEnv,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to submit job: %w", err)
+		}
+
+		fmt.Printf("Job submitted successfully!\n")
+		fmt.Printf("  Job ID: %s\n", resp.JobID)
+		fmt.Printf("  Job System: %s\n", resp.JobSystem)
+		fmt.Printf("  Run: %s\n", runHash[:8])
+		return nil
+	}
+
 	result, err := hpc.SubmitJob(repoPath, hpc.SubmitOptions{
 		RunHash:    runHash,
 		ScriptPath: absScriptPath,
@@ -942,6 +1010,7 @@ func handleJobs(args []string) error {
 	fs := flag.NewFlagSet("jobs", flag.ExitOnError)
 	statusFilter := fs.String("status", "", "Filter by status (e.g., RUNNING, COMPLETED)")
 	verbose := fs.Bool("v", false, "Verbose output")
+	remoteName := fs.String("remote", "", "Remote name (list via chemvcs-server HPC gateway)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -953,6 +1022,51 @@ func handleJobs(args []string) error {
 	}
 
 	repoPath := r.Path()
+
+	if *remoteName != "" {
+		remoteURL, err := remote.GetRemoteURL(r, *remoteName)
+		if err != nil {
+			return err
+		}
+		client := remote.NewClient(remoteURL, remoteTokenFor(*remoteName))
+		repoID := extractRepoID(remoteURL)
+
+		jobs, err := client.ListHPCJobs(repoID, *statusFilter, true)
+		if err != nil {
+			return fmt.Errorf("failed to list jobs: %w", err)
+		}
+
+		if len(jobs) == 0 {
+			if *statusFilter != "" {
+				fmt.Printf("No jobs found with status: %s\n", *statusFilter)
+			} else {
+				fmt.Println("No tracked jobs found")
+			}
+			return nil
+		}
+
+		fmt.Printf("Found %d job(s):\n\n", len(jobs))
+		for _, job := range jobs {
+			shortHash := job.RunHash
+			if len(job.RunHash) > 8 {
+				shortHash = job.RunHash[:8]
+			}
+
+			fmt.Printf("Job ID: %s\n", job.JobID)
+			fmt.Printf("  Run:        %s\n", shortHash)
+			fmt.Printf("  Status:     %s\n", job.Status)
+			fmt.Printf("  System:     %s\n", job.JobSystem)
+			if job.Queue != "" {
+				fmt.Printf("  Queue:      %s\n", job.Queue)
+			}
+			if *verbose && job.Submitted != "" {
+				fmt.Printf("  Submitted:  %s\n", job.Submitted)
+			}
+			fmt.Println()
+		}
+
+		return nil
+	}
 
 	// List jobs
 	jobs, err := hpc.ListJobs(repoPath, *statusFilter)
@@ -998,6 +1112,7 @@ func handleRetrieve(args []string) error {
 	fs := flag.NewFlagSet("retrieve", flag.ExitOnError)
 	patterns := fs.String("patterns", "", "Comma-separated file patterns (e.g., *.out,*.log)")
 	destination := fs.String("dest", ".", "Destination directory for retrieved files")
+	remoteName := fs.String("remote", "", "Remote name (retrieve via chemvcs-server HPC gateway)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -1026,6 +1141,31 @@ func handleRetrieve(args []string) error {
 
 	// Retrieve results
 	fmt.Printf("Retrieving results for run %s...\n", runHash[:8])
+	if *remoteName != "" {
+		remoteURL, err := remote.GetRemoteURL(r, *remoteName)
+		if err != nil {
+			return err
+		}
+		client := remote.NewClient(remoteURL, remoteTokenFor(*remoteName))
+		repoID := extractRepoID(remoteURL)
+
+		zipData, err := client.RetrieveHPC(repoID, patternList)
+		if err != nil {
+			return fmt.Errorf("failed to retrieve results: %w", err)
+		}
+
+		files, err := remote.ExtractZipTo(zipData, *destination)
+		if err != nil {
+			return fmt.Errorf("failed to extract results: %w", err)
+		}
+
+		fmt.Printf("Retrieved %d file(s):\n", len(files))
+		for _, file := range files {
+			fmt.Printf("  %s\n", file)
+		}
+		return nil
+	}
+
 	files, err := hpc.RetrieveResults(repoPath, hpc.RetrieveOptions{
 		RunHash:     runHash,
 		Patterns:    patternList,
@@ -1045,12 +1185,16 @@ func handleRetrieve(args []string) error {
 
 // handleCancel handles the cancel command
 func handleCancel(args []string) error {
-	// Check arguments
-	if len(args) < 1 {
-		return fmt.Errorf("usage: chemvcs cancel <run-hash|job-id>")
+	fs := flag.NewFlagSet("cancel", flag.ExitOnError)
+	remoteName := fs.String("remote", "", "Remote name (cancel via chemvcs-server HPC gateway)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if fs.NArg() < 1 {
+		return fmt.Errorf("usage: chemvcs cancel <run-hash|job-id> [--remote=<name>]")
 	}
 
-	identifier := args[0]
+	identifier := fs.Arg(0)
 
 	// Open repository
 	r, err := repo.Open(".")
@@ -1059,6 +1203,23 @@ func handleCancel(args []string) error {
 	}
 
 	repoPath := r.Path()
+
+	if *remoteName != "" {
+		remoteURL, err := remote.GetRemoteURL(r, *remoteName)
+		if err != nil {
+			return err
+		}
+		client := remote.NewClient(remoteURL, remoteTokenFor(*remoteName))
+		repoID := extractRepoID(remoteURL)
+
+		fmt.Printf("Cancelling job/run %s...\n", identifier)
+		_, err = client.CancelHPC(repoID, identifier)
+		if err != nil {
+			return fmt.Errorf("failed to cancel job: %w", err)
+		}
+		fmt.Println("Job cancelled successfully!")
+		return nil
+	}
 
 	// Cancel job
 	fmt.Printf("Cancelling job/run %s...\n", identifier)
@@ -1077,6 +1238,7 @@ func handleWatch(args []string) error {
 	fs := flag.NewFlagSet("watch", flag.ExitOnError)
 	interval := fs.Int("interval", 30, "Polling interval in seconds")
 	timeout := fs.Int("timeout", 0, "Maximum watch time in seconds (0 for indefinite)")
+	remoteName := fs.String("remote", "", "Remote name (watch via chemvcs-server HPC gateway)")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -1097,6 +1259,39 @@ func handleWatch(args []string) error {
 	}
 
 	repoPath := r.Path()
+
+	if *remoteName != "" {
+		remoteURL, err := remote.GetRemoteURL(r, *remoteName)
+		if err != nil {
+			return err
+		}
+		client := remote.NewClient(remoteURL, remoteTokenFor(*remoteName))
+		repoID := extractRepoID(remoteURL)
+
+		start := time.Now()
+		lastStatus := ""
+		for {
+			job, err := client.GetHPCJob(repoID, identifier, true)
+			if err != nil {
+				return fmt.Errorf("failed to watch job: %w", err)
+			}
+			if job.Status != lastStatus {
+				fmt.Printf("Status: %s\n", job.Status)
+				lastStatus = job.Status
+			}
+
+			upper := strings.ToUpper(job.Status)
+			if upper == "COMPLETED" || upper == "FAILED" || upper == "CANCELLED" {
+				return nil
+			}
+
+			if *timeout > 0 && time.Since(start) > time.Duration(*timeout)*time.Second {
+				return fmt.Errorf("watch timeout reached")
+			}
+
+			time.Sleep(time.Duration(*interval) * time.Second)
+		}
+	}
 
 	// Watch job
 	err = hpc.WatchJob(repoPath, identifier, *interval, *timeout)

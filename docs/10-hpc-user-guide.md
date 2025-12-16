@@ -92,6 +92,33 @@ chemvcs submit <run-hash> vasp.slurm
 chemvcs submit <run-hash> vasp.slurm --capture-env=false
 ```
 
+### Option 1b: Remote HPC Gateway (No SSH)
+
+If your laptop cannot run SLURM commands locally, you can submit and monitor jobs via an HTTP gateway.
+
+**Requirements**
+- A `chemvcs-server` instance running on the SLURM host (or any host that can execute `sbatch/squeue/sacct/scancel`).
+- For the MVP, the server runs under a single service account and submits all jobs as that account.
+- Remote gateway support is currently **SLURM-only**.
+
+**1. Configure a repo-scoped remote URL**
+
+```bash
+chemvcs remote add slurm http://<host>:<port>/chemvcs/v1/repos/<owner>/<repo>
+```
+
+**2. Use `--remote` with HPC commands**
+
+```bash
+chemvcs submit   --remote=slurm <run-hash> vasp.slurm
+chemvcs jobs     --remote=slurm
+chemvcs watch    --remote=slurm <run-hash|job-id> --interval=10
+chemvcs cancel   --remote=slurm <run-hash|job-id>
+chemvcs retrieve --remote=slurm <run-hash> --patterns="*.out,*.log" --dest=./results
+```
+
+For protocol details and persistence model, see: `docs/11-remote-hpc-design.md`.
+
 **3. List tracked jobs**
 
 ```bash

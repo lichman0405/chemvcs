@@ -273,14 +273,13 @@ func (s *Server) handleRefUpdate(w http.ResponseWriter, r *http.Request, repo *r
 		return
 	}
 
-	// Optimistic concurrency control
-	if req.OldTarget != "" {
-		currentTarget, _ := repo.ResolveRef(refName)
-		if currentTarget != req.OldTarget {
-			s.sendError(w, http.StatusConflict, "conflict",
-				fmt.Sprintf("Ref has changed: expected %s, got %s", req.OldTarget, currentTarget))
-			return
-		}
+	// Optimistic concurrency control (always enforced).
+	// If OldTarget is omitted/empty, the update is only allowed when the ref does not exist.
+	currentTarget, _ := repo.ResolveRef(refName)
+	if currentTarget != req.OldTarget {
+		s.sendError(w, http.StatusConflict, "conflict",
+			fmt.Sprintf("Ref has changed: expected %s, got %s", req.OldTarget, currentTarget))
+		return
 	}
 
 	// Update ref
