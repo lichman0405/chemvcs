@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remote HPC retrieve now enforces file-count/size limits and uses command timeouts for SLURM calls
 - Remote HPC retrieve streams to disk on the client (avoids buffering the entire zip in memory)
 - Server `/hpc/jobs` list includes `updated_at` and `working_dir`
+- Job status refresh now collects detailed SLURM fields: `exit_code`, `reason`, `started_at`, `ended_at`, `elapsed_seconds`
+- CLI `jobs -v` displays detailed job fields when available
 
 ### Documentation
 - Updated docs and README to describe Remote HPC (no SSH) usage and remove stale references

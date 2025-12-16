@@ -28,6 +28,11 @@ type hpcJobRecord struct {
 	Submitted  string        `json:"submitted_at"`
 	Updated    string        `json:"updated_at"`
 	WorkingDir string        `json:"working_dir"`
+	ExitCode   string        `json:"exit_code,omitempty"`
+	Reason     string        `json:"reason,omitempty"`
+	Started    string        `json:"started_at,omitempty"`
+	Ended      string        `json:"ended_at,omitempty"`
+	ElapsedSec string        `json:"elapsed_seconds,omitempty"`
 }
 
 var (
@@ -231,6 +236,11 @@ func (s *Server) handleHPCJobs(w http.ResponseWriter, r *http.Request, repo *rep
 			Submitted:  rec.Submitted,
 			Updated:    rec.Updated,
 			WorkingDir: rec.WorkingDir,
+			ExitCode:   rec.ExitCode,
+			Reason:     rec.Reason,
+			Started:    rec.Started,
+			Ended:      rec.Ended,
+			ElapsedSec: rec.ElapsedSec,
 		})
 	}
 
@@ -544,7 +554,7 @@ func (s *Server) resolveHPCJobID(repo *repo.Repository, identifier string) (stri
 }
 
 func (s *Server) refreshHPCJobStatus(repo *repo.Repository, rec *hpcJobRecord) (hpcJobRecord, error) {
-	status, queue := slurmStatus(rec.JobID)
+	status, queue, reason, exitCode, started, ended, elapsedSec := slurmDetails(rec.JobID)
 	if status == "" {
 		return *rec, nil
 	}
@@ -554,6 +564,21 @@ func (s *Server) refreshHPCJobStatus(repo *repo.Repository, rec *hpcJobRecord) (
 	updated.Status = status
 	if queue != "" {
 		updated.Queue = queue
+	}
+	if reason != "" {
+		updated.Reason = reason
+	}
+	if exitCode != "" {
+		updated.ExitCode = exitCode
+	}
+	if started != "" {
+		updated.Started = started
+	}
+	if ended != "" {
+		updated.Ended = ended
+	}
+	if elapsedSec != "" {
+		updated.ElapsedSec = elapsedSec
 	}
 	updated.Updated = now
 
@@ -597,46 +622,98 @@ func isDigits(s string) bool {
 	return true
 }
 
-func slurmStatus(jobID string) (hpc.JobStatus, string) {
-	// Try squeue first.
+func slurmDetails(jobID string) (status hpc.JobStatus, queue string, reason string, exitCode string, started string, ended string, elapsedSec string) {
+	// Try squeue first for live jobs.
 	{
-		out, err := runCommand(squeueTimeout, "squeue", "-j", jobID, "-h", "-o", "%T|%P")
+		out, err := runCommand(squeueTimeout, "squeue", "-j", jobID, "-h", "-o", "%T|%P|%r|%S")
 		if err == nil {
 			line := strings.TrimSpace(string(out))
 			if line != "" {
-				parts := strings.SplitN(line, "|", 2)
-				state := strings.TrimSpace(parts[0])
-				queue := ""
-				if len(parts) == 2 {
+				parts := strings.Split(line, "|")
+				// Best-effort: tolerate missing fields.
+				if len(parts) >= 1 {
+					status = mapSlurmState(parts[0])
+				}
+				if len(parts) >= 2 {
 					queue = strings.TrimSpace(parts[1])
 				}
-				return mapSlurmState(state), queue
-			}
-		}
-	}
+				if len(parts) >= 3 {
+					reason = strings.TrimSpace(parts[2])
+				}
+				if len(parts) >= 4 {
+					started = strings.TrimSpace(parts[3])
+				}
 
-	// Fallback to sacct.
-	{
-		out, err := runCommand(sacctTimeout, "sacct", "-j", jobID, "-n", "-o", "State", "-P")
-		if err == nil {
-			line := strings.TrimSpace(string(out))
-			if line != "" {
-				// sacct may output multiple lines; take first non-empty.
-				lines := strings.Split(line, "\n")
-				for _, l := range lines {
-					l = strings.TrimSpace(l)
-					if l == "" {
-						continue
-					}
-					// -P uses '|' separator; state is first field.
-					state := strings.SplitN(l, "|", 2)[0]
-					return mapSlurmState(state), ""
+				reason = normalizeSlurmField(reason)
+				started = normalizeSlurmField(started)
+				if status != "" {
+					return status, queue, reason, "", started, "", ""
 				}
 			}
 		}
 	}
 
-	return "", ""
+	// Fallback to sacct for completed/unknown jobs (and for exit code / timestamps).
+	{
+		// -X: do not show steps (JobID.batch etc)
+		// -P: parsable with '|' separator
+		// -n: no header
+		out, err := runCommand(sacctTimeout, "sacct", "-j", jobID, "-n", "-P", "-X", "-o", "State,ExitCode,Start,End,ElapsedRaw,Reason,Partition")
+		if err == nil {
+			lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+			for _, l := range lines {
+				l = strings.TrimSpace(l)
+				if l == "" {
+					continue
+				}
+				fields := strings.Split(l, "|")
+				// Expect: 0=State,1=ExitCode,2=Start,3=End,4=ElapsedRaw,5=Reason,6=Partition
+				if len(fields) >= 1 {
+					status = mapSlurmState(fields[0])
+				}
+				if len(fields) >= 2 {
+					exitCode = strings.TrimSpace(fields[1])
+				}
+				if len(fields) >= 3 {
+					started = strings.TrimSpace(fields[2])
+				}
+				if len(fields) >= 4 {
+					ended = strings.TrimSpace(fields[3])
+				}
+				if len(fields) >= 5 {
+					elapsedSec = strings.TrimSpace(fields[4])
+				}
+				if len(fields) >= 6 {
+					reason = strings.TrimSpace(fields[5])
+				}
+				if len(fields) >= 7 {
+					queue = strings.TrimSpace(fields[6])
+				}
+
+				exitCode = normalizeSlurmField(exitCode)
+				reason = normalizeSlurmField(reason)
+				started = normalizeSlurmField(started)
+				ended = normalizeSlurmField(ended)
+				elapsedSec = normalizeSlurmField(elapsedSec)
+				if status != "" {
+					return status, queue, reason, exitCode, started, ended, elapsedSec
+				}
+			}
+		}
+	}
+
+	return "", "", "", "", "", "", ""
+}
+
+func normalizeSlurmField(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return ""
+	}
+	if strings.EqualFold(s, "n/a") || strings.EqualFold(s, "none") || strings.EqualFold(s, "unknown") {
+		return ""
+	}
+	return s
 }
 
 func mapSlurmState(state string) hpc.JobStatus {

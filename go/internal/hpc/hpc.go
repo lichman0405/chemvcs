@@ -30,6 +30,11 @@ type JobInfo struct {
 	Submitted  string    `json:"submitted_at"`
 	Updated    string    `json:"updated_at"`
 	WorkingDir string    `json:"working_dir"`
+	ExitCode   string    `json:"exit_code,omitempty"`
+	Reason     string    `json:"reason,omitempty"`
+	Started    string    `json:"started_at,omitempty"`
+	Ended      string    `json:"ended_at,omitempty"`
+	ElapsedSec string    `json:"elapsed_seconds,omitempty"`
 }
 
 // SubmitOptions contains options for job submission

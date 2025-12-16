@@ -134,7 +134,7 @@ chemvcs jobs --status=COMPLETED
 chemvcs jobs <run-hash>
 chemvcs jobs <job-id>
 
-# Verbose output
+# Verbose output (includes timestamps, exit code, reason, elapsed time when available)
 chemvcs jobs -v
 ```
 

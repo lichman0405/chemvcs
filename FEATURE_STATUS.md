@@ -34,6 +34,7 @@ This document is a short, source-of-truth snapshot of what ChemVCS can do *today
 - Workflow closure: `chemvcs retrieve --commit` to snapshot retrieved outputs
 - Remote retrieve streams zip to disk (avoids large in-memory buffers)
 - `chemvcs jobs [<run-hash|job-id>]` filtering
+- Detailed job fields exposed via API/CLI: exit code, reason, start/end timestamps, elapsed time
 
 ---
 

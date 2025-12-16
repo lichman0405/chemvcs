@@ -23,6 +23,11 @@ type HPCJobInfo struct {
 	Submitted  string `json:"submitted_at"`
 	Updated    string `json:"updated_at"`
 	WorkingDir string `json:"working_dir"`
+	ExitCode   string `json:"exit_code"`
+	Reason     string `json:"reason"`
+	Started    string `json:"started_at"`
+	Ended      string `json:"ended_at"`
+	ElapsedSec string `json:"elapsed_seconds"`
 }
 
 type SubmitHPCRequest struct {

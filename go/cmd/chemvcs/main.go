@@ -1090,6 +1090,21 @@ func handleJobs(args []string) error {
 				if job.WorkingDir != "" {
 					fmt.Printf("  Workdir:    %s\n", job.WorkingDir)
 				}
+				if job.Started != "" {
+					fmt.Printf("  Started:    %s\n", job.Started)
+				}
+				if job.Ended != "" {
+					fmt.Printf("  Ended:      %s\n", job.Ended)
+				}
+				if job.ElapsedSec != "" {
+					fmt.Printf("  Elapsed(s): %s\n", job.ElapsedSec)
+				}
+				if job.ExitCode != "" {
+					fmt.Printf("  ExitCode:   %s\n", job.ExitCode)
+				}
+				if job.Reason != "" {
+					fmt.Printf("  Reason:     %s\n", job.Reason)
+				}
 			}
 			fmt.Println()
 		}
@@ -1142,6 +1157,21 @@ func handleJobs(args []string) error {
 			}
 			if job.WorkingDir != "" {
 				fmt.Printf("  Workdir:    %s\n", job.WorkingDir)
+			}
+			if job.Started != "" {
+				fmt.Printf("  Started:    %s\n", job.Started)
+			}
+			if job.Ended != "" {
+				fmt.Printf("  Ended:      %s\n", job.Ended)
+			}
+			if job.ElapsedSec != "" {
+				fmt.Printf("  Elapsed(s): %s\n", job.ElapsedSec)
+			}
+			if job.ExitCode != "" {
+				fmt.Printf("  ExitCode:   %s\n", job.ExitCode)
+			}
+			if job.Reason != "" {
+				fmt.Printf("  Reason:     %s\n", job.Reason)
 			}
 		}
 		fmt.Println()
