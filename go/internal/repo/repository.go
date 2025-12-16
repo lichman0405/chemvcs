@@ -461,3 +461,39 @@ func (r *Repository) UpdateRef(refName, snapshotHash string) error {
 func (r *Repository) GitDir() string {
 	return filepath.Join(r.path, ".chemvcs")
 }
+
+// ListAllRefs returns all references (branch heads and HEAD) in the repository.
+func (r *Repository) ListAllRefs() ([]string, error) {
+	refs := []string{}
+
+	// Get current HEAD
+	head, err := r.refs.ResolveHEAD()
+	if err == nil && head != "" {
+		refs = append(refs, head)
+	}
+
+	// Get all branches
+	branches, err := r.refs.ListBranches()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, branch := range branches {
+		branchRef, err := r.refs.ResolveRef("refs/heads/" + branch)
+		if err == nil && branchRef != "" {
+			// Avoid duplicates if HEAD points to a branch
+			isDuplicate := false
+			for _, existing := range refs {
+				if existing == branchRef {
+					isDuplicate = true
+					break
+				}
+			}
+			if !isDuplicate {
+				refs = append(refs, branchRef)
+			}
+		}
+	}
+
+	return refs, nil
+}

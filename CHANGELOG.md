@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Repository maintenance tools (P3):**
+  - `chemvcs pack` - pack loose objects into compressed packfiles for storage efficiency
+  - `chemvcs gc` - garbage collect unreachable objects with grace periods
+  - `chemvcs fsck` - verify repository integrity (loose objects and packfiles)
 - Remote HPC gateway over HTTP (no SSH): server-side SLURM execution via repo-scoped `/hpc/*` endpoints
 - Remote client + CLI support for HPC commands via `--remote=<name>`
 - `chemvcs retrieve --commit` (optional snapshot after pulling outputs)

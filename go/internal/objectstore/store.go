@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/lishi/chemvcs/internal/model"
@@ -12,9 +13,11 @@ import (
 
 // Store provides content-addressable storage for blobs, objects, and snapshots.
 // It implements a Git-style sharded directory layout under .chemvcs/objects/.
+// It supports both loose objects and packfiles for efficient storage.
 type Store struct {
-	root string       // Path to .chemvcs/objects directory
-	mu   sync.RWMutex // Protects concurrent writes
+	root  string        // Path to .chemvcs/objects directory
+	mu    sync.RWMutex  // Protects concurrent writes
+	packs []*PackReader // Loaded packfiles
 }
 
 // NewStore creates a new Store rooted at the given repository path.
@@ -26,9 +29,18 @@ func NewStore(repoPath string) (*Store, error) {
 		return nil, fmt.Errorf("failed to create objects directory: %w", err)
 	}
 
-	return &Store{
-		root: objectsPath,
-	}, nil
+	s := &Store{
+		root:  objectsPath,
+		packs: []*PackReader{},
+	}
+
+	// Load existing packfiles
+	if err := s.loadPacks(); err != nil {
+		// Non-fatal: log but continue
+		fmt.Fprintf(os.Stderr, "warning: failed to load some packfiles: %v\n", err)
+	}
+
+	return s, nil
 }
 
 // PutBlob stores a blob and returns its hash.
@@ -62,23 +74,41 @@ func (s *Store) PutBlob(data []byte) (string, error) {
 
 // GetBlob retrieves a blob by its hash.
 // It verifies the hash matches the content before returning.
+// Tries loose objects first, then packfiles.
 func (s *Store) GetBlob(hash string) ([]byte, error) {
 	path := s.objectPath(hash)
 
+	// Try loose object first
 	data, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("blob not found: %s", hash)
+	if err == nil {
+		// Verify hash integrity
+		if model.ComputeBlobHash(data) != hash {
+			return nil, fmt.Errorf("hash mismatch for blob %s: content corrupted", hash)
 		}
+		return data, nil
+	}
+
+	if !os.IsNotExist(err) {
 		return nil, fmt.Errorf("failed to read blob: %w", err)
 	}
 
-	// Verify hash integrity
-	if model.ComputeBlobHash(data) != hash {
-		return nil, fmt.Errorf("hash mismatch for blob %s: content corrupted", hash)
+	// Try packfiles
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, pack := range s.packs {
+		if packData, objType, err := pack.GetObject(hash); err == nil {
+			if objType != objTypeBlob {
+				return nil, fmt.Errorf("object %s is not a blob", hash)
+			}
+			// Verify hash
+			if model.ComputeBlobHash(packData) != hash {
+				return nil, fmt.Errorf("hash mismatch for packed blob %s", hash)
+			}
+			return packData, nil
+		}
 	}
 
-	return data, nil
+	return nil, fmt.Errorf("blob not found: %s", hash)
 }
 
 // HasBlob checks if a blob exists in the store.
@@ -129,15 +159,89 @@ func (s *Store) PutObject(obj *model.Object) (string, error) {
 
 // GetObject retrieves an object by its hash.
 // It verifies the hash matches the content before returning.
+// Tries loose objects first, then packfiles.
 func (s *Store) GetObject(hash string) (*model.Object, error) {
 	path := s.objectPath(hash)
 
+	// Try loose object first
 	data, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("object not found: %s", hash)
+	if err == nil {
+		// Deserialise object
+		var obj model.Object
+		if err := json.Unmarshal(data, &obj); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal object: %w", err)
 		}
+		// Verify hash integrity
+		objHash, err := obj.Hash()
+		if err != nil {
+			return nil, fmt.Errorf("failed to compute hash for verification: %w", err)
+		}
+		if objHash != hash {
+			return nil, fmt.Errorf("hash mismatch for object %s: content corrupted", hash)
+		}
+		return &obj, nil
+	}
+
+	if !os.IsNotExist(err) {
 		return nil, fmt.Errorf("failed to read object: %w", err)
+	}
+
+	// Try packfiles
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, pack := range s.packs {
+		if packData, objType, err := pack.GetObject(hash); err == nil {
+			if objType != objTypeTree {
+				continue // Not a tree object
+			}
+			var obj model.Object
+			if err := json.Unmarshal(packData, &obj); err != nil {
+				continue
+			}
+			// Verify hash
+			objHash, err := obj.Hash()
+			if err != nil || objHash != hash {
+				return nil, fmt.Errorf("hash mismatch for packed object %s", hash)
+			}
+			return &obj, nil
+		}
+	}
+
+	return nil, fmt.Errorf("object not found: %s", hash)
+}
+
+// getObjectRaw retrieves raw object data (for internal use).
+func (s *Store) getObjectRaw(hash string) ([]byte, error) {
+	path := s.objectPath(hash)
+
+	// Try loose object first
+	data, err := os.ReadFile(path)
+	if err == nil {
+		return data, nil
+	}
+
+	if !os.IsNotExist(err) {
+		return nil, fmt.Errorf("failed to read object: %w", err)
+	}
+
+	// Try packfiles
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, pack := range s.packs {
+		if packData, _, err := pack.GetObject(hash); err == nil {
+			return packData, nil
+		}
+	}
+
+	return nil, fmt.Errorf("object not found: %s", hash)
+}
+
+// oldGetObject is the original GetObject code before pack support.
+// Keep signature for testing but now delegates to new implementation.
+func oldGetObject(s *Store, hash string) (*model.Object, error) {
+	data, err := s.getObjectRaw(hash)
+	if err != nil {
+		return nil, err
 	}
 
 	// Deserialise object
@@ -206,33 +310,55 @@ func (s *Store) PutSnapshot(snap *model.Snapshot) (string, error) {
 
 // GetSnapshot retrieves a snapshot by its hash.
 // It verifies the hash matches the content before returning.
+// Tries loose objects first, then packfiles.
 func (s *Store) GetSnapshot(hash string) (*model.Snapshot, error) {
 	path := s.objectPath(hash)
 
+	// Try loose object first
 	data, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("snapshot not found: %s", hash)
+	if err == nil {
+		// Deserialise snapshot
+		snap, err := model.UnmarshalSnapshot(data)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal snapshot: %w", err)
 		}
+		// Verify hash integrity
+		snapHash, err := snap.Hash()
+		if err != nil {
+			return nil, fmt.Errorf("failed to compute hash for verification: %w", err)
+		}
+		if snapHash != hash {
+			return nil, fmt.Errorf("hash mismatch for snapshot %s: content corrupted", hash)
+		}
+		return snap, nil
+	}
+
+	if !os.IsNotExist(err) {
 		return nil, fmt.Errorf("failed to read snapshot: %w", err)
 	}
 
-	// Deserialise snapshot
-	snap, err := model.UnmarshalSnapshot(data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal snapshot: %w", err)
+	// Try packfiles
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, pack := range s.packs {
+		if packData, objType, err := pack.GetObject(hash); err == nil {
+			if objType != objTypeSnapshot {
+				continue // Not a snapshot
+			}
+			snap, err := model.UnmarshalSnapshot(packData)
+			if err != nil {
+				continue
+			}
+			// Verify hash
+			snapHash, err := snap.Hash()
+			if err != nil || snapHash != hash {
+				return nil, fmt.Errorf("hash mismatch for packed snapshot %s", hash)
+			}
+			return snap, nil
+		}
 	}
 
-	// Verify hash integrity
-	snapHash, err := snap.Hash()
-	if err != nil {
-		return nil, fmt.Errorf("failed to compute hash for verification: %w", err)
-	}
-	if snapHash != hash {
-		return nil, fmt.Errorf("hash mismatch for snapshot %s: content corrupted", hash)
-	}
-
-	return snap, nil
+	return nil, fmt.Errorf("snapshot not found: %s", hash)
 }
 
 // HasSnapshot checks if a snapshot exists in the store.
@@ -447,4 +573,59 @@ func (s *Store) ListObjects(typeFilter string) ([]ObjectInfo, error) {
 	}
 
 	return objects, nil
+}
+
+// loadPacks scans the pack directory and loads all packfiles.
+func (s *Store) loadPacks() error {
+	packDir := filepath.Join(s.root, "pack")
+	if _, err := os.Stat(packDir); os.IsNotExist(err) {
+		return nil // No pack directory yet
+	}
+
+	entries, err := os.ReadDir(packDir)
+	if err != nil {
+		return fmt.Errorf("failed to read pack directory: %w", err)
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".idx") {
+			continue
+		}
+
+		// Extract pack name (without .idx extension)
+		packName := entry.Name()[:len(entry.Name())-4]
+
+		pack, err := OpenPackReader(s.root, packName)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to load pack %s: %v\n", packName, err)
+			continue
+		}
+
+		s.packs = append(s.packs, pack)
+	}
+
+	return nil
+}
+
+// ReloadPacks reloads all packfiles from disk.
+// Call this after creating new packfiles to make them available.
+func (s *Store) ReloadPacks() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.packs = []*PackReader{}
+	return s.loadPacks()
+}
+
+// HasObjectInPack checks if any packfile contains the given hash.
+func (s *Store) HasObjectInPack(hash string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, pack := range s.packs {
+		if pack.HasObject(hash) {
+			return true
+		}
+	}
+	return false
 }

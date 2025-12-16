@@ -1,6 +1,6 @@
 # ChemVCS Feature Status
 
-**Last updated**: 2025-12-16
+**Last updated**: 2025-01-11
 
 This document is a short, source-of-truth snapshot of what ChemVCS can do *today* and what is still missing. It intentionally avoids volatile line counts, test counts, and commit hashes.
 
@@ -11,6 +11,7 @@ This document is a short, source-of-truth snapshot of what ChemVCS can do *today
 ### Core VCS (Go)
 - Content-addressable object storage (SHA-256) with snapshots and refs
 - Local repo workflow: `init`, `status`, `commit`, `log`, `branch`, `checkout`, `merge`
+- **Repository maintenance**: pack/gc/fsck for storage optimization and integrity verification
 
 ### Remote repository (Go)
 - HTTP server (`chemvcs-server`) and remote client
@@ -45,8 +46,7 @@ This document is a short, source-of-truth snapshot of what ChemVCS can do *today
 - All HPC jobs run under the server service account (by design for MVP)
 
 ### Advanced repo operations
-- No pack/gc/fsck maintenance tooling yet
-- No rich query/indexing for domain objects
+- No rich query/indexing for domain objects (planned for future)
 
 ---
 

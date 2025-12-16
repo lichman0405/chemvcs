@@ -65,6 +65,12 @@ func main() {
 		err = handleCancel(args)
 	case "watch":
 		err = handleWatch(args)
+	case "pack":
+		err = handlePack(args)
+	case "gc":
+		err = handleGC(args)
+	case "fsck":
+		err = handleFsck(args)
 	case "version":
 		handleVersion()
 	case "help", "--help", "-h":
@@ -109,6 +115,11 @@ func printUsage() {
 	fmt.Println("  cancel <run-hash|job-id>          Cancel a running job")
 	fmt.Println("  watch <run-hash|job-id> [--interval=<sec>] [--timeout=<sec>]")
 	fmt.Println("                                    Monitor job until completion")
+	fmt.Println()
+	fmt.Println("Maintenance Commands:")
+	fmt.Println("  pack [--all] [--keep-loose]       Pack loose objects into packfile")
+	fmt.Println("  gc [--prune=<age>] [--dry-run]    Garbage collect unreachable objects")
+	fmt.Println("  fsck [--full]                     Verify repository integrity")
 	fmt.Println()
 	fmt.Println("Other Commands:")
 	fmt.Println("  version               Show version information")
@@ -1515,4 +1526,193 @@ func handleWatch(args []string) error {
 	}
 
 	return nil
+}
+
+// handlePack packs loose objects into a packfile.
+func handlePack(args []string) error {
+	fs := flag.NewFlagSet("pack", flag.ExitOnError)
+	all := fs.Bool("all", false, "Pack all loose objects (not just reachable)")
+	keepLoose := fs.Bool("keep-loose", false, "Keep loose objects after packing")
+	verbose := fs.Bool("v", false, "Verbose output")
+	fs.Parse(args)
+
+	repoPath, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get working directory: %w", err)
+	}
+
+	repoInstance, err := repo.Open(repoPath)
+	if err != nil {
+		return fmt.Errorf("failed to open repository: %w", err)
+	}
+
+	opts := objectstore.PackOptions{
+		All:       *all,
+		KeepLoose: *keepLoose,
+		Verbose:   *verbose,
+	}
+
+	packName, stats, err := repoInstance.Store().PackLooseObjects(repoInstance, opts)
+	if err != nil {
+		return fmt.Errorf("pack failed: %w", err)
+	}
+
+	if stats.ObjectsPacked == 0 {
+		fmt.Println("Nothing to pack")
+		return nil
+	}
+
+	if !*verbose {
+		ratio := 100.0 * (1.0 - float64(stats.BytesAfterPack)/float64(stats.BytesBeforePack))
+		fmt.Printf("Created pack %s with %d objects (%.1f%% size reduction)\n",
+			packName, stats.ObjectsPacked, ratio)
+	}
+
+	return nil
+}
+
+// handleGC performs garbage collection.
+func handleGC(args []string) error {
+	fs := flag.NewFlagSet("gc", flag.ExitOnError)
+	prune := fs.String("prune", "2w", "Prune objects older than <time> (e.g., 1h, 2w, now)")
+	dryRun := fs.Bool("dry-run", false, "Show what would be deleted without actually deleting")
+	verbose := fs.Bool("v", false, "Verbose output")
+	fs.Parse(args)
+
+	repoPath, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get working directory: %w", err)
+	}
+
+	repoInstance, err := repo.Open(repoPath)
+	if err != nil {
+		return fmt.Errorf("failed to open repository: %w", err)
+	}
+
+	// Parse prune age
+	pruneAge, err := parseDuration(*prune)
+	if err != nil {
+		return fmt.Errorf("invalid prune duration: %w", err)
+	}
+
+	opts := objectstore.GCOptions{
+		PruneAge: pruneAge,
+		DryRun:   *dryRun,
+		Verbose:  *verbose,
+	}
+
+	stats, err := repoInstance.Store().GarbageCollect(repoInstance, opts)
+	if err != nil {
+		return fmt.Errorf("garbage collection failed: %w", err)
+	}
+
+	if !*verbose {
+		if *dryRun {
+			fmt.Printf("Would remove %d unreachable objects\n", stats.UnreachableObjects)
+		} else {
+			fmt.Printf("Removed %d objects, reclaimed %.2f MB\n",
+				stats.RemovedObjects, float64(stats.ReclaimedBytes)/(1024*1024))
+		}
+	}
+
+	return nil
+}
+
+// handleFsck performs filesystem check.
+func handleFsck(args []string) error {
+	fs := flag.NewFlagSet("fsck", flag.ExitOnError)
+	full := fs.Bool("full", false, "Full check including packfile verification")
+	verbose := fs.Bool("v", false, "Verbose output")
+	fs.Parse(args)
+
+	repoPath, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get working directory: %w", err)
+	}
+
+	repoInstance, err := repo.Open(repoPath)
+	if err != nil {
+		return fmt.Errorf("failed to open repository: %w", err)
+	}
+
+	opts := objectstore.FsckOptions{
+		Full:    *full,
+		Verbose: *verbose,
+	}
+
+	report, err := repoInstance.Store().Fsck(repoInstance, opts)
+	if err != nil {
+		return fmt.Errorf("fsck failed: %w", err)
+	}
+
+	// Display issues
+	if len(report.Issues) > 0 {
+		fmt.Printf("\nIssues found:\n")
+		for _, issue := range report.Issues {
+			prefix := ""
+			switch issue.Severity {
+			case "error":
+				prefix = "ERROR"
+			case "warning":
+				prefix = "WARN"
+			case "info":
+				prefix = "INFO"
+			}
+
+			if issue.Object != "" {
+				fmt.Printf("[%s] %s: %s\n", prefix, issue.Object[:8], issue.Message)
+			} else {
+				fmt.Printf("[%s] %s\n", prefix, issue.Message)
+			}
+		}
+	}
+
+	if !*verbose {
+		if report.HasErrors {
+			fmt.Printf("\nFilesystem check FAILED with %d errors\n", len(report.Issues))
+			os.Exit(1)
+		} else if len(report.Issues) > 0 {
+			fmt.Printf("\nFilesystem check completed with %d warnings\n", len(report.Issues))
+		} else {
+			fmt.Println("\nFilesystem check OK")
+		}
+	}
+
+	return nil
+}
+
+// parseDuration parses a duration string like "1h", "2w", "now".
+func parseDuration(s string) (time.Duration, error) {
+	if s == "now" {
+		return 0, nil
+	}
+
+	// Parse format like "1h", "2w", "30m"
+	if len(s) < 2 {
+		return 0, fmt.Errorf("invalid duration format")
+	}
+
+	valueStr := s[:len(s)-1]
+	unit := s[len(s)-1:]
+
+	var value int
+	_, err := fmt.Sscanf(valueStr, "%d", &value)
+	if err != nil {
+		return 0, fmt.Errorf("invalid duration value: %w", err)
+	}
+
+	switch unit {
+	case "s":
+		return time.Duration(value) * time.Second, nil
+	case "m":
+		return time.Duration(value) * time.Minute, nil
+	case "h":
+		return time.Duration(value) * time.Hour, nil
+	case "d":
+		return time.Duration(value) * 24 * time.Hour, nil
+	case "w":
+		return time.Duration(value) * 7 * 24 * time.Hour, nil
+	default:
+		return 0, fmt.Errorf("unknown duration unit: %s", unit)
+	}
 }

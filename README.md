@@ -299,6 +299,26 @@ chemvcs pull origin main
 
 See [docs/10-hpc-user-guide.md](docs/10-hpc-user-guide.md) for complete HPC documentation.
 
+### Repository Maintenance
+
+| Command | Description |
+|---------|-------------|
+| `chemvcs pack [--all] [--keep-loose]` | Pack loose objects into packfile for efficiency |
+| `chemvcs gc [--prune=<age>] [--dry-run]` | Garbage collect unreachable objects |
+| `chemvcs fsck [--full]` | Verify repository integrity |
+
+**Examples:**
+```bash
+# Pack all loose objects
+chemvcs pack --all
+
+# Dry-run GC to see what would be deleted
+chemvcs gc --dry-run
+
+# Full integrity check including packfiles
+chemvcs fsck --full
+```
+
 ### Remote Operations
 
 | Command | Description |
