@@ -115,6 +115,7 @@ chemvcs jobs     --remote=slurm
 chemvcs watch    --remote=slurm <run-hash|job-id> --interval=10
 chemvcs cancel   --remote=slurm <run-hash|job-id>
 chemvcs retrieve --remote=slurm <run-hash> --patterns="*.out,*.log" --dest=./results
+chemvcs retrieve --remote=slurm <run-hash> --dest=./results --commit --commit-message="Import SLURM outputs"
 ```
 
 For protocol details and persistence model, see: `docs/11-remote-hpc-design.md`.
@@ -128,6 +129,10 @@ chemvcs jobs
 # Filter by status
 chemvcs jobs --status=RUNNING
 chemvcs jobs --status=COMPLETED
+
+# Filter by run-hash prefix or job-id
+chemvcs jobs <run-hash>
+chemvcs jobs <job-id>
 
 # Verbose output
 chemvcs jobs -v
@@ -144,6 +149,10 @@ chemvcs retrieve <run-hash> --patterns="*.out,*.log"
 
 # Specify destination
 chemvcs retrieve <run-hash> --dest=./results
+
+# Retrieve and commit as a snapshot (workflow closure)
+chemvcs retrieve <run-hash> --dest=./results --commit
+chemvcs retrieve <run-hash> --dest=./results --commit --commit-message="Import results"
 ```
 
 ### Option 2: Using Python API (Advanced)

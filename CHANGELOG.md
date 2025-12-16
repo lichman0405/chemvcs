@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Remote HPC gateway over HTTP (no SSH): server-side SLURM execution via repo-scoped `/hpc/*` endpoints
 - Remote client + CLI support for HPC commands via `--remote=<name>`
+- `chemvcs retrieve --commit` (optional snapshot after pulling outputs)
+- `chemvcs jobs [<run-hash|job-id>]` filtering
 - Bearer token authentication for `chemvcs-server` (optional) with repo scoping and an optional admin token
 - Per-remote client token support via `CHEMVCS_REMOTE_TOKEN[_<REMOTE>]`
 
@@ -20,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Remote HPC retrieve now enforces file-count/size limits and uses command timeouts for SLURM calls
+- Remote HPC retrieve streams to disk on the client (avoids buffering the entire zip in memory)
+- Server `/hpc/jobs` list includes `updated_at` and `working_dir`
 
 ### Documentation
 - Updated docs and README to describe Remote HPC (no SSH) usage and remove stale references

@@ -79,10 +79,10 @@ This keeps HPC state separate from snapshot history and avoids rewriting existin
 ## 6. CLI UX (implemented)
 HPC commands accept `--remote=<name>` to use the HTTP gateway:
 - `chemvcs submit --remote=<name> <run-hash> <script> [--capture-env]`
-- `chemvcs jobs --remote=<name> [--status=...]`
+- `chemvcs jobs --remote=<name> [--status=...] [<run-hash|job-id>]`
 - `chemvcs watch --remote=<name> <run-hash|job-id> [--interval=...] [--timeout=...]`
 - `chemvcs cancel --remote=<name> <run-hash|job-id>`
-- `chemvcs retrieve --remote=<name> <run-hash> [--patterns=...] [--dest=...]`
+- `chemvcs retrieve --remote=<name> <run-hash> [--patterns=...] [--dest=...] [--commit] [--commit-message=...]`
 
 Remote configuration uses existing:
 - `chemvcs remote add <name> <url>`
@@ -116,6 +116,79 @@ For non-toy deployments:
 - Bind `chemvcs-server` to localhost and put it behind a reverse proxy (nginx/caddy) with TLS.
 - Restrict ingress to trusted networks (VPN, security group, firewall rules).
 - Consider rate limits and request size limits at the proxy layer.
+
+### 7.3 Example: systemd + reverse proxy
+
+#### systemd unit
+
+Create `/etc/systemd/system/chemvcs-server.service`:
+
+```ini
+[Unit]
+Description=ChemVCS Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=chemvcs
+Group=chemvcs
+WorkingDirectory=/srv/chemvcs
+EnvironmentFile=-/etc/chemvcs-server.env
+ExecStart=/usr/local/bin/chemvcs-server \
+  --listen 127.0.0.1:8080 \
+  --root /srv/chemvcs
+Restart=on-failure
+RestartSec=2
+
+# Optional hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/chemvcs
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then create `/etc/chemvcs-server.env` (permissions `0600` recommended):
+
+```bash
+CHEMVCS_SERVER_AUTH_TOKEN=change-me
+CHEMVCS_SERVER_AUTH_REPOS=owner/repo
+# CHEMVCS_SERVER_ADMIN_TOKEN=change-me-too
+```
+
+Reload and start:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now chemvcs-server
+sudo systemctl status chemvcs-server
+```
+
+#### Reverse proxy (nginx)
+
+Example `server` block (TLS config omitted):
+
+```nginx
+server {
+  listen 443 ssl;
+  server_name chemvcs.example.com;
+
+  # Add your ssl_certificate / ssl_certificate_key here
+
+  client_max_body_size 10m;
+
+  location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
 
 ## 8. Future Work (multi-user)
 - Add authentication and request identity propagation.

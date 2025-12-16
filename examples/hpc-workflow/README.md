@@ -163,7 +163,7 @@ chemvcs submit vasp_relax.slurm --job-name water-relax
 chemvcs jobs
 
 # Check specific job
-chemvcs jobs --job-id 12345
+chemvcs jobs 12345
 ```
 
 ### Step 4: Monitor Status

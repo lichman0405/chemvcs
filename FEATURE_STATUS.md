@@ -31,30 +31,27 @@ This document is a short, source-of-truth snapshot of what ChemVCS can do *today
 - CLI `--remote=<name>` support for HPC commands (laptop talks HTTP only)
 - Job record persistence in the repo (blobs + `refs/hpc/...`)
 - Hardened retrieve: repo-boundary enforcement and path traversal protections
+- Workflow closure: `chemvcs retrieve --commit` to snapshot retrieved outputs
+- Remote retrieve streams zip to disk (avoids large in-memory buffers)
+- `chemvcs jobs [<run-hash|job-id>]` filtering
 
 ---
 
-## ⚠️ Implemented but not production-hardened (gaps)
+## ⚠️ Implemented but still limited (remaining gaps)
 
-### Security
-- No authentication/authorization on `chemvcs-server` (repo operations and HPC gateway)
-- No audit log / request tracing suitable for multi-user environments
+### Multi-user / identity
+- Server auth is token-based (MVP) and repo-scoped; no per-user OS identity mapping
+- All HPC jobs run under the server service account (by design for MVP)
 
-### Concurrency and correctness
-- Limited conflict handling for concurrent ref updates (multiple clients)
-- HPC job record/ref updates need stronger locking or conflict strategy
-
-### Operations
-- No deployment guide for systemd/reverse proxy/TLS
-- No quotas / rate limiting / timeouts policy for HPC endpoints
+### Advanced repo operations
+- No pack/gc/fsck maintenance tooling yet
+- No rich query/indexing for domain objects
 
 ---
 
 ## ⏭️ Next priorities (recommended)
 
-1. Add server authentication (token-based for MVP)
-2. Add server-side authorization rules (repo scope + HPC scope)
-3. Add structured audit logging for HPC actions (submit/cancel/retrieve)
-4. Add concurrency control for ref writes (optimistic concurrency or server-side locking)
-5. Add “retrieve → commit” loop closure (optional auto-commit of retrieved outputs)
+1. Enrich HPC job status details (exit code/reason/timestamps) and expose them via API/CLI
+2. Make retrieve/commit workflows more explicit (e.g., commit only retrieved dest, not whole tree)
+3. Add repo maintenance commands (pack/gc/fsck) for large workspaces
 

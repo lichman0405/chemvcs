@@ -103,8 +103,8 @@ func printUsage() {
 	fmt.Println()
 	fmt.Println("HPC Commands:")
 	fmt.Println("  submit <run-hash> <script>        Submit HPC job for a run")
-	fmt.Println("  jobs [--status=<status>]          List tracked HPC jobs")
-	fmt.Println("  retrieve <run-hash> [--patterns=<patterns>] [--dest=<path>]")
+	fmt.Println("  jobs [--status=<status>] [<run-hash|job-id>]  List tracked HPC jobs")
+	fmt.Println("  retrieve <run-hash> [--patterns=<patterns>] [--dest=<path>] [--commit] [--commit-message=<msg>]")
 	fmt.Println("                                    Retrieve job results")
 	fmt.Println("  cancel <run-hash|job-id>          Cancel a running job")
 	fmt.Println("  watch <run-hash|job-id> [--interval=<sec>] [--timeout=<sec>]")
@@ -170,40 +170,50 @@ func handleCommit(args []string) error {
 	// Get author
 	authorStr := getAuthor(*author)
 
+	snapHash, err := commitWorkingDirectory(r, *message, authorStr)
+	if err != nil {
+		return err
+	}
+
+	printCommitResult(r, snapHash, *message)
+	return nil
+}
+
+func commitWorkingDirectory(r *repo.Repository, message string, authorStr string) (string, error) {
 	// Scan working directory to create root object
 	scanner := workspace.NewScanner(r.Store())
 	rootObj, err := scanner.ScanDirectory(".")
 	if err != nil {
-		return fmt.Errorf("failed to scan working directory: %w", err)
+		return "", fmt.Errorf("failed to scan working directory: %w", err)
 	}
 
 	// Store root object
 	rootHash, err := r.Store().PutObject(rootObj)
 	if err != nil {
-		return fmt.Errorf("failed to store root object: %w", err)
+		return "", fmt.Errorf("failed to store root object: %w", err)
 	}
 
 	// Create snapshot
-	snapHash, err := r.CreateSnapshot(rootHash, *message, authorStr)
+	snapHash, err := r.CreateSnapshot(rootHash, message, authorStr)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	// Get short hash for display
+	return snapHash, nil
+}
+
+func printCommitResult(r *repo.Repository, snapHash string, message string) {
 	shortHash := snapHash
 	if len(snapHash) > 8 {
 		shortHash = snapHash[:8]
 	}
 
-	// Get current branch for display
 	branch, _ := r.CurrentBranch()
 	if branch != "" {
-		fmt.Printf("[%s %s] %s\n", branch, shortHash, *message)
-	} else {
-		fmt.Printf("[detached %s] %s\n", shortHash, *message)
+		fmt.Printf("[%s %s] %s\n", branch, shortHash, message)
+		return
 	}
-
-	return nil
+	fmt.Printf("[detached %s] %s\n", shortHash, message)
 }
 
 func getAuthor(flagValue string) string {
@@ -1015,6 +1025,11 @@ func handleJobs(args []string) error {
 		return err
 	}
 
+	identifier := ""
+	if fs.NArg() >= 1 {
+		identifier = fs.Arg(0)
+	}
+
 	// Open repository
 	r, err := repo.Open(".")
 	if err != nil {
@@ -1034,6 +1049,12 @@ func handleJobs(args []string) error {
 		jobs, err := client.ListHPCJobs(repoID, *statusFilter, true)
 		if err != nil {
 			return fmt.Errorf("failed to list jobs: %w", err)
+		}
+		if identifier != "" {
+			jobs, err = filterRemoteJobs(jobs, identifier)
+			if err != nil {
+				return err
+			}
 		}
 
 		if len(jobs) == 0 {
@@ -1059,8 +1080,16 @@ func handleJobs(args []string) error {
 			if job.Queue != "" {
 				fmt.Printf("  Queue:      %s\n", job.Queue)
 			}
-			if *verbose && job.Submitted != "" {
-				fmt.Printf("  Submitted:  %s\n", job.Submitted)
+			if *verbose {
+				if job.Submitted != "" {
+					fmt.Printf("  Submitted:  %s\n", job.Submitted)
+				}
+				if job.Updated != "" {
+					fmt.Printf("  Updated:    %s\n", job.Updated)
+				}
+				if job.WorkingDir != "" {
+					fmt.Printf("  Workdir:    %s\n", job.WorkingDir)
+				}
 			}
 			fmt.Println()
 		}
@@ -1072,6 +1101,12 @@ func handleJobs(args []string) error {
 	jobs, err := hpc.ListJobs(repoPath, *statusFilter)
 	if err != nil {
 		return fmt.Errorf("failed to list jobs: %w", err)
+	}
+	if identifier != "" {
+		jobs, err = filterLocalJobs(jobs, identifier)
+		if err != nil {
+			return err
+		}
 	}
 
 	if len(jobs) == 0 {
@@ -1098,8 +1133,16 @@ func handleJobs(args []string) error {
 		if job.Queue != "" {
 			fmt.Printf("  Queue:      %s\n", job.Queue)
 		}
-		if *verbose && job.Submitted != "" {
-			fmt.Printf("  Submitted:  %s\n", job.Submitted)
+		if *verbose {
+			if job.Submitted != "" {
+				fmt.Printf("  Submitted:  %s\n", job.Submitted)
+			}
+			if job.Updated != "" {
+				fmt.Printf("  Updated:    %s\n", job.Updated)
+			}
+			if job.WorkingDir != "" {
+				fmt.Printf("  Workdir:    %s\n", job.WorkingDir)
+			}
 		}
 		fmt.Println()
 	}
@@ -1112,6 +1155,8 @@ func handleRetrieve(args []string) error {
 	fs := flag.NewFlagSet("retrieve", flag.ExitOnError)
 	patterns := fs.String("patterns", "", "Comma-separated file patterns (e.g., *.out,*.log)")
 	destination := fs.String("dest", ".", "Destination directory for retrieved files")
+	commitAfter := fs.Bool("commit", false, "Commit retrieved files as a new snapshot")
+	commitMessage := fs.String("commit-message", "", "Commit message (optional; defaults to a generated message)")
 	remoteName := fs.String("remote", "", "Remote name (retrieve via chemvcs-server HPC gateway)")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -1120,7 +1165,7 @@ func handleRetrieve(args []string) error {
 	// Check arguments
 	remainingArgs := fs.Args()
 	if len(remainingArgs) < 1 {
-		return fmt.Errorf("usage: chemvcs retrieve <run-hash> [--patterns=<patterns>] [--dest=<path>]")
+		return fmt.Errorf("usage: chemvcs retrieve <run-hash> [--patterns=<patterns>] [--dest=<path>] [--commit] [--commit-message=<msg>]")
 	}
 
 	runHash := remainingArgs[0]
@@ -1149,12 +1194,22 @@ func handleRetrieve(args []string) error {
 		client := remote.NewClient(remoteURL, remoteTokenFor(*remoteName))
 		repoID := extractRepoID(remoteURL)
 
-		zipData, err := client.RetrieveHPC(repoID, patternList)
+		tmp, err := os.CreateTemp("", "chemvcs-results-*.zip")
 		if err != nil {
+			return fmt.Errorf("failed to create temp file: %w", err)
+		}
+		tmpPath := tmp.Name()
+		defer func() { _ = os.Remove(tmpPath) }()
+
+		if _, err := client.RetrieveHPCTo(repoID, patternList, tmp); err != nil {
+			_ = tmp.Close()
 			return fmt.Errorf("failed to retrieve results: %w", err)
 		}
+		if err := tmp.Close(); err != nil {
+			return fmt.Errorf("failed to finalize download: %w", err)
+		}
 
-		files, err := remote.ExtractZipTo(zipData, *destination)
+		files, err := remote.ExtractZipFileTo(tmpPath, *destination)
 		if err != nil {
 			return fmt.Errorf("failed to extract results: %w", err)
 		}
@@ -1162,6 +1217,22 @@ func handleRetrieve(args []string) error {
 		fmt.Printf("Retrieved %d file(s):\n", len(files))
 		for _, file := range files {
 			fmt.Printf("  %s\n", file)
+		}
+
+		if *commitAfter {
+			if err := ensureDestinationInRepo(*destination); err != nil {
+				return err
+			}
+			msg := *commitMessage
+			if msg == "" {
+				msg = fmt.Sprintf("Retrieve results for run %s", runHash)
+			}
+			authorStr := getAuthor("")
+			snapHash, err := commitWorkingDirectory(r, msg, authorStr)
+			if err != nil {
+				return err
+			}
+			printCommitResult(r, snapHash, msg)
 		}
 		return nil
 	}
@@ -1180,7 +1251,121 @@ func handleRetrieve(args []string) error {
 		fmt.Printf("  %s\n", file)
 	}
 
+	if *commitAfter {
+		if err := ensureDestinationInRepo(*destination); err != nil {
+			return err
+		}
+		msg := *commitMessage
+		if msg == "" {
+			msg = fmt.Sprintf("Retrieve results for run %s", runHash)
+		}
+		authorStr := getAuthor("")
+		snapHash, err := commitWorkingDirectory(r, msg, authorStr)
+		if err != nil {
+			return err
+		}
+		printCommitResult(r, snapHash, msg)
+	}
+
 	return nil
+}
+
+func ensureDestinationInRepo(destination string) error {
+	absDest, err := filepath.Abs(destination)
+	if err != nil {
+		return fmt.Errorf("failed to resolve destination path: %w", err)
+	}
+	absRepo, err := filepath.Abs(".")
+	if err != nil {
+		return fmt.Errorf("failed to resolve repo path: %w", err)
+	}
+
+	rel, err := filepath.Rel(absRepo, absDest)
+	if err != nil {
+		return fmt.Errorf("failed to resolve destination relative path: %w", err)
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("cannot use --commit when --dest is outside the repository (dest=%s)", destination)
+	}
+	return nil
+}
+
+func filterRemoteJobs(jobs []remote.HPCJobInfo, identifier string) ([]remote.HPCJobInfo, error) {
+	identifier = strings.TrimSpace(identifier)
+	if identifier == "" {
+		return jobs, nil
+	}
+
+	var out []remote.HPCJobInfo
+	if isDigits(identifier) {
+		for _, j := range jobs {
+			if j.JobID == identifier {
+				out = append(out, j)
+			}
+		}
+		if len(out) == 0 {
+			return nil, fmt.Errorf("job not found: %s", identifier)
+		}
+		return out, nil
+	}
+
+	for _, j := range jobs {
+		if strings.HasPrefix(j.RunHash, identifier) {
+			out = append(out, j)
+		}
+	}
+	if len(out) == 0 {
+		return nil, fmt.Errorf("job not found: %s", identifier)
+	}
+	if len(out) > 1 {
+		return nil, fmt.Errorf("ambiguous run hash %q (matched %d jobs); use a longer prefix", identifier, len(out))
+	}
+	return out, nil
+}
+
+func filterLocalJobs(jobs []hpc.JobInfo, identifier string) ([]hpc.JobInfo, error) {
+	identifier = strings.TrimSpace(identifier)
+	if identifier == "" {
+		return jobs, nil
+	}
+
+	var out []hpc.JobInfo
+	if isDigits(identifier) {
+		for _, j := range jobs {
+			if j.JobID == identifier {
+				out = append(out, j)
+			}
+		}
+		if len(out) == 0 {
+			return nil, fmt.Errorf("job not found: %s", identifier)
+		}
+		return out, nil
+	}
+
+	for _, j := range jobs {
+		if strings.HasPrefix(j.RunHash, identifier) {
+			out = append(out, j)
+		}
+	}
+	if len(out) == 0 {
+		return nil, fmt.Errorf("job not found: %s", identifier)
+	}
+	if len(out) > 1 {
+		return nil, fmt.Errorf("ambiguous run hash %q (matched %d jobs); use a longer prefix", identifier, len(out))
+	}
+	return out, nil
+}
+
+func isDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // handleCancel handles the cancel command

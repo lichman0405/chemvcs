@@ -223,12 +223,14 @@ func (s *Server) handleHPCJobs(w http.ResponseWriter, r *http.Request, repo *rep
 			continue
 		}
 		jobs = append(jobs, hpc.JobInfo{
-			JobID:     rec.JobID,
-			RunHash:   rec.RunHash,
-			Status:    rec.Status,
-			JobSystem: rec.JobSystem,
-			Queue:     rec.Queue,
-			Submitted: rec.Submitted,
+			JobID:      rec.JobID,
+			RunHash:    rec.RunHash,
+			Status:     rec.Status,
+			JobSystem:  rec.JobSystem,
+			Queue:      rec.Queue,
+			Submitted:  rec.Submitted,
+			Updated:    rec.Updated,
+			WorkingDir: rec.WorkingDir,
 		})
 	}
 

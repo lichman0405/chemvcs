@@ -15,12 +15,14 @@ import (
 // HPCJobInfo mirrors the server-side job representation.
 // Keep this decoupled from internal/hpc to avoid package dependency tangles.
 type HPCJobInfo struct {
-	JobID     string `json:"job_id"`
-	RunHash   string `json:"run_hash"`
-	Status    string `json:"status"`
-	JobSystem string `json:"job_system"`
-	Queue     string `json:"queue_name"`
-	Submitted string `json:"submitted_at"`
+	JobID      string `json:"job_id"`
+	RunHash    string `json:"run_hash"`
+	Status     string `json:"status"`
+	JobSystem  string `json:"job_system"`
+	Queue      string `json:"queue_name"`
+	Submitted  string `json:"submitted_at"`
+	Updated    string `json:"updated_at"`
+	WorkingDir string `json:"working_dir"`
 }
 
 type SubmitHPCRequest struct {
@@ -182,6 +184,28 @@ func (c *Client) RetrieveHPC(repoID string, patterns []string) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
+// RetrieveHPCTo streams a zip of files matching patterns into w.
+// This avoids holding the entire zip in memory.
+func (c *Client) RetrieveHPCTo(repoID string, patterns []string, w io.Writer) (int64, error) {
+	repoID, err := c.normalizeRepoID(repoID)
+	if err != nil {
+		return 0, err
+	}
+
+	data, err := json.Marshal(RetrieveHPCRequest{Patterns: patterns})
+	if err != nil {
+		return 0, fmt.Errorf("encoding request: %w", err)
+	}
+
+	resp, err := c.doRequest("POST", "repos/"+repoID+"/hpc/retrieve", bytes.NewReader(data))
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	return io.Copy(w, resp.Body)
+}
+
 // ExtractZipTo extracts zip data into destination directory.
 func ExtractZipTo(zipData []byte, destDir string) ([]string, error) {
 	if err := os.MkdirAll(destDir, 0755); err != nil {
@@ -192,6 +216,64 @@ func ExtractZipTo(zipData []byte, destDir string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("reading zip: %w", err)
 	}
+
+	var written []string
+	for _, f := range zr.File {
+		name := filepath.Clean(f.Name)
+		name = strings.TrimPrefix(name, string(filepath.Separator))
+		if name == "." || name == "" {
+			continue
+		}
+		// Prevent zip slip.
+		outPath := filepath.Join(destDir, name)
+		if !strings.HasPrefix(filepath.Clean(outPath)+string(filepath.Separator), filepath.Clean(destDir)+string(filepath.Separator)) {
+			continue
+		}
+
+		if f.FileInfo().IsDir() {
+			_ = os.MkdirAll(outPath, 0755)
+			continue
+		}
+
+		if err := os.MkdirAll(filepath.Dir(outPath), 0755); err != nil {
+			return written, fmt.Errorf("creating parent dir: %w", err)
+		}
+
+		rc, err := f.Open()
+		if err != nil {
+			return written, fmt.Errorf("opening zip entry: %w", err)
+		}
+
+		outFile, err := os.Create(outPath)
+		if err != nil {
+			_ = rc.Close()
+			return written, fmt.Errorf("creating file: %w", err)
+		}
+
+		_, copyErr := io.Copy(outFile, rc)
+		_ = outFile.Close()
+		_ = rc.Close()
+		if copyErr != nil {
+			return written, fmt.Errorf("writing file: %w", copyErr)
+		}
+
+		written = append(written, outPath)
+	}
+
+	return written, nil
+}
+
+// ExtractZipFileTo extracts a zip file on disk into destination directory.
+func ExtractZipFileTo(zipPath string, destDir string) ([]string, error) {
+	if err := os.MkdirAll(destDir, 0755); err != nil {
+		return nil, fmt.Errorf("creating destination: %w", err)
+	}
+
+	zr, err := zip.OpenReader(zipPath)
+	if err != nil {
+		return nil, fmt.Errorf("reading zip: %w", err)
+	}
+	defer zr.Close()
 
 	var written []string
 	for _, f := range zr.File {

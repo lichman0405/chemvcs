@@ -22,12 +22,14 @@ const (
 
 // JobInfo contains information about an HPC job
 type JobInfo struct {
-	JobID     string    `json:"job_id"`
-	RunHash   string    `json:"run_hash"`
-	Status    JobStatus `json:"status"`
-	JobSystem string    `json:"job_system"`
-	Queue     string    `json:"queue_name"`
-	Submitted string    `json:"submitted_at"`
+	JobID      string    `json:"job_id"`
+	RunHash    string    `json:"run_hash"`
+	Status     JobStatus `json:"status"`
+	JobSystem  string    `json:"job_system"`
+	Queue      string    `json:"queue_name"`
+	Submitted  string    `json:"submitted_at"`
+	Updated    string    `json:"updated_at"`
+	WorkingDir string    `json:"working_dir"`
 }
 
 // SubmitOptions contains options for job submission
