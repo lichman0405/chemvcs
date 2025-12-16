@@ -290,7 +290,7 @@ chemvcs pull origin main
 | Command | Description |
 |---------|-------------|
 | `chemvcs submit <run> <script>` | Submit HPC job for a run |
-| `chemvcs jobs [--status] [<run-hash\|job-id>]` | List tracked HPC jobs (optionally filter) |
+| `chemvcs jobs [--status] [-v] [<run-hash\|job-id>]` | List tracked HPC jobs (optionally filter; `-v` shows details) |
 | `chemvcs retrieve <run> [--patterns] [--commit]` | Fetch results (optionally commit) |
 | `chemvcs submit/jobs/retrieve/cancel/watch --remote=<name>` | Use remote HPC gateway (SLURM) |
 | Python: `JobSubmitter.submit_run()` | Submit HPC job with provenance (API) |
