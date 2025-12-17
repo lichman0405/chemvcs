@@ -16,7 +16,7 @@ import (
 	"github.com/lishi/chemvcs/internal/workspace"
 )
 
-const version = "0.1.0-dev"
+const version = "0.7.0"
 
 func main() {
 	if len(os.Args) < 2 {

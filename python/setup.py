@@ -11,7 +11,7 @@ if readme_file.exists():
 
 setup(
     name="chemvcs_py",
-    version="0.1.0",
+    version="0.7.0",
     description="Python domain layer for ChemVCS - version control for computational chemistry",
     long_description=long_description,
     long_description_content_type="text/markdown",

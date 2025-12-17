@@ -10,7 +10,7 @@ import (
 	"github.com/lishi/chemvcs/internal/server"
 )
 
-const version = "0.1.0-dev"
+const version = "0.7.0"
 
 func main() {
 	var (
