@@ -195,11 +195,11 @@ Working Directory → (chemvcs commit) → Repository
 | Hooks | ✅ | 📋 | Planned (high priority) |
 | Reflog | ✅ | 📋 | Planned (low priority) |
 | Bisect | ✅ | 📋 | Planned (low priority) |
-| **Domain object types** | ❌ | 📋 | M5: structure, calculation |
+| **Domain object types** | ❌ | ✅ | Python layer: Structure, Run, Workflow (stored as typed objects) |
 | **Extensible metadata** | ⚠️ | ✅ | Notes vs native Meta |
 | **Chemistry file diff** | ❌ | 📋 | M5: XYZ, CIF awareness |
-| **HPC job tracking** | ❌ | 📋 | M6: SLURM integration |
-| **Provenance capture** | ❌ | 📋 | M6: environment metadata |
+| **HPC job tracking** | ❌ | ✅ | SLURM/PBS/LSF adapters; local + remote gateway workflows |
+| **Provenance capture** | ❌ | ✅ | Scheduler directives + environment/modules captured on submit |
 | **Computational queries** | ❌ | 📋 | M5: search by properties |
 
 Legend:
@@ -335,10 +335,10 @@ research-project/
 
 **ChemVCS (Current):**
 - Individual objects in sharded directories
-- No packfiles yet (planned for future)
-- No automatic garbage collection
+- Optional packfiles for efficient storage (`chemvcs pack`)
+- Garbage collection (`chemvcs gc`) and integrity verification (`chemvcs fsck`)
 
-**Implication:** ChemVCS storage less optimized currently, but architecture supports future improvements.
+**Implication:** ChemVCS now has the core maintenance primitives, but still does not (yet) do Git-style delta compression.
 
 ### 7.2 Network Transfer
 
@@ -369,8 +369,8 @@ research-project/
 - Small/experimental community
 
 **ChemVCS Future Vision:**
-- Python API for workflow integration (M5)
-- HPC scheduler integration (M6)
+- Expand the Python API for workflow integration (M5)
+- Extend HPC scheduler integration (M6)
 - Chemistry-aware visualisation tools
 - Domain-specific hosting platforms
 
@@ -402,13 +402,15 @@ research-project/
 ### Current Reality (M1-M4 Complete)
 
 ChemVCS today is best described as:
-> "A cleaner, simpler Git with an architecture prepared for domain extensions"
+> "A simplified Git-like core with real HPC tracking and a domain layer, built to make scientific provenance first-class"
 
-The differentiation is more **architectural** than **functional**:
-- ✅ Extensible object model (foundation laid)
+The differentiation is both **architectural** and **partly functional**:
+- ✅ Extensible object model (core)
 - ✅ Simplified workflow (no staging)
 - ✅ History integrity (no rewrites)
-- ⚠️ Chemistry features not yet implemented
+- ✅ Repository maintenance (pack/gc/fsck)
+- ✅ HPC job tracking and provenance capture (Python layer + CLI integration)
+- ⚠️ Chemistry-aware diff/merge and rich domain queries are still early / incomplete
 
 ### Future Vision (M5-M6)
 

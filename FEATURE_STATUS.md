@@ -1,6 +1,6 @@
 # ChemVCS Feature Status
 
-**Last updated**: 2025-01-11
+**Last updated**: 2025-12-17
 
 This document is a short, source-of-truth snapshot of what ChemVCS can do *today* and what is still missing. It intentionally avoids volatile line counts, test counts, and commit hashes.
 
@@ -52,7 +52,8 @@ This document is a short, source-of-truth snapshot of what ChemVCS can do *today
 
 ## ⏭️ Next priorities (recommended)
 
-1. Enrich HPC job status details (exit code/reason/timestamps) and expose them via API/CLI
-2. Make retrieve/commit workflows more explicit (e.g., commit only retrieved dest, not whole tree)
-3. Add repo maintenance commands (pack/gc/fsck) for large workspaces
+1. Domain-aware diffs/merges for chemistry formats (XYZ, POSCAR) and run artefacts
+2. Query/index layer for domain metadata (structures, runs, workflows) beyond simple listing
+3. Reproducibility manifests: capture code/version/environment and make them first-class in snapshots
+4. Remote protocol efficiency upgrades that leverage packs (streaming bundles, server-side caching)
 

@@ -9,7 +9,7 @@ Python domain layer for ChemVCS, providing chemistry-specific abstractions and H
 - **File Parsers**: Read/write common chemistry file formats (XYZ, POSCAR)
 - **HPC Integration**: Submit and track HPC jobs with automatic provenance capture
 - **Type-safe API**: Dataclass-based models with validation
-- **Comprehensive tests**: 118 pytest tests covering all components
+- **Comprehensive tests**: pytest suite covering all components
 
 ## Installation
 
@@ -128,15 +128,15 @@ structure = Structure.from_core_object(obj)
 chemvcs_py/
 ├── __init__.py         # Package exports
 ├── core/
-│   ├── repo.py         # Repository interface (228 lines)
-│   └── objects.py      # Core object representations (109 lines)
+│   ├── repo.py         # Repository interface
+│   └── objects.py      # Core object representations
 ├── domain/
-│   ├── structure.py    # Structure domain object (195 lines)
-│   ├── run.py          # Run domain object (215 lines)
-│   └── workflow.py     # Workflow domain object (318 lines)
+│   ├── structure.py    # Structure domain object
+│   ├── run.py          # Run domain object
+│   └── workflow.py     # Workflow domain object
 ├── io/
-│   ├── xyz.py          # XYZ file format support (167 lines)
-│   └── poscar.py       # POSCAR/VASP format support (286 lines)
+│   ├── xyz.py          # XYZ file format support
+│   └── poscar.py       # POSCAR/VASP format support
 └── util/
     └── errors.py       # Custom exceptions
 
@@ -151,10 +151,8 @@ tests/
 └── test_poscar.py          # POSCAR parser tests (10 tests)
 ```
 
-**Statistics**:
-- Production code: ~5,100 lines (including full HPC module)
-- Test code: ~4,200 lines
-- Test coverage: 157/157 tests passing
+**Notes**:
+- For the most up-to-date test status, run `pytest -q` in `python/`.
 
 ## Development
 

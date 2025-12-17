@@ -31,9 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Job status refresh now collects detailed SLURM fields: `exit_code`, `reason`, `started_at`, `ended_at`, `elapsed_seconds`
 - CLI `jobs -v` displays detailed job fields when available
 
-### Documentation
-- Updated docs and README to describe Remote HPC (no SSH) usage and remove stale references
+### Fixed
+- Pack checksum finalisation order to make `chemvcs fsck` reliably verify packs
+- P3 maintenance tests: use real content-derived hashes and correct pack roots
 
+### Documentation
+- Audit and align docs with current implementation status (maintenance, packs, HPC/remote)
 
 ### Planned
 - Job arrays and dependencies

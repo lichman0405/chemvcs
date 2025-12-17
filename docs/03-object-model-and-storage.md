@@ -15,8 +15,9 @@ The goal is to provide a stable foundation for the Go core, the Python domain la
 and any external tools that wish to read or write ChemVCS repositories.
 
 This specification focuses on the **MVP format** for Milestones 1–3. Future versions
-may introduce additional fields or optimisations (e.g. packfiles), but they should
-strive to remain backwards compatible with repositories created under this format.
+may introduce additional fields or optimisations. Packfiles were later introduced
+as an optional storage optimisation (P3); loose objects remain supported, and the
+core on-disk invariants described here still apply.
 
 ---
 
@@ -322,7 +323,7 @@ In the MVP:
 - Blob content is stored as raw bytes in a file under `.chemvcs/objects/`;
 - The blob’s hash is computed directly from these bytes (no JSON wrapper).
 
-Future enhancements may introduce chunking or packfiles, but these must preserve
+Future enhancements may introduce chunking or further pack/index improvements, but these must preserve
 the logical semantics that a blob is addressed by its content hash.
 
 ---
@@ -571,7 +572,7 @@ Future versions of ChemVCS may:
 
 - Add optional fields to `Object.meta` or snapshot JSON;
 - Introduce additional `kind` types in `refs` (e.g. for remote references);
-- Introduce packfile formats that group multiple objects in a single file.
+- Introduce and evolve packfile formats that group multiple objects in a single file.
 
 Such changes must preserve the basic invariants and seek to remain compatible
 with repositories created according to this specification.

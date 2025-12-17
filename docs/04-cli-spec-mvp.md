@@ -25,6 +25,13 @@ This specification focuses on behaviour for local repositories. Remote-related
 commands (`remote`, `push`, `pull`, `fetch`) will be defined in the remote
 protocol and server specification.
 
+Note: ChemVCS has grown beyond this MVP scope (remote sync, HPC commands, and
+repository maintenance). This document remains the source of truth for the
+Milestone 1–3 command semantics; newer commands are documented in:
+- Remote: `docs/05-remote-protocol-and-server.md`
+- HPC: `docs/09-hpc-integration-design.md` and `docs/10-hpc-user-guide.md`
+- Current feature surface: `FEATURE_STATUS.md`
+
 ---
 
 ## 2. General CLI Conventions

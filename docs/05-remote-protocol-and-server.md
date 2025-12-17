@@ -17,9 +17,11 @@ The goal is a protocol that is:
 - Simple to implement and debug;
 - Sufficient for ChemVCS push / pull workflows;
 - Robust against partial failures and corrupted data;
-- Flexible enough to allow future optimisations (e.g. packfiles, streaming).
+- Flexible enough to allow future optimisations (e.g. leveraging packs, streaming).
 
-This version describes an MVP protocol suitable for Milestone 4.
+This version describes an MVP protocol suitable for Milestone 4. Later milestones
+extend the server with optional capabilities (e.g. a remote HPC gateway) while
+keeping the core sync protocol stable.
 
 ---
 
@@ -41,8 +43,11 @@ The ChemVCS server is responsible for:
 The server does **not**:
 
 - Execute user code or scripts;
-- Interact with HPC schedulers directly;
 - Interpret domain-specific metadata beyond what is needed for consistency.
+
+Note: ChemVCS may additionally expose repo-scoped HPC gateway endpoints that run
+scheduler commands server-side for no-SSH workflows. Those endpoints are treated
+as an extension and are documented separately.
 
 ### 2.2 Process and Deployment Model
 
@@ -577,7 +582,7 @@ Potential future scaling strategies include:
 
 - Sharding repositories across multiple servers;
 - Using an object storage backend (e.g. S3-compatible) for `objects/`;
-- Implementing packfiles and caching to reduce I/O overhead.
+- Leveraging packfiles and caching to reduce I/O overhead.
 
 These changes should not require altering the basic HTTP semantics defined here,
 only implementation details and additional configuration.

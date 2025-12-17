@@ -193,7 +193,7 @@ directory structure, but rooted under a server-managed path, e.g.:
 The server may optionally support:
 
 - Additional metadata (e.g. owner, ACLs) stored in a server-side database;
-- Background tasks such as garbage collection and packfile creation (later).
+- Background tasks such as garbage collection and packfile creation (optional future automation).
 
 ### 4.3 Client–Server Interaction
 

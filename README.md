@@ -15,7 +15,7 @@ A version control system designed for computational chemistry workflows.
 
 ChemVCS brings Git-like version control to computational chemistry. It helps you track molecular structures, calculation parameters, and computational results with the same rigor as source code version control.
 
-Unlike general-purpose VCS systems, ChemVCS is built with an **extensible architecture** that will support chemistry-specific features like molecular structure diffing, computational provenance tracking, and HPC job correlation.
+Unlike general-purpose VCS systems, ChemVCS is built with an **extensible architecture** designed to enable chemistry-specific features like molecular structure diffing, computational provenance tracking, and HPC job correlation.
 
 ## Why ChemVCS?
 
@@ -31,11 +31,12 @@ Traditional VCS tools like Git work for some of this, but ChemVCS is designed fr
 
 **Version**: Milestone 6 Complete (All Phases)  
 **Stability**: Full HPC integration with multi-scheduler support  
-**Test Coverage**: 85 Go tests + 157 Python tests (242 total) passing  
+**Tests**: Go and Python test suites passing (local runs)  
 **Production Ready**: Not yet - under active development
 
 ChemVCS currently provides:
 - ✅ **Git-like foundation**: Content-addressable storage, commits, branches, merges
+- ✅ **Repo maintenance**: `pack`, `gc`, `fsck` for storage optimization and integrity verification
 - ✅ **Remote repositories**: Push, pull, fetch via HTTP
 - ✅ **Python domain layer**: Chemistry-specific objects (Structure, Run, Workflow)
 - ✅ **File format support**: XYZ and POSCAR (VASP) parsers
