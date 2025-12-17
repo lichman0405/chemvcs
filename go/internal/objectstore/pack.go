@@ -147,7 +147,15 @@ func (pw *PackWriter) AddObject(hash string, objType byte, data []byte) error {
 
 // Finalize writes the pack checksum and generates the index file.
 func (pw *PackWriter) Finalize() error {
-	// Compute checksum of entire pack content
+	// Update object count in header (must happen before checksum computation)
+	if _, err := pw.packFile.Seek(8, io.SeekStart); err != nil {
+		return fmt.Errorf("failed to seek to header: %w", err)
+	}
+	if err := binary.Write(pw.packFile, binary.BigEndian, pw.objCount); err != nil {
+		return fmt.Errorf("failed to update object count: %w", err)
+	}
+
+	// Compute checksum of pack content (excluding trailing checksum itself)
 	if _, err := pw.packFile.Seek(0, io.SeekStart); err != nil {
 		return fmt.Errorf("failed to seek to start: %w", err)
 	}
@@ -163,14 +171,6 @@ func (pw *PackWriter) Finalize() error {
 	}
 	if _, err := pw.packFile.Write(checksum); err != nil {
 		return fmt.Errorf("failed to write checksum: %w", err)
-	}
-
-	// Update object count in header
-	if _, err := pw.packFile.Seek(8, io.SeekStart); err != nil {
-		return fmt.Errorf("failed to seek to header: %w", err)
-	}
-	if err := binary.Write(pw.packFile, binary.BigEndian, pw.objCount); err != nil {
-		return fmt.Errorf("failed to update object count: %w", err)
 	}
 
 	if err := pw.packFile.Sync(); err != nil {

@@ -181,22 +181,24 @@ func TestFsckWithPackfiles(t *testing.T) {
 	}
 
 	// Create a packfile
-	pw, err := NewPackWriter(tmpDir, "test-pack")
+	pw, err := NewPackWriter(store.root, "test-pack")
 	if err != nil {
 		t.Fatalf("Failed to create pack writer: %v", err)
 	}
 
-	hash1 := "aaaa000000000000000000000000000000000000"
-	hash2 := "bbbb000000000000000000000000000000000000"
 	data1 := []byte("packed data 1")
 	data2 := []byte("packed data 2")
+	hash1 := computeHash(data1)
+	hash2 := computeHash(data2)
 
 	pw.AddObject(hash1, objTypeBlob, data1)
 	pw.AddObject(hash2, objTypeBlob, data2)
 	pw.Finalize()
 
 	// Reload packs
-	store.ReloadPacks()
+	if err := store.ReloadPacks(); err != nil {
+		t.Fatalf("Failed to reload packs: %v", err)
+	}
 
 	refs := &MockRefsLister{refs: []string{hash1, hash2}}
 
@@ -233,17 +235,18 @@ func TestFsckCorruptedPackfile(t *testing.T) {
 	}
 
 	// Create a packfile
-	pw, err := NewPackWriter(tmpDir, "corrupt-pack")
+	pw, err := NewPackWriter(store.root, "corrupt-pack")
 	if err != nil {
 		t.Fatalf("Failed to create pack writer: %v", err)
 	}
 
-	hash := "cccc000000000000000000000000000000000000"
-	pw.AddObject(hash, objTypeBlob, []byte("test data"))
+	data := []byte("test data")
+	hash := computeHash(data)
+	pw.AddObject(hash, objTypeBlob, data)
 	pw.Finalize()
 
 	// Corrupt the packfile by appending garbage
-	packPath := filepath.Join(tmpDir, "pack", "corrupt-pack.pack")
+	packPath := filepath.Join(store.root, "pack", "corrupt-pack.pack")
 	f, err := os.OpenFile(packPath, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		t.Fatalf("Failed to open pack: %v", err)
@@ -252,7 +255,9 @@ func TestFsckCorruptedPackfile(t *testing.T) {
 	f.Close()
 
 	// Reload packs
-	store.ReloadPacks()
+	if err := store.ReloadPacks(); err != nil {
+		t.Fatalf("Failed to reload packs: %v", err)
+	}
 
 	opts := FsckOptions{
 		Full:    true,

@@ -27,9 +27,9 @@ func TestPackWriter(t *testing.T) {
 		typ  byte
 		data []byte
 	}{
-		{"aabbccdd11223344556677889900aabbccddee", objTypeBlob, []byte("blob data 1")},
-		{"112233445566778899aabbccddeeff00112233", objTypeBlob, []byte("blob data 2")},
-		{"ffeeddccbbaa998877665544332211001122", objTypeTree, []byte(`{"type":"tree","refs":[]}`)},
+		{"aabbccdd11223344556677889900aabbccddee11223344556677889900aabbcc", objTypeBlob, []byte("blob data 1")},
+		{"112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00", objTypeBlob, []byte("blob data 2")},
+		{"ffeeddccbbaa998877665544332211001122aabbccddeeff0011223344556677", objTypeTree, []byte(`{"type":"tree","refs":[]}`)},
 	}
 
 	for _, obj := range testObjects {
@@ -78,7 +78,7 @@ func TestPackWriter(t *testing.T) {
 	}
 
 	// Test non-existent object
-	_, _, err = pr.GetObject("0000000000000000000000000000000000000000")
+	_, _, err = pr.GetObject("0000000000000000000000000000000000000000000000000000000000000000")
 	if err == nil {
 		t.Errorf("Expected error for non-existent object")
 	}
@@ -100,10 +100,10 @@ func TestPackReaderIndex(t *testing.T) {
 
 	// Add objects in non-sorted order (should be sorted in index)
 	hashes := []string{
-		"ff00000000000000000000000000000000000000",
-		"00ff000000000000000000000000000000000000",
-		"8800000000000000000000000000000000000000",
-		"4400000000000000000000000000000000000000",
+		"ff00000000000000000000000000000000000000000000000000000000000000",
+		"00ff000000000000000000000000000000000000000000000000000000000000",
+		"8800000000000000000000000000000000000000000000000000000000000000",
+		"4400000000000000000000000000000000000000000000000000000000000000",
 	}
 
 	for _, hash := range hashes {
@@ -147,7 +147,7 @@ func TestPackCompression(t *testing.T) {
 
 	// Add a large compressible blob (repeated data)
 	data := bytes.Repeat([]byte("AAABBBCCCDDDEEE"), 1000)
-	hash := "1234567890abcdef1234567890abcdef12345678"
+	hash := "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
 
 	if err := pw.AddObject(hash, objTypeBlob, data); err != nil {
 		t.Fatalf("Failed to add object: %v", err)
@@ -203,14 +203,24 @@ func TestPackMultiplePacks(t *testing.T) {
 	}
 
 	// Create first pack
-	pw1, _ := NewPackWriter(tmpDir, "pack-1")
-	pw1.AddObject("aaaa000000000000000000000000000000000000", objTypeBlob, []byte("pack 1 data"))
-	pw1.Finalize()
+	pw1, err := NewPackWriter(store.root, "pack-1")
+	if err != nil {
+		t.Fatalf("Failed to create pack writer 1: %v", err)
+	}
+	pw1.AddObject("aaaa000000000000000000000000000000000000000000000000000000000000", objTypeBlob, []byte("pack 1 data"))
+	if err := pw1.Finalize(); err != nil {
+		t.Fatalf("Failed to finalize pack 1: %v", err)
+	}
 
 	// Create second pack
-	pw2, _ := NewPackWriter(tmpDir, "pack-2")
-	pw2.AddObject("bbbb000000000000000000000000000000000000", objTypeBlob, []byte("pack 2 data"))
-	pw2.Finalize()
+	pw2, err := NewPackWriter(store.root, "pack-2")
+	if err != nil {
+		t.Fatalf("Failed to create pack writer 2: %v", err)
+	}
+	pw2.AddObject("bbbb000000000000000000000000000000000000000000000000000000000000", objTypeBlob, []byte("pack 2 data"))
+	if err := pw2.Finalize(); err != nil {
+		t.Fatalf("Failed to finalize pack 2: %v", err)
+	}
 
 	// Reload packs
 	if err := store.ReloadPacks(); err != nil {
@@ -218,11 +228,11 @@ func TestPackMultiplePacks(t *testing.T) {
 	}
 
 	// Should be able to find objects in both packs
-	if !store.HasObjectInPack("aaaa000000000000000000000000000000000000") {
+	if !store.HasObjectInPack("aaaa000000000000000000000000000000000000000000000000000000000000") {
 		t.Errorf("Object from pack 1 not found")
 	}
 
-	if !store.HasObjectInPack("bbbb000000000000000000000000000000000000") {
+	if !store.HasObjectInPack("bbbb000000000000000000000000000000000000000000000000000000000000") {
 		t.Errorf("Object from pack 2 not found")
 	}
 }

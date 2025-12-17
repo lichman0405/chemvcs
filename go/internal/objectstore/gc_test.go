@@ -18,26 +18,6 @@ func (m *MockRefsLister) ListAllRefs() ([]string, error) {
 	return m.refs, nil
 }
 
-// Helper function to put an object with a specific hash (for testing)
-func putObjectWithHash(store *Store, hash string, data []byte) error {
-	shard := hash[:2]
-	shardPath := filepath.Join(store.root, shard)
-	if err := os.MkdirAll(shardPath, 0755); err != nil {
-		return err
-	}
-	path := filepath.Join(shardPath, hash)
-	return os.WriteFile(path, data, 0644)
-}
-
-// Helper function to put a model.Object with a specific hash (for testing)
-func putModelObjectWithHash(store *Store, hash string, obj *model.Object) error {
-	data, err := obj.MarshalCanonical()
-	if err != nil {
-		return err
-	}
-	return putObjectWithHash(store, hash, data)
-}
-
 func TestGarbageCollectBasic(t *testing.T) {
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "chemvcs-gc-test-*")
@@ -119,8 +99,10 @@ func TestGarbageCollectGracePeriod(t *testing.T) {
 	}
 
 	// Create unreachable object
-	hash := "cccc000000000000000000000000000000000000"
-	putObjectWithHash(store, hash, []byte("test blob"))
+	hash, err := store.PutBlob([]byte("test blob"))
+	if err != nil {
+		t.Fatalf("Failed to put blob: %v", err)
+	}
 
 	refs := &MockRefsLister{refs: []string{}}
 
@@ -175,20 +157,31 @@ func TestGarbageCollectWithGraph(t *testing.T) {
 	//      -> child2
 	// orphan (unreachable)
 
-	grandchildHash := "1111000000000000000000000000000000000000"
-	child1Hash := "2222000000000000000000000000000000000000"
-	child2Hash := "3333000000000000000000000000000000000000"
-	rootHash := "4444000000000000000000000000000000000000"
-	orphanHash := "5555000000000000000000000000000000000000"
+	grandchildHash, err := store.PutBlob([]byte("grandchild"))
+	if err != nil {
+		t.Fatalf("Failed to put grandchild blob: %v", err)
+	}
 
-	putObjectWithHash(store, grandchildHash, []byte("grandchild"))
-	putModelObjectWithHash(store, child1Hash, &model.Object{
+	child2Hash, err := store.PutBlob([]byte("child2"))
+	if err != nil {
+		t.Fatalf("Failed to put child2 blob: %v", err)
+	}
+
+	orphanHash, err := store.PutBlob([]byte("orphan"))
+	if err != nil {
+		t.Fatalf("Failed to put orphan blob: %v", err)
+	}
+
+	child1Hash, err := store.PutObject(&model.Object{
 		Version: 1,
 		Type:    "tree",
 		Refs:    []model.Reference{{ID: grandchildHash, Kind: "blob"}},
 	})
-	putObjectWithHash(store, child2Hash, []byte("child2"))
-	putModelObjectWithHash(store, rootHash, &model.Object{
+	if err != nil {
+		t.Fatalf("Failed to put child1 object: %v", err)
+	}
+
+	rootHash, err := store.PutObject(&model.Object{
 		Version: 1,
 		Type:    "tree",
 		Refs: []model.Reference{
@@ -196,7 +189,9 @@ func TestGarbageCollectWithGraph(t *testing.T) {
 			{ID: child2Hash, Kind: "blob"},
 		},
 	})
-	putObjectWithHash(store, orphanHash, []byte("orphan"))
+	if err != nil {
+		t.Fatalf("Failed to put root object: %v", err)
+	}
 
 	// Only root is directly referenced
 	refs := &MockRefsLister{refs: []string{rootHash}}
@@ -257,13 +252,18 @@ func TestPackLooseObjects(t *testing.T) {
 	}
 
 	// Create some loose objects
-	hash1 := "dddd000000000000000000000000000000000000"
-	hash2 := "eeee000000000000000000000000000000000000"
-	hash3 := "ffff000000000000000000000000000000000000"
-
-	putObjectWithHash(store, hash1, []byte("blob 1"))
-	putObjectWithHash(store, hash2, []byte("blob 2"))
-	putObjectWithHash(store, hash3, []byte("blob 3"))
+	hash1, err := store.PutBlob([]byte("blob 1"))
+	if err != nil {
+		t.Fatalf("Failed to put blob 1: %v", err)
+	}
+	hash2, err := store.PutBlob([]byte("blob 2"))
+	if err != nil {
+		t.Fatalf("Failed to put blob 2: %v", err)
+	}
+	hash3, err := store.PutBlob([]byte("blob 3"))
+	if err != nil {
+		t.Fatalf("Failed to put blob 3: %v", err)
+	}
 
 	// All objects are reachable
 	refs := &MockRefsLister{refs: []string{hash1, hash2, hash3}}
@@ -288,7 +288,7 @@ func TestPackLooseObjects(t *testing.T) {
 	}
 
 	// Verify pack file exists
-	packPath := filepath.Join(tmpDir, "pack", packName+".pack")
+	packPath := filepath.Join(store.root, "pack", packName+".pack")
 	if _, err := os.Stat(packPath); os.IsNotExist(err) {
 		t.Errorf("Pack file not created")
 	}
@@ -300,8 +300,10 @@ func TestPackLooseObjects(t *testing.T) {
 
 	// If KeepLoose=false, loose objects should be removed
 	opts.KeepLoose = false
-	hash4 := "0000111111111111111111111111111111111111"
-	putObjectWithHash(store, hash4, []byte("blob 4"))
+	hash4, err := store.PutBlob([]byte("blob 4"))
+	if err != nil {
+		t.Fatalf("Failed to put blob 4: %v", err)
+	}
 	refs.refs = append(refs.refs, hash4)
 
 	_, _, err = store.PackLooseObjects(refs, opts)
