@@ -6,14 +6,15 @@
 
 本文以仓库现状为准，并引用项目内已有文档作为“进一步参考”。
 
-- 项目概览与功能面：[README.md](README.md)
-- 功能状态（最权威的“现在能做什么”）：[FEATURE_STATUS.md](FEATURE_STATUS.md)
-- 远端协议/服务设计（API 语义）：[docs/05-remote-protocol-and-server.md](docs/05-remote-protocol-and-server.md)
-- 对象模型与本地存储（.chemvcs 布局）：[docs/03-object-model-and-storage.md](docs/03-object-model-and-storage.md)
-- HPC 使用指南（CLI/远端网关）：[docs/10-hpc-user-guide.md](docs/10-hpc-user-guide.md)
-- 远端 HPC 网关实现说明（最贴近实现）：[docs/11-remote-hpc-design.md](docs/11-remote-hpc-design.md)
-- HPC 示例工作流（可当验收用例）：[examples/hpc-workflow/README.md](examples/hpc-workflow/README.md)
-- ChemVCS 与 Git 差异理解：[docs/10-chemvcs-vs-git.md](docs/10-chemvcs-vs-git.md)
+- 项目概览与功能面：[README.md](../README.md)
+- 功能状态（最权威的“现在能做什么”）：[FEATURE_STATUS.md](../FEATURE_STATUS.md)
+- 远端协议/服务设计（API 语义）：[docs/05-remote-protocol-and-server.md](../docs/05-remote-protocol-and-server.md)
+- 对象模型与本地存储（.chemvcs 布局）：[docs/03-object-model-and-storage.md](../docs/03-object-model-and-storage.md)
+- HPC 使用指南（CLI/远端网关）：[docs/10-hpc-user-guide.md](../docs/10-hpc-user-guide.md)
+- 远端 HPC 网关实现说明（最贴近实现）：[docs/11-remote-hpc-design.md](../docs/11-remote-hpc-design.md)
+- HPC 示例工作流（可当验收用例）：[examples/hpc-workflow/README.md](../examples/hpc-workflow/README.md)
+- ChemVCS 与 Git 差异理解：[docs/10-chemvcs-vs-git.md](../docs/10-chemvcs-vs-git.md)
+- ChemVCS 命令大全（超详细）：[ChemVCS-Commands.md](ChemVCS-Commands.md)
 
 ---
 
@@ -28,12 +29,12 @@
 - 一个远端仓库的“repoId”是 `owner/repo`。
 - 服务端的仓库目录必须存在且包含 `.chemvcs`，路径是：`<repo-root>/owner/repo/.chemvcs`。
   - 服务端不会自动“创建远端仓库”。如果目录里没有 `.chemvcs`，会报 `repository not found`。
-  - 这点在实现里是硬约束（见服务端在 [go/internal/server/server.go](go/internal/server/server.go) 打开的逻辑）。
+    - 这点在实现里是硬约束（见服务端在 [go/internal/server/server.go](../go/internal/server/server.go) 打开的逻辑）。
 
 3) 远端同步（push/pull/fetch）与远端 HPC 网关（no SSH）使用同一个 base URL：
 - 推荐直接把 remote URL 配成 repo-scoped：
   - `http://<host>:<port>/chemvcs/v1/repos/<owner>/<repo>`
-- 客户端会自动从这个 URL 推断 repoId，并把 base URL 归一化成 API 根（见远端客户端构造逻辑，参考 [go/internal/remote/client.go](go/internal/remote/client.go)）。
+- 客户端会自动从这个 URL 推断 repoId，并把 base URL 归一化成 API 根（见远端客户端构造逻辑，参考 [go/internal/remote/client.go](../go/internal/remote/client.go)）。
 
 4) 版本命令：
 - `chemvcs version`（不是 `chemvcs --version`）
@@ -41,7 +42,7 @@
 
 5) HPC 分两种模式：
 - 本地模式：`chemvcs` 在“能直接运行调度器命令”的机器上工作（例如 SLURM login node）。这条路径需要 Python 包 `chemvcs_py`。
-- 远端网关模式（no SSH）：你的笔记本只发 HTTP 给 `chemvcs-server`，服务端在 SLURM 主机上执行 `sbatch/squeue/sacct/scancel`（MVP 目前为 SLURM）。这条路径不需要在服务端运行 Python（见 [docs/11-remote-hpc-design.md](docs/11-remote-hpc-design.md) 的关键约束）。
+- 远端网关模式（no SSH）：你的笔记本只发 HTTP 给 `chemvcs-server`，服务端在 SLURM 主机上执行 `sbatch/squeue/sacct/scancel`（MVP 目前为 SLURM）。这条路径不需要在服务端运行 Python（见 [docs/11-remote-hpc-design.md](../docs/11-remote-hpc-design.md) 的关键约束）。
 
 ---
 
@@ -60,26 +61,26 @@
 - 在 SLURM/PBS/LSF 可用的机器（一般是登录节点）安装：
   - `chemvcs` + Python 包 `chemvcs_py`
 - 用 `chemvcs submit/jobs/watch/retrieve` 直接操作作业。
-- 参考：[docs/10-hpc-user-guide.md](docs/10-hpc-user-guide.md)
+- 参考：[docs/10-hpc-user-guide.md](../docs/10-hpc-user-guide.md)
 
 ### 1.4 HPC 远端网关模式（推荐给运维场景）
 - 在 SLURM 主机上部署 `chemvcs-server`，并确保服务账号能执行调度命令。
 - 客户端（笔记本）只需 `chemvcs`，通过 `--remote=<name>` 使用 HTTP 网关。
-- 参考：[docs/11-remote-hpc-design.md](docs/11-remote-hpc-design.md)
+- 参考：[docs/11-remote-hpc-design.md](../docs/11-remote-hpc-design.md)
 
 ---
 
 ## 2. 前置条件与依赖清单（按角色）
 
 ### 2.1 构建机（编译二进制）
-- Go：建议 1.19+（见 [README.md](README.md)）
+- Go：建议 1.19+（见 [README.md](../README.md)）
 - Git：用于拉取源码（可选但强烈建议）
 
 ### 2.2 客户端（运行 chemvcs）
 - Windows / Linux 均可
 - 如果只做 VCS 与远端同步：不需要 Python
 - 如果要“本地模式”HPC：
-  - Python 3.8+（见 [docs/10-hpc-user-guide.md](docs/10-hpc-user-guide.md)）
+  - Python 3.8+（见 [docs/10-hpc-user-guide.md](../docs/10-hpc-user-guide.md)）
   - 安装 `chemvcs_py`
   - 对应调度器命令（如 SLURM：`sbatch/squeue/sacct/scancel`）必须在 PATH 中
 
@@ -87,7 +88,7 @@
 - 建议 Linux（更常见的运维场景），Windows 也可运行
 - 存储：用于 repo-root（包含多个仓库目录）
 - 网络：对外暴露 TCP 端口（默认 8080）
-- 鉴权：建议开启 bearer token（见 [docs/11-remote-hpc-design.md](docs/11-remote-hpc-design.md) 的部署说明）
+- 鉴权：建议开启 bearer token（见 [docs/11-remote-hpc-design.md](../docs/11-remote-hpc-design.md) 的部署说明）
 - 如果开启远端 HPC 网关（SLURM）：
   - `chemvcs-server` 运行账号必须能执行 SLURM 命令
 
@@ -95,7 +96,7 @@
 
 ## 3. 从源码构建与安装（二进制）
 
-> 仓库结构说明可参考：[STRUCTURE.md](STRUCTURE.md)（如果存在）与 [README.md](README.md)。
+> 仓库结构与设计背景可先看 [README.md](../README.md) 与 [docs/02-architecture-overview.md](../docs/02-architecture-overview.md)。
 
 ### 3.1 构建 chemvcs（CLI）
 
@@ -144,7 +145,7 @@ go build -o chemvcs-server ./cmd/chemvcs-server
 
 ## 4. Python 层安装（仅在需要本地 HPC/领域对象时）
 
-Python 层说明与安装参考：[python/README.md](python/README.md)
+Python 层说明与安装参考：[python/README.md](../python/README.md)
 
 在仓库根目录：
 
@@ -185,7 +186,7 @@ python -c "from chemvcs_py.hpc import SlurmAdapter; print('OK')"
       .chemvcs/
 ```
 
-`.chemvcs` 的布局参考：[docs/03-object-model-and-storage.md](docs/03-object-model-and-storage.md)
+`.chemvcs` 的布局参考：[docs/03-object-model-and-storage.md](../docs/03-object-model-and-storage.md)
 
 ### 5.2 创建远端仓库（必须做，否则 404）
 
@@ -214,7 +215,7 @@ cd /srv/chemvcs/repos/owner/repo
 
 ### 5.3 启动命令与参数（以实现为准）
 
-服务端参数来自实现：[go/cmd/chemvcs-server/main.go](go/cmd/chemvcs-server/main.go)
+服务端参数来自实现：[go/cmd/chemvcs-server/main.go](../go/cmd/chemvcs-server/main.go)
 
 最简启动（不带鉴权，不建议生产）：
 
@@ -336,7 +337,7 @@ sudo journalctl -u chemvcs-server -n 200 --no-pager
 
 远端 HPC retrieve 会返回 zip，建议在代理层设置合适的 `client_max_body_size`（并结合你们的输出大小）。
 
-更多部署安全建议参考：[docs/11-remote-hpc-design.md](docs/11-remote-hpc-design.md)
+更多部署安全建议参考：[docs/11-remote-hpc-design.md](../docs/11-remote-hpc-design.md)
 
 ---
 
@@ -375,7 +376,7 @@ chemvcs merge exp
 
 ### 6.4 维护命令（pack/gc/fsck）
 
-命令列表可见 CLI help（实现中在 [go/cmd/chemvcs/main.go](go/cmd/chemvcs/main.go)）：
+命令列表可见 CLI help（实现中在 [go/cmd/chemvcs/main.go](../go/cmd/chemvcs/main.go)）。更详细的逐命令说明见：[ChemVCS-Commands.md](ChemVCS-Commands.md)
 
 - `chemvcs pack`：将 loose objects 打包为 packfile（节省 inode/提升 IO 效率）
 - `chemvcs gc`：清理不可达对象（支持保留期/dry-run）
@@ -442,12 +443,12 @@ chemvcs pull origin main
 
 ## 8. HPC 本地模式（在登录节点/能跑调度命令的机器上）
 
-详细用法以 [docs/10-hpc-user-guide.md](docs/10-hpc-user-guide.md) 为准，这里给运维友好的“最短闭环”。
+详细用法以 [docs/10-hpc-user-guide.md](../docs/10-hpc-user-guide.md) 为准，这里给运维友好的“最短闭环”。
 
 ### 8.1 前置检查
 
 - `chemvcs` 可运行：`chemvcs version`
-- Python 包已安装：参考 [python/README.md](python/README.md)
+- Python 包已安装：参考 [python/README.md](../python/README.md)
 - 调度器命令可用（以 SLURM 为例）：
 
 ```bash
@@ -478,7 +479,7 @@ chemvcs retrieve <run-hash> --dest=./results --patterns="*.out,*.log" --commit -
 
 ## 9. HPC 远端网关模式（no SSH，推荐运维部署形态）
 
-这部分以实现文档为准：[docs/11-remote-hpc-design.md](docs/11-remote-hpc-design.md)
+这部分以实现文档为准：[docs/11-remote-hpc-design.md](../docs/11-remote-hpc-design.md)
 
 ### 9.1 服务端要求（SLURM 主机）
 
@@ -624,11 +625,11 @@ curl -H "Authorization: Bearer change-me" \
 
 ## 12. 参考资料（项目内可跳转）
 
-- 项目入口与快速开始：[README.md](README.md)
-- 当前功能面（建议运维直接以此为准）：[FEATURE_STATUS.md](FEATURE_STATUS.md)
-- 本地仓库存储规范（理解 .chemvcs）：[docs/03-object-model-and-storage.md](docs/03-object-model-and-storage.md)
-- 远端协议（理解 push/pull/fetch 的 HTTP 语义）：[docs/05-remote-protocol-and-server.md](docs/05-remote-protocol-and-server.md)
-- HPC 用户指南（CLI + 网关）：[docs/10-hpc-user-guide.md](docs/10-hpc-user-guide.md)
-- 远端 HPC 网关实现说明（运维必读）：[docs/11-remote-hpc-design.md](docs/11-remote-hpc-design.md)
-- HPC 示例流程（可作为验收脚本）：[examples/hpc-workflow/README.md](examples/hpc-workflow/README.md)
-- ChemVCS 与 Git 差异理解：[docs/10-chemvcs-vs-git.md](docs/10-chemvcs-vs-git.md)
+- 项目入口与快速开始：[README.md](../README.md)
+- 当前功能面（建议运维直接以此为准）：[FEATURE_STATUS.md](../FEATURE_STATUS.md)
+- 本地仓库存储规范（理解 .chemvcs）：[docs/03-object-model-and-storage.md](../docs/03-object-model-and-storage.md)
+- 远端协议（理解 push/pull/fetch 的 HTTP 语义）：[docs/05-remote-protocol-and-server.md](../docs/05-remote-protocol-and-server.md)
+- HPC 用户指南（CLI + 网关）：[docs/10-hpc-user-guide.md](../docs/10-hpc-user-guide.md)
+- 远端 HPC 网关实现说明（运维必读）：[docs/11-remote-hpc-design.md](../docs/11-remote-hpc-design.md)
+- HPC 示例流程（可作为验收脚本）：[examples/hpc-workflow/README.md](../examples/hpc-workflow/README.md)
+- ChemVCS 与 Git 差异理解：[docs/10-chemvcs-vs-git.md](../docs/10-chemvcs-vs-git.md)
