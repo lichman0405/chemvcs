@@ -4,4 +4,14 @@ This module provides the content-addressable blob store, metadata database,
 and commit object management.
 """
 
-__all__ = []
+from chemvcs.storage.object_store import (
+    BlobCorruptedError,
+    BlobNotFoundError,
+    ObjectStore,
+)
+
+__all__ = [
+    "ObjectStore",
+    "BlobNotFoundError",
+    "BlobCorruptedError",
+]
