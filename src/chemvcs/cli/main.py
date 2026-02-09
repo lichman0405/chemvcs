@@ -1,8 +1,19 @@
 """Main CLI entry point for ChemVCS."""
 
-import typer
+import os
+import socket
+import sys
+from pathlib import Path
 from typing import Optional
 
+import typer
+from rich.console import Console
+from rich.panel import Panel
+
+from chemvcs.constants import CHEMVCS_DIR, COMMITS_DIR, OBJECTS_DIR
+from chemvcs.storage import MetadataDB
+
+console = Console()
 app = typer.Typer(
     name="chemvcs",
     help="Version control for computational materials science calculations",
@@ -32,9 +43,117 @@ def init(
     ),
 ) -> None:
     """Initialize a ChemVCS repository in the current directory."""
-    typer.echo("🚧 chemvcs init - Not implemented yet")
-    typer.echo("This will create .chemvcs/ directory structure")
-    raise typer.Exit(1)
+    workspace_root = Path.cwd()
+    chemvcs_dir = workspace_root / CHEMVCS_DIR
+    
+    # Check if already initialized
+    if chemvcs_dir.exists():
+        if not force:
+            console.print(
+                f"[bold red]Error:[/bold red] ChemVCS repository already exists in {workspace_root}",
+                style="red",
+            )
+            console.print(
+                f"  .chemvcs/ directory found at: {chemvcs_dir}",
+                style="dim",
+            )
+            console.print(
+                "\nUse [bold]--force[/bold] to reinitialize (will delete existing data!)",
+                style="yellow",
+            )
+            raise typer.Exit(1)
+        
+        # Force mode: remove existing directory
+        if not quiet:
+            console.print(
+                f"[yellow]⚠️  Removing existing .chemvcs/ directory...[/yellow]"
+            )
+        import shutil
+        shutil.rmtree(chemvcs_dir)
+    
+    try:
+        # Create directory structure
+        chemvcs_dir.mkdir(exist_ok=True)
+        (chemvcs_dir / OBJECTS_DIR).mkdir(exist_ok=True)
+        (chemvcs_dir / COMMITS_DIR).mkdir(exist_ok=True)
+        
+        # Initialize metadata database
+        db = MetadataDB(chemvcs_dir)
+        db.open()
+        db.init_schema()
+        db.close()
+        
+        # Create default .chemvcsignore
+        chemvcsignore_path = workspace_root / ".chemvcsignore"
+        if not chemvcsignore_path.exists():
+            default_ignore_content = """# ChemVCS Ignore Rules
+# 
+# Patterns follow .gitignore syntax
+# Lines starting with # are comments
+
+# Temporary files
+*.tmp
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Large output files (consider storing separately)
+# WAVECAR
+# CHG
+# CHGCAR
+
+# Compiled Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
+
+# OS files
+.Trash-*/
+"""
+            chemvcsignore_path.write_text(default_ignore_content, encoding="utf-8")
+        
+        if not quiet:
+            # Success message with fancy panel
+            hostname = socket.gethostname()
+            username = os.getenv("USER") or os.getenv("USERNAME") or "unknown"
+            author_id = f"{username}@{hostname}"
+            
+            success_message = f"""[bold green]✓[/bold green] Initialized ChemVCS repository
+
+[dim]Repository root:[/dim] {workspace_root}
+[dim]Storage location:[/dim] {chemvcs_dir}
+[dim]Default author:[/dim] {author_id}
+
+[bold]Next steps:[/bold]
+  1. Add VASP input files: [cyan]chemvcs add INCAR POSCAR KPOINTS POTCAR[/cyan]
+  2. Create initial commit: [cyan]chemvcs commit -m "Initial setup"[/cyan]
+  3. Run your calculation
+  4. Track outputs: [cyan]chemvcs add OUTCAR vasprun.xml[/cyan]
+  5. Commit results: [cyan]chemvcs commit -m "Completed SCF calculation"[/cyan]
+"""
+            console.print(Panel(success_message, border_style="green", title="ChemVCS Initialized"))
+        
+    except Exception as e:
+        console.print(
+            f"[bold red]Error:[/bold red] Failed to initialize repository: {e}",
+            style="red",
+        )
+        # Clean up partial initialization
+        if chemvcs_dir.exists():
+            import shutil
+            shutil.rmtree(chemvcs_dir)
+        raise typer.Exit(1)
 
 
 @app.command()
