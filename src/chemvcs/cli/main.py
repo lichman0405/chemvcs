@@ -527,8 +527,96 @@ def status(
     ),
 ) -> None:
     """Show working directory and staging area status."""
-    typer.echo("🚧 chemvcs status - Not implemented yet")
-    raise typer.Exit(1)
+    workspace_root = Path.cwd()
+    chemvcs_dir = workspace_root / CHEMVCS_DIR
+    
+    # Check if repository is initialized
+    if not chemvcs_dir.exists():
+        console.print(
+            "[bold red]Error:[/bold red] Not a ChemVCS repository",
+            style="red",
+        )
+        console.print(
+            f"  No .chemvcs/ directory found in {workspace_root}",
+            style="dim",
+        )
+        console.print(
+            "\nRun [bold]chemvcs init[/bold] to initialize a repository",
+            style="yellow",
+        )
+        raise typer.Exit(1)
+    
+    try:
+        # Initialize storage
+        object_store = ObjectStore(chemvcs_dir)
+        staging_manager = StagingManager(workspace_root, object_store)
+        
+        # Get HEAD commit
+        head_file = chemvcs_dir / "HEAD"
+        current_commit = None
+        if head_file.exists():
+            head_content = head_file.read_text(encoding="utf-8").strip()
+            if head_content:
+                current_commit = head_content
+        
+        # Get staged files
+        staged_files = staging_manager.get_staged_files()
+        
+        if short:
+            # Short format output (similar to git status --short)
+            if staged_files:
+                for rel_path in sorted(staged_files.keys()):
+                    console.print(f"A  {rel_path}")
+            else:
+                # No output in short mode if nothing staged
+                pass
+        else:
+            # Long format output
+            console.print(f"[bold]On branch:[/bold] main  [dim](linear history)[/dim]")
+            
+            if current_commit:
+                console.print(f"[bold]HEAD:[/bold] {current_commit[:7]}  [dim]({current_commit})[/dim]")
+            else:
+                console.print("[bold]HEAD:[/bold] [dim](no commits yet)[/dim]")
+            
+            console.print()
+            
+            if staged_files:
+                console.print("[bold green]Changes to be committed:[/bold green]")
+                console.print("  [dim](use \"chemvcs commit -m <message>\" to commit)[/dim]\n")
+                
+                for rel_path, file_info in sorted(staged_files.items()):
+                    file_type = file_info.get("file_type", "unknown")
+                    size_bytes = file_info.get("size_bytes", 0)
+                    blob_hash = file_info["blob_hash"]
+                    
+                    # Format size
+                    if size_bytes < 1024:
+                        size_str = f"{size_bytes} B"
+                    elif size_bytes < 1024 * 1024:
+                        size_str = f"{size_bytes / 1024:.1f} KB"
+                    else:
+                        size_str = f"{size_bytes / (1024 * 1024):.2f} MB"
+                    
+                    console.print(
+                        f"  [green]+[/green] {rel_path}  "
+                        f"[dim]({size_str}, {file_type}, {blob_hash[:8]})[/dim]"
+                    )
+                
+                console.print()
+            else:
+                if current_commit:
+                    console.print("[dim]Nothing to commit (working tree clean)[/dim]\n")
+                else:
+                    console.print("[yellow]No files staged for commit[/yellow]")
+                    console.print("  Use [bold]chemvcs add <file>[/bold] to stage files\n")
+    
+    except Exception as e:
+        console.print(
+            f"[bold red]Error:[/bold red] {e}",
+            style="red",
+        )
+        raise typer.Exit(1)
 
 
 def main() -> None:
