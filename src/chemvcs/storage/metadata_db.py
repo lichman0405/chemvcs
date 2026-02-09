@@ -21,10 +21,10 @@ class DatabaseError(Exception):
 
 class MetadataDB:
     """SQLite database manager for ChemVCS metadata.
-    
+
     Manages commit history, file references, semantic summaries, and environment
     information. The database is designed to be rebuildable from commit JSON files.
-    
+
     Schema Tables:
         - commits: Commit records with hash, parent, timestamp, message
         - files: File list for each commit
@@ -32,11 +32,11 @@ class MetadataDB:
         - output_summary: OUTCAR energy and convergence status
         - environment: Runtime environment (VASP version, modules)
         - metadata: Schema version and configuration
-    
+
     Attributes:
         db_path: Path to the SQLite database file
         conn: Active database connection (if open)
-        
+
     Example:
         >>> db = MetadataDB(Path(".chemvcs"))
         >>> db.init_schema()
@@ -45,7 +45,7 @@ class MetadataDB:
 
     def __init__(self, chemvcs_dir: Path) -> None:
         """Initialize database manager.
-        
+
         Args:
             chemvcs_dir: Path to .chemvcs directory
         """
@@ -56,16 +56,16 @@ class MetadataDB:
 
     def open(self) -> None:
         """Open database connection and configure journal mode.
-        
+
         Attempts to use WAL mode for better concurrency. Falls back to
         DELETE mode if WAL is not supported (e.g., on NFS).
-        
+
         Raises:
             DatabaseError: If connection fails
         """
         if self.conn is not None:
             return  # Already open
-        
+
         try:
             self.conn = sqlite3.connect(
                 str(self.db_path),
@@ -73,19 +73,19 @@ class MetadataDB:
                 check_same_thread=False,
             )
             self.conn.row_factory = sqlite3.Row  # Access columns by name
-            
+
             # Try WAL mode first
             if self._wal_mode_supported is None:
                 self._detect_wal_support()
-            
+
             if self._wal_mode_supported:
                 self.conn.execute("PRAGMA journal_mode=WAL")
             else:
                 self.conn.execute("PRAGMA journal_mode=DELETE")
-            
+
             # Enable foreign keys
             self.conn.execute("PRAGMA foreign_keys=ON")
-            
+
         except sqlite3.Error as e:
             raise DatabaseError(f"Failed to open database: {e}") from e
 
@@ -106,7 +106,7 @@ class MetadataDB:
 
     def _detect_wal_support(self) -> None:
         """Detect if WAL journal mode is supported.
-        
+
         WAL may not work on network filesystems like NFS or some Lustre configs.
         """
         try:
@@ -118,19 +118,19 @@ class MetadataDB:
 
     def init_schema(self) -> None:
         """Initialize database schema.
-        
+
         Creates all tables and indices. Safe to call on existing database
         (uses IF NOT EXISTS).
-        
+
         Raises:
             DatabaseError: If schema creation fails
         """
         if self.conn is None:
             raise DatabaseError("Database not open")
-        
+
         try:
             cursor = self.conn.cursor()
-            
+
             # Metadata table (schema version, etc.)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS metadata (
@@ -138,7 +138,7 @@ class MetadataDB:
                     value TEXT NOT NULL
                 )
             """)
-            
+
             # Commits table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS commits (
@@ -159,7 +159,7 @@ class MetadataDB:
                 CREATE INDEX IF NOT EXISTS idx_commits_parent 
                 ON commits(parent_hash)
             """)
-            
+
             # Files table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS files (
@@ -181,7 +181,7 @@ class MetadataDB:
                 CREATE INDEX IF NOT EXISTS idx_files_path 
                 ON files(path)
             """)
-            
+
             # Semantic summary table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS semantic_summary (
@@ -195,7 +195,7 @@ class MetadataDB:
                 CREATE INDEX IF NOT EXISTS idx_semantic_file 
                 ON semantic_summary(file_id)
             """)
-            
+
             # Output summary table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS output_summary (
@@ -214,7 +214,7 @@ class MetadataDB:
                 CREATE INDEX IF NOT EXISTS idx_output_commit 
                 ON output_summary(commit_id)
             """)
-            
+
             # Environment table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS environment (
@@ -232,15 +232,15 @@ class MetadataDB:
                 CREATE INDEX IF NOT EXISTS idx_env_commit 
                 ON environment(commit_id)
             """)
-            
+
             # Set schema version
             cursor.execute(
                 "INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)",
                 ("schema_version", str(DB_SCHEMA_VERSION)),
             )
-            
+
             self.conn.commit()
-            
+
         except sqlite3.Error as e:
             self.conn.rollback()
             raise DatabaseError(f"Failed to initialize schema: {e}") from e
@@ -254,23 +254,23 @@ class MetadataDB:
         message: str,
     ) -> int:
         """Insert a new commit record.
-        
+
         Args:
             commit_hash: SHA-256 hash of commit (64 hex chars)
             parent_hash: Parent commit hash (None for initial commit)
             timestamp: ISO 8601 timestamp
             author: Author identifier (e.g., "user@hostname")
             message: Commit message
-        
+
         Returns:
             Database row ID of inserted commit
-            
+
         Raises:
             DatabaseError: If insert fails (e.g., duplicate hash)
         """
         if self.conn is None:
             raise DatabaseError("Database not open")
-        
+
         try:
             cursor = self.conn.cursor()
             cursor.execute(
@@ -282,7 +282,7 @@ class MetadataDB:
             )
             self.conn.commit()
             return cursor.lastrowid  # type: ignore
-            
+
         except sqlite3.IntegrityError as e:
             self.conn.rollback()
             raise DatabaseError(f"Commit hash already exists: {commit_hash}") from e
@@ -300,7 +300,7 @@ class MetadataDB:
         size_bytes: Optional[int] = None,
     ) -> int:
         """Insert a file record for a commit.
-        
+
         Args:
             commit_id: Database ID of parent commit
             path: Relative file path
@@ -308,13 +308,13 @@ class MetadataDB:
             is_reference: True for POTCAR reference-only tracking
             file_type: File type (INCAR, POSCAR, etc.)
             size_bytes: Original file size
-        
+
         Returns:
             Database row ID of inserted file
         """
         if self.conn is None:
             raise DatabaseError("Database not open")
-        
+
         try:
             cursor = self.conn.cursor()
             cursor.execute(
@@ -326,26 +326,26 @@ class MetadataDB:
             )
             self.conn.commit()
             return cursor.lastrowid  # type: ignore
-            
+
         except sqlite3.Error as e:
             self.conn.rollback()
             raise DatabaseError(f"Failed to insert file: {e}") from e
 
     def get_commit_by_hash(self, commit_hash: str) -> Optional[Dict[str, Any]]:
         """Retrieve a commit by its hash.
-        
+
         Args:
             commit_hash: Full or short commit hash (min 7 chars)
-        
+
         Returns:
             Dictionary with commit data, or None if not found
         """
         if self.conn is None:
             raise DatabaseError("Database not open")
-        
+
         try:
             cursor = self.conn.cursor()
-            
+
             # Support short hashes (7+ chars)
             if len(commit_hash) < 64:
                 cursor.execute(
@@ -357,50 +357,48 @@ class MetadataDB:
                     "SELECT * FROM commits WHERE commit_hash = ?",
                     (commit_hash,),
                 )
-            
+
             row = cursor.fetchone()
             if row is None:
                 return None
-            
+
             return dict(row)
-            
+
         except sqlite3.Error as e:
             raise DatabaseError(f"Failed to query commit: {e}") from e
 
     def get_latest_commit(self) -> Optional[Dict[str, Any]]:
         """Get the most recent commit.
-        
+
         Returns:
             Dictionary with latest commit data, or None if empty
         """
         if self.conn is None:
             raise DatabaseError("Database not open")
-        
+
         try:
             cursor = self.conn.cursor()
-            cursor.execute(
-                "SELECT * FROM commits ORDER BY timestamp DESC LIMIT 1"
-            )
+            cursor.execute("SELECT * FROM commits ORDER BY timestamp DESC LIMIT 1")
             row = cursor.fetchone()
             if row is None:
                 return None
             return dict(row)
-            
+
         except sqlite3.Error as e:
             raise DatabaseError(f"Failed to get latest commit: {e}") from e
 
     def get_files_for_commit(self, commit_id: int) -> List[Dict[str, Any]]:
         """Get all files for a commit.
-        
+
         Args:
             commit_id: Database ID of commit
-        
+
         Returns:
             List of file dictionaries
         """
         if self.conn is None:
             raise DatabaseError("Database not open")
-        
+
         try:
             cursor = self.conn.cursor()
             cursor.execute(
@@ -409,7 +407,7 @@ class MetadataDB:
             )
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
-            
+
         except sqlite3.Error as e:
             raise DatabaseError(f"Failed to get files: {e}") from e
 
@@ -419,20 +417,20 @@ class MetadataDB:
         start_hash: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """Get commit history in reverse chronological order.
-        
+
         Args:
             limit: Maximum number of commits to return
             start_hash: Start from this commit (for pagination)
-        
+
         Returns:
             List of commit dictionaries
         """
         if self.conn is None:
             raise DatabaseError("Database not open")
-        
+
         try:
             cursor = self.conn.cursor()
-            
+
             if start_hash:
                 # Find start commit's timestamp
                 cursor.execute(
@@ -443,41 +441,39 @@ class MetadataDB:
                 if row is None:
                     return []
                 start_time = row[0]
-                
+
                 query = "SELECT * FROM commits WHERE timestamp <= ? ORDER BY timestamp DESC"
                 params: Tuple[Any, ...] = (start_time,)
             else:
                 query = "SELECT * FROM commits ORDER BY timestamp DESC"
                 params = ()
-            
+
             if limit:
                 query += f" LIMIT {limit}"
-            
+
             cursor.execute(query, params)
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
-            
+
         except sqlite3.Error as e:
             raise DatabaseError(f"Failed to get history: {e}") from e
 
     def get_schema_version(self) -> int:
         """Get the database schema version.
-        
+
         Returns:
             Schema version number
         """
         if self.conn is None:
             raise DatabaseError("Database not open")
-        
+
         try:
             cursor = self.conn.cursor()
-            cursor.execute(
-                "SELECT value FROM metadata WHERE key = 'schema_version'"
-            )
+            cursor.execute("SELECT value FROM metadata WHERE key = 'schema_version'")
             row = cursor.fetchone()
             if row is None:
                 return 0
             return int(row[0])
-            
+
         except sqlite3.Error as e:
             raise DatabaseError(f"Failed to get schema version: {e}") from e

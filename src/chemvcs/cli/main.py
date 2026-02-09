@@ -12,7 +12,7 @@ from rich.panel import Panel
 
 from chemvcs.constants import CHEMVCS_DIR, COMMITS_DIR, OBJECTS_DIR
 from chemvcs.core import StagingManager
-from chemvcs.storage import MetadataDB, ObjectStore
+from chemvcs.storage import CommitBuilder, MetadataDB, ObjectStore
 
 console = Console()
 app = typer.Typer(
@@ -304,10 +304,148 @@ def commit(
     ),
 ) -> None:
     """Commit staged files as a snapshot."""
-    typer.echo("🚧 chemvcs commit - Not implemented yet")
-    if message:
-        typer.echo(f"Message: {message}")
-    raise typer.Exit(1)
+    workspace_root = Path.cwd()
+    chemvcs_dir = workspace_root / CHEMVCS_DIR
+    
+    # Check if repository is initialized
+    if not chemvcs_dir.exists():
+        console.print(
+            "[bold red]Error:[/bold red] Not a ChemVCS repository",
+            style="red",
+        )
+        console.print(
+            f"  No .chemvcs/ directory found in {workspace_root}",
+            style="dim",
+        )
+        console.print(
+            "\nRun [bold]chemvcs init[/bold] to initialize a repository",
+            style="yellow",
+        )
+        raise typer.Exit(1)
+    
+    # Require message
+    if not message:
+        console.print(
+            "[bold red]Error:[/bold red] Commit message is required",
+            style="red",
+        )
+        console.print(
+            "  Use [bold]-m \"your message\"[/bold] to provide a commit message",
+            style="yellow",
+        )
+        raise typer.Exit(1)
+    
+    try:
+        # Initialize storage
+        object_store = ObjectStore(chemvcs_dir)
+        staging_manager = StagingManager(workspace_root, object_store)
+        metadata_db = MetadataDB(chemvcs_dir)
+        metadata_db.open()
+        
+        # Handle -a/--all flag (auto-stage tracked files)
+        if all:
+            console.print("[dim]Auto-staging tracked files...[/dim]")
+            # TODO: Implement tracking logic in Phase 1c later
+            # For now, just note that this is not implemented
+            console.print("[yellow]Warning: --all flag not yet implemented[/yellow]")
+        
+        # Check if staging area is empty
+        staged_files = staging_manager.get_staged_files()
+        if not staged_files and not allow_empty:
+            console.print(
+                "[bold yellow]Warning:[/bold yellow] Nothing to commit (staging area is empty)",
+                style="yellow",
+            )
+            console.print(
+                "  Use [bold]chemvcs add <files>[/bold] to stage files",
+                style="dim",
+            )
+            console.print(
+                "  Or use [bold]--allow-empty[/bold] to create an empty commit",
+                style="dim",
+            )
+            raise typer.Exit(1)
+        
+        # Determine author
+        if not author:
+            hostname = socket.gethostname()
+            username = os.getenv("USER") or os.getenv("USERNAME") or "unknown"
+            author = f"{username}@{hostname}"
+        
+        # Get parent commit (HEAD)
+        head_file = chemvcs_dir / "HEAD"
+        parent_id = None
+        if head_file.exists():
+            parent_content = head_file.read_text(encoding="utf-8").strip()
+            if parent_content:
+                parent_id = parent_content
+        
+        # Build commit
+        console.print(f"\n[bold]Committing {len(staged_files)} file(s)...[/bold]\n")
+        
+        commit_builder = CommitBuilder(chemvcs_dir, object_store, metadata_db)
+        
+        # Prepare file list for commit
+        files_for_commit = []
+        for rel_path, file_info in staged_files.items():
+            blob_hash = file_info["blob_hash"]
+            file_type = file_info.get("file_type", "unknown")
+            size_bytes = file_info.get("size_bytes", 0)
+            
+            console.print(
+                f"  [{len(files_for_commit) + 1}/{len(staged_files)}] "
+                f"{rel_path}  [dim]-> {blob_hash[:8]}[/dim]"
+            )
+            
+            # Read content from blob store
+            content = object_store.read_blob(blob_hash)
+            
+            files_for_commit.append({
+                "path": rel_path,
+                "content": content,
+                "file_type": file_type,
+                "size_bytes": size_bytes,
+                "is_reference": False,
+            })
+        
+        # Create commit
+        commit_hash = commit_builder.create_commit(
+            files=files_for_commit,
+            message=message,
+            author=author,
+            parent_hash=parent_id,
+        )
+        
+        # Update HEAD
+        head_file.write_text(commit_hash, encoding="utf-8")
+        
+        # Clear staging area
+        staging_manager.clear()
+        
+        # Success output
+        console.print(f"\n[bold green]>[/bold green] Committed [bold cyan]{commit_hash[:7]}[/bold cyan]")
+        console.print(f"  [dim]Author:[/dim]  {author}")
+        
+        # Get commit timestamp from metadata
+        commit_info = metadata_db.get_commit_by_hash(commit_hash)
+        if commit_info:
+            from datetime import datetime as dt
+            timestamp = dt.fromisoformat(commit_info["timestamp"])
+            console.print(f"  [dim]Date:[/dim]    {timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
+        
+        console.print(f"  [dim]Parent:[/dim]  {parent_id[:7] if parent_id else '(root commit)'}")
+        console.print(f"\n  {message}")
+        
+        metadata_db.close()
+        
+    except Exception as e:
+        console.print(
+            f"[bold red]Error:[/bold red] {e}",
+            style="red",
+        )
+        if 'metadata_db' in locals():
+            metadata_db.close()
+        raise typer.Exit(1)
 
 
 @app.command()
