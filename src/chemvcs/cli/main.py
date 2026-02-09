@@ -468,8 +468,93 @@ def log(
     ),
 ) -> None:
     """Show commit history."""
-    typer.echo("🚧 chemvcs log - Not implemented yet")
-    raise typer.Exit(1)
+    workspace_root = Path.cwd()
+    chemvcs_dir = workspace_root / CHEMVCS_DIR
+    
+    # Check if repository is initialized
+    if not chemvcs_dir.exists():
+        console.print(
+            "[bold red]Error:[/bold red] Not a ChemVCS repository",
+            style="red",
+        )
+        console.print(
+            f"  No .chemvcs/ directory found in {workspace_root}",
+            style="dim",
+        )
+        console.print(
+            "\nRun [bold]chemvcs init[/bold] to initialize a repository",
+            style="yellow",
+        )
+        raise typer.Exit(1)
+    
+    try:
+        # Initialize database
+        metadata_db = MetadataDB(chemvcs_dir)
+        metadata_db.open()
+        
+        try:
+            # Get commit history
+            commits = metadata_db.get_commit_history(limit=max_count)
+            
+            if not commits:
+                console.print("[dim]No commits yet[/dim]")
+                return
+            
+            # Determine output format
+            use_oneline = oneline or format == "oneline"
+            
+            if format == "json":
+                # JSON format output
+                import json
+                console.print(json.dumps(commits, indent=2))
+            elif use_oneline:
+                # One-line format: <short_hash> <message>
+                for commit in commits:
+                    commit_hash = commit["commit_hash"]
+                    message = commit["message"].split("\n")[0]  # First line only
+                    console.print(f"[yellow]{commit_hash[:7]}[/yellow] {message}")
+            else:
+                # Default format: detailed commit info
+                for i, commit in enumerate(commits):
+                    commit_hash = commit["commit_hash"]
+                    author = commit["author"]
+                    timestamp = commit["timestamp"]
+                    message = commit["message"]
+                    parent_hash = commit.get("parent_hash")
+                    
+                    # Format timestamp
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+                    date_str = dt.strftime("%Y-%m-%d %H:%M:%S")
+                    
+                    # Print commit header
+                    console.print(f"[bold yellow]commit {commit_hash}[/bold yellow]")
+                    
+                    if parent_hash:
+                        console.print(f"[dim]Parent: {parent_hash[:7]}[/dim]")
+                    else:
+                        console.print("[dim]Parent: (root commit)[/dim]")
+                    
+                    console.print(f"[bold]Author:[/bold] {author}")
+                    console.print(f"[bold]Date:[/bold]   {date_str}")
+                    console.print()
+                    
+                    # Print commit message (indented)
+                    for line in message.split("\n"):
+                        console.print(f"    {line}")
+                    
+                    # Add separator between commits (except after last one)
+                    if i < len(commits) - 1:
+                        console.print()
+        finally:
+            metadata_db.close()
+    
+    except Exception as e:
+        console.print(
+            f"[bold red]Error:[/bold red] {e}",
+            style="red",
+        )
+        raise typer.Exit(1)
 
 
 @app.command()
