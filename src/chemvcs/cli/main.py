@@ -11,7 +11,8 @@ from rich.console import Console
 from rich.panel import Panel
 
 from chemvcs.constants import CHEMVCS_DIR, COMMITS_DIR, OBJECTS_DIR
-from chemvcs.storage import MetadataDB
+from chemvcs.core import StagingManager
+from chemvcs.storage import MetadataDB, ObjectStore
 
 console = Console()
 app = typer.Typer(
@@ -171,9 +172,110 @@ def add(
     ),
 ) -> None:
     """Add files to the staging area."""
-    typer.echo("🚧 chemvcs add - Not implemented yet")
-    typer.echo(f"Would add: {', '.join(paths)}")
-    raise typer.Exit(1)
+    workspace_root = Path.cwd()
+    chemvcs_dir = workspace_root / CHEMVCS_DIR
+    
+    # Check if repository is initialized
+    if not chemvcs_dir.exists():
+        console.print(
+            "[bold red]Error:[/bold red] Not a ChemVCS repository",
+            style="red",
+        )
+        console.print(
+            f"  No .chemvcs/ directory found in {workspace_root}",
+            style="dim",
+        )
+        console.print(
+            "\nRun [bold]chemvcs init[/bold] to initialize a repository",
+            style="yellow",
+        )
+        raise typer.Exit(1)
+    
+    try:
+        # Initialize storage
+        object_store = ObjectStore(chemvcs_dir)
+        staging_manager = StagingManager(workspace_root, object_store)
+        
+        # Convert string paths to Path objects
+        path_objects = [Path(p) for p in paths]
+        
+        # Dry run mode: just show what would be added
+        if dry_run:
+            console.print("[bold yellow]Dry run mode - no changes will be made[/bold yellow]\n")
+        
+        # Add files to staging
+        console.print("[bold]Staging files...[/bold]\n")
+        stats = staging_manager.add(path_objects, force=force)
+        
+        # Display added files
+        if stats["added"]:
+            console.print("[bold green]Added:[/bold green]")
+            for path_str in stats["added"]:
+                # Get file info from staging
+                staged_files = staging_manager.get_staged_files()
+                file_info = staged_files.get(path_str, {})
+                file_type = file_info.get("file_type", "UNKNOWN")
+                size_bytes = file_info.get("size_bytes", 0)
+                
+                # Format size
+                if size_bytes < 1024:
+                    size_str = f"{size_bytes} B"
+                elif size_bytes < 1024 * 1024:
+                    size_str = f"{size_bytes / 1024:.1f} KB"
+                else:
+                    size_str = f"{size_bytes / (1024 * 1024):.2f} MB"
+                
+                console.print(f"  [green]+[/green] {path_str}  [dim]({size_str}, {file_type})[/dim]")
+        
+        # Display updated files
+        if stats["updated"]:
+            console.print("\n[bold yellow]Updated:[/bold yellow]")
+            for path_str in stats["updated"]:
+                staged_files = staging_manager.get_staged_files()
+                file_info = staged_files.get(path_str, {})
+                file_type = file_info.get("file_type", "UNKNOWN")
+                size_bytes = file_info.get("size_bytes", 0)
+                
+                if size_bytes < 1024:
+                    size_str = f"{size_bytes} B"
+                elif size_bytes < 1024 * 1024:
+                    size_str = f"{size_bytes / 1024:.1f} KB"
+                else:
+                    size_str = f"{size_bytes / (1024 * 1024):.2f} MB"
+                
+                console.print(f"  [yellow]*[/yellow] {path_str}  [dim]({size_str}, {file_type})[/dim]")
+        
+        # Display ignored files
+        if stats["ignored"]:
+            console.print("\n[bold dim]Ignored:[/bold dim]")
+            for path_str in stats["ignored"]:
+                console.print(f"  [dim]-[/dim] {path_str}  [dim](.chemvcsignore)[/dim]")
+        
+        # Display errors
+        if stats["errors"]:
+            console.print("\n[bold red]Errors:[/bold red]")
+            for error in stats["errors"]:
+                console.print(f"  [red]x[/red] {error}")
+        
+        # Summary
+        total_added = len(stats["added"]) + len(stats["updated"])
+        if total_added > 0:
+            console.print(f"\n[bold green]>[/bold green] {total_added} file(s) staged for commit")
+        elif stats["ignored"]:
+            console.print("\n[yellow]No files staged. All files were ignored.[/yellow]")
+            console.print("  Use [bold]--force[/bold] to override .chemvcsignore rules")
+        else:
+            console.print("\n[yellow]No files found to add[/yellow]")
+        
+        if stats["errors"]:
+            raise typer.Exit(1)
+            
+    except Exception as e:
+        console.print(
+            f"[bold red]Error:[/bold red] {e}",
+            style="red",
+        )
+        raise typer.Exit(1)
 
 
 @app.command()
