@@ -1,0 +1,137 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chemvcs"
+version = "0.1.0"
+description = "Version control for computational materials science calculations"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "ChemVCS Contributors", email = "maintainer@example.com"}
+]
+keywords = ["vasp", "version-control", "computational-chemistry", "materials-science", "hpc"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+dependencies = [
+    "typer[all] >=0.9.0",
+    "rich >=13.0.0",
+    "pymatgen >=2024.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest >=7.4.0",
+    "pytest-cov >=4.1.0",
+    "pytest-timeout >=2.1.0",
+    "ruff >=0.1.9",
+    "mypy >=1.8.0",
+    "pre-commit >=3.5.0",
+    "ipython >=8.12.0",
+    "hypothesis >=6.92.0",
+]
+
+[project.scripts]
+chemvcs = "chemvcs.cli.main:app"
+
+[project.urls]
+Homepage = "https://github.com/lichman0405/chemvcs"
+Documentation = "https://github.com/lichman0405/chemvcs/tree/main/docs"
+Repository = "https://github.com/lichman0405/chemvcs"
+Issues = "https://github.com/lichman0405/chemvcs/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+chemvcs = ["py.typed"]
+
+# Ruff configuration
+[tool.ruff]
+target-version = "py38"
+line-length = 100
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint.isort]
+known-first-party = ["chemvcs"]
+
+# MyPy configuration
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = "pymatgen.*"
+ignore_missing_imports = true
+
+# Pytest configuration
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--cov=chemvcs",
+    "--cov-report=html",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-fail-under=85",
+]
+
+[tool.coverage.run]
+source = ["chemvcs"]
+omit = ["*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]

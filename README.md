@@ -1,0 +1,152 @@
+# ChemVCS
+
+**Version Control for Computational Materials Science**
+
+[![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
+ChemVCS provides Git-like version control specifically designed for computational materials science calculations, with semantic understanding of VASP files.
+
+## 🎯 Features (MVP)
+
+- **Git-like Interface**: Familiar `init`, `add`, `commit`, `log`, `diff`, `reproduce` commands
+- **VASP-Aware**: Semantic parsing of INCAR, POSCAR, KPOINTS, OUTCAR
+- **Semantic Diff**: Human-readable comparison of calculation parameters
+  - INCAR: Highlight changed parameters with units
+  - POSCAR: Structure matching, lattice parameter changes, coordinate RMSD
+  - KPOINTS: Grid size comparison
+- **Reproducibility**: Exact restoration of input files with environment verification
+- **HPC-Native**: Zero infrastructure dependencies, works on Lustre/GPFS/NFS
+- **Lightweight**: Content-addressable storage with automatic deduplication
+
+## 🚀 Quick Start
+
+### Installation
+
+```bash
+pip install chemvcs
+```
+
+### Basic Usage
+
+```bash
+# Initialize a repository
+cd /scratch/username/LCO_doping
+chemvcs init
+
+# Add files to staging
+chemvcs add INCAR POSCAR KPOINTS
+
+# Commit snapshot
+chemvcs commit -m "PBE+U, U=3.5eV, kpoints 4x4x4"
+
+# View history
+chemvcs log
+
+# Compare versions
+chemvcs diff HEAD~1 HEAD
+
+# Reproduce previous calculation
+chemvcs reproduce abc1234
+cd reproduce_abc1234
+mpirun vasp_std  # Ready to run
+```
+
+## 📖 Documentation
+
+- [Project Charter](docs/PROJECT_CHARTER.md) - Goals and scope
+- [MVP PRD](docs/MVP_PRD.md) - Product requirements
+- [Technical Architecture](docs/TECH_ARCHITECTURE.md) - System design
+- [CLI Specification](docs/CLI_SPEC.md) - Command reference
+- [Contributing](CONTRIBUTING.md) - Development guide
+
+## 🛠️ Development
+
+### Setup
+
+```bash
+# Clone repository
+git clone https://github.com/lichman0405/chemvcs.git
+cd chemvcs
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Install in development mode
+pip install -e ".[dev]"
+
+# Install pre-commit hooks
+pre-commit install
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# With coverage
+pytest --cov=chemvcs --cov-report=html
+
+# Run specific test module
+pytest tests/unit/parsers/
+
+# Run linting
+ruff check chemvcs/
+
+# Type checking
+mypy chemvcs/
+```
+
+## 🗺️ Roadmap
+
+### Phase 1: Core Version Control (Current - MVP)
+- ✅ Project setup and scaffolding
+- 🚧 Storage layer (blob store, metadata DB)
+- 🚧 VASP parsers (INCAR, POSCAR, KPOINTS, OUTCAR)
+- 🚧 CLI commands (init, add, commit, log, diff, reproduce)
+- 📅 User interviews and validation
+
+### Phase 2: HPC Integration
+- SLURM job tracking
+- Automatic commit on job completion
+- Resource usage statistics
+
+### Phase 3: Collaboration
+- Remote repositories
+- Push/pull/clone
+- Conflict resolution
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
+
+- Code style guidelines
+- Development workflow
+- Testing requirements
+- Pull request process
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+This project builds on:
+
+- [pymatgen](https://pymatgen.org/) - Materials analysis framework
+- [Typer](https://typer.tiangolo.com/) - CLI framework
+- [Rich](https://rich.readthedocs.io/) - Terminal formatting
+
+Inspired by version control needs in computational materials science community.
+
+## 📧 Contact
+
+- **Issues**: [GitHub Issues](https://github.com/lichman0405/chemvcs/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/lichman0405/chemvcs/discussions)
+
+---
+
+**Note**: This project is in early development (v0.1.0). APIs may change before v1.0.0.
