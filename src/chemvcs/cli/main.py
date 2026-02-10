@@ -598,9 +598,120 @@ def reproduce(
     ),
 ) -> None:
     """Restore files from a historical commit."""
-    typer.echo("🚧 chemvcs reproduce - Not implemented yet")
-    typer.echo(f"Would reproduce commit: {revision}")
-    raise typer.Exit(1)
+    workspace_root = Path.cwd()
+    chemvcs_dir = workspace_root / CHEMVCS_DIR
+    
+    # Check if repository is initialized
+    if not chemvcs_dir.exists():
+        console.print(
+            "[bold red]Error:[/bold red] Not a ChemVCS repository",
+            style="red",
+        )
+        console.print(
+            f"  No .chemvcs/ directory found in {workspace_root}",
+            style="dim",
+        )
+        console.print(
+            "\nRun [bold]chemvcs init[/bold] to initialize a repository",
+            style="yellow",
+        )
+        raise typer.Exit(1)
+    
+    try:
+        # Initialize storage
+        object_store = ObjectStore(chemvcs_dir)
+        metadata_db = MetadataDB(chemvcs_dir)
+        metadata_db.open()
+        
+        try:
+            commit_builder = CommitBuilder(
+                chemvcs_dir=chemvcs_dir,
+                object_store=object_store,
+                metadata_db=metadata_db,
+            )
+            
+            # Load commit
+            commit_data = commit_builder.read_commit(revision)
+            
+            if commit_data is None:
+                console.print(
+                    f"[bold red]Error:[/bold red] Commit not found: {revision}",
+                    style="red",
+                )
+                raise typer.Exit(1)
+            
+            # Determine output directory
+            if output_dir:
+                output_path = Path(output_dir)
+            else:
+                short_hash = revision[:7]
+                output_path = workspace_root / f"reproduce_{short_hash}"
+            
+            # Create output directory
+            output_path.mkdir(parents=True, exist_ok=True)
+            
+            console.print(f"[bold]Reproducing commit:[/bold] {revision[:7]}")
+            console.print(f"[bold]Output directory:[/bold] {output_path}\n")
+            
+            # Extract files from commit
+            files = commit_data.get("files", [])
+            
+            if not files:
+                console.print("[yellow]No files in this commit[/yellow]")
+                return
+            
+            console.print(f"Extracting {len(files)} file(s)...\n")
+            
+            # Restore each file
+            for file_info in files:
+                rel_path = file_info["path"]
+                blob_hash = file_info["blob_hash"]
+                
+                try:
+                    # Read blob content
+                    blob_content = object_store.read_blob(blob_hash)
+                    
+                    # Write to output directory
+                    output_file = output_path / rel_path
+                    output_file.parent.mkdir(parents=True, exist_ok=True)
+                    output_file.write_bytes(blob_content)
+                    
+                    # Get file size
+                    size_bytes = len(blob_content)
+                    if size_bytes < 1024:
+                        size_str = f"{size_bytes} B"
+                    elif size_bytes < 1024 * 1024:
+                        size_str = f"{size_bytes / 1024:.1f} KB"
+                    else:
+                        size_str = f"{size_bytes / (1024 * 1024):.2f} MB"
+                    
+                    console.print(
+                        f"  [green]✓[/green] {rel_path}  "
+                        f"[dim]({size_str}, {blob_hash[:8]})[/dim]"
+                    )
+                    
+                except Exception as e:
+                    console.print(
+                        f"  [red]✗[/red] {rel_path}  [red]Error: {e}[/red]"
+                    )
+            
+            console.print(f"\n[bold green]✓[/bold green] Reproduced successfully to {output_path}")
+            
+            # Note about verification flags (not implemented yet)
+            if verify_potcar or verify_env:
+                console.print(
+                    "\n[dim]Note: --verify-potcar and --verify-env are not yet implemented[/dim]"
+                )
+        
+        finally:
+            metadata_db.close()
+    
+    except Exception as e:
+        console.print(
+            f"[bold red]Error:[/bold red] {e}",
+            style="red",
+        )
+        raise typer.Exit(1)
 
 
 @app.command()
