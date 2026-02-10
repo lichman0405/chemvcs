@@ -1,44 +1,44 @@
-# ChemVCS Demo 手动演示指南
+# ChemVCS Demo - Manual Walkthrough Guide
 
-> **场景**: Si(硅) 体相 DFT 收敛性测试  
-> **目标**: 逐步展示 ChemVCS 的所有 MVP 功能
+> **Scenario**: Si (Silicon) bulk DFT convergence test  
+> **Objective**: Step-by-step demonstration of all ChemVCS MVP features
 
 ---
 
-## 准备工作
+## Prerequisites
 
 ```powershell
-# 创建一个临时演示目录
+# Create a temporary demo directory
 mkdir $env:TEMP\si_convergence
 cd $env:TEMP\si_convergence
 ```
 
-> 💡 以下所有命令都在这个目录下执行。
+> 💡 All commands below are executed in this directory.
 
 ---
 
-## Step 1: 初始化仓库
+## Step 1: Initialize Repository
 
-**讲解**: ChemVCS 为计算化学项目提供版本控制。第一步是初始化仓库。
+**Narration**: ChemVCS provides version control for computational chemistry projects. First step is to initialize a repository.
 
 ```powershell
 chemvcs init
 ```
 
-**预期输出**: 显示仓库初始化成功，包含 `.chemvcs/` 目录路径和后续使用提示。
+**Expected Output**: Shows repository initialized successfully, including `.chemvcs/` directory path and usage hints.
 
 ---
 
-## Step 2: 创建初始 VASP 输入文件
+## Step 2: Create Initial VASP Input Files
 
-**讲解**: 我们要对 Si 体相做 DFT 计算。先准备三个标准 VASP 输入文件：
-- **POSCAR** — 硅的金刚石结构 (晶格常数 5.43 Å)
-- **INCAR** — 计算参数 (ENCUT=400 eV, ISMEAR=0)
-- **KPOINTS** — 4×4×4 Gamma k 点网格
+**Narration**: We'll perform a DFT calculation on Si bulk. Prepare three standard VASP input files:
+- **POSCAR** — Silicon diamond structure (lattice constant 5.43 Å)
+- **INCAR** — Calculation parameters (ENCUT=400 eV, ISMEAR=0)
+- **KPOINTS** — 4×4×4 Gamma k-point grid
 
 ```powershell
-# 从预制文件复制
-# ⚠️ 请将下面的路径替换为你的实际 chemvcs 项目路径
+# Copy from pre-made files
+# ⚠️ Replace the path below with your actual chemvcs project path
 $DEMO = "C:\Users\lishi\code\chemvcs\demo\vasp_files"
 
 Copy-Item "$DEMO\step1_initial\POSCAR" .
@@ -46,13 +46,13 @@ Copy-Item "$DEMO\step1_initial\INCAR"  .
 Copy-Item "$DEMO\step1_initial\KPOINTS" .
 ```
 
-可以看一下文件内容：
+Check file contents:
 
 ```powershell
 type INCAR
 ```
 
-**预期输出**:
+**Expected Output**:
 ```
 # Si bulk - initial SCF calculation
 SYSTEM  = Si-diamond
@@ -65,50 +65,50 @@ SIGMA   = 0.05
 
 ---
 
-## Step 3: 将文件添加到暂存区
+## Step 3: Add Files to Staging Area
 
-**讲解**: `chemvcs add` 会计算文件内容哈希并识别 VASP 文件类型。
+**Narration**: `chemvcs add` computes file content hashes and identifies VASP file types.
 
 ```powershell
 chemvcs add POSCAR INCAR KPOINTS
 ```
 
-**预期输出**: 显示 3 个文件被添加，每个文件显示大小和类型 (POSCAR / INCAR / KPOINTS)。
+**Expected Output**: Shows 3 files added, each displaying size and type (POSCAR / INCAR / KPOINTS).
 
 ---
 
-## Step 4: 查看仓库状态
+## Step 4: Check Repository Status
 
-**讲解**: 类似 `git status`，显示哪些文件已暂存、准备提交。
+**Narration**: Similar to `git status`, displays which files are staged and ready to commit.
 
 ```powershell
 chemvcs status
 ```
 
-**预期输出**: 显示 3 个待提交的文件及其哈希值。
+**Expected Output**: Shows 3 files to be committed with their hash values.
 
 ---
 
-## Step 5: 创建初始提交
+## Step 5: Create Initial Commit
 
-**讲解**: 将当前文件快照保存到版本历史中。
+**Narration**: Save the current file snapshot to version history.
 
 ```powershell
 chemvcs commit -m "Initial setup: Si bulk SCF (ENCUT=400, K=4x4x4)"
 ```
 
-**预期输出**: 显示提交哈希、作者、时间。注意这是 root commit（没有父提交）。
+**Expected Output**: Shows commit hash, author, timestamp. Note this is a root commit (no parent).
 
 ---
 
-## Step 6: 模拟计算完成 — 添加 OUTCAR
+## Step 6: Simulate Calculation Completion — Add OUTCAR
 
-**讲解**: 假设 VASP 计算已完成，得到 OUTCAR。总能量 E = **-10.8265 eV**。我们把所有文件一起提交，保存完整的计算快照。
+**Narration**: Assume VASP calculation finished, producing OUTCAR. Total energy E = **-10.8265 eV**. We'll commit all files together to save the complete calculation snapshot.
 
 ```powershell
 Copy-Item "$DEMO\step2_scf_done\OUTCAR" .
 
-# 查看能量结果
+# Check energy result
 Select-String "energy.*sigma" OUTCAR
 ```
 
@@ -117,20 +117,20 @@ chemvcs add POSCAR INCAR KPOINTS OUTCAR
 chemvcs commit -m "SCF completed: E=-10.8265 eV (ENCUT=400)"
 ```
 
-**预期输出**: 4 个文件提交成功。
+**Expected Output**: 4 files committed successfully.
 
 ---
 
-## Step 7: ENCUT 收敛性测试 (400 → 520 eV) ⭐
+## Step 7: ENCUT Convergence Test (400 → 520 eV) ⭐
 
-**讲解**: 能量截断 ENCUT 是 DFT 中最关键的参数。我们将 ENCUT 从 400 提高到 520 eV，看能量是否收敛。
+**Narration**: Energy cutoff ENCUT is the most critical parameter in DFT. We'll increase ENCUT from 400 to 520 eV to check energy convergence.
 
 ```powershell
-# 更新 INCAR 和 OUTCAR
+# Update INCAR and OUTCAR
 Copy-Item "$DEMO\step3_encut_conv\INCAR"  . -Force
 Copy-Item "$DEMO\step3_encut_conv\OUTCAR" . -Force
 
-# 看看 INCAR 的变化
+# Check INCAR changes
 type INCAR
 ```
 
@@ -142,7 +142,7 @@ chemvcs add POSCAR INCAR KPOINTS OUTCAR
 chemvcs commit -m "ENCUT convergence: 400->520 eV, E=-10.8452 eV"
 ```
 
-**⭐ 重点观察**: 提交输出中会出现 **Semantic Changes** 部分：
+**⭐ Key Observation**: The commit output will show a **Semantic Changes** section:
 ```
 Semantic Changes:
 
@@ -152,16 +152,16 @@ Semantic Changes:
       ~ ENCUT: 400 → 520
 ```
 
-**讲解要点**: ChemVCS 自动检测到 ENCUT 是 **critical** 级别的参数变化！这比 `git diff` 显示的纯文本差异有意义得多。
+**Key Talking Point**: ChemVCS automatically detected that ENCUT is a **critical**-level parameter change! This is far more meaningful than plain text diffs from `git diff`.
 
 ---
 
-## Step 8: K-point 收敛性测试 (4×4×4 → 8×8×8) ⭐⭐
+## Step 8: K-point Convergence Test (4×4×4 → 8×8×8) ⭐⭐
 
-**讲解**: 接下来测试 k 点网格密度。同时调整 ISMEAR (0→1) 和 SIGMA (0.05→0.1)。
+**Narration**: Next, test k-point grid density. Also adjust ISMEAR (0→1) and SIGMA (0.05→0.1).
 
 ```powershell
-# 更新 INCAR, KPOINTS, OUTCAR
+# Update INCAR, KPOINTS, OUTCAR
 Copy-Item "$DEMO\step4_kpoint_conv\INCAR"   . -Force
 Copy-Item "$DEMO\step4_kpoint_conv\KPOINTS" . -Force
 Copy-Item "$DEMO\step4_kpoint_conv\OUTCAR"  . -Force
@@ -175,7 +175,7 @@ chemvcs add POSCAR INCAR KPOINTS OUTCAR
 chemvcs commit -m "K-point convergence: 8x8x8, ISMEAR=1, E=-10.8489 eV"
 ```
 
-**⭐⭐ 重点观察**: 同时检测到 INCAR 和 KPOINTS 的语义变化：
+**⭐⭐ Key Observation**: Detects semantic changes in both INCAR and KPOINTS:
 ```
 Semantic Changes:
 
@@ -194,28 +194,28 @@ Semantic Changes:
       ~ grid: [4, 4, 4] → [8, 8, 8]
 ```
 
-**讲解要点**:
-- INCAR 中 5 个 critical 级别变化 + 1 个 major 变化
-- KPOINTS 的 k 点网格变化被自动标记为 critical
-- 帮助研究者快速判断：这次修改会显著影响计算结果
+**Key Talking Points**:
+- INCAR shows 5 critical + 1 major changes
+- KPOINTS k-point grid change automatically marked as critical
+- Helps researchers quickly assess: this modification will significantly affect calculation results
 
 ---
 
-## Step 9: 查看提交历史
+## Step 9: View Commit History
 
-**讲解**: 查看完整的计算版本历史，记录了每次参数调整。
+**Narration**: View complete calculation version history, documenting each parameter adjustment.
 
 ```powershell
 chemvcs log
 ```
 
-简洁模式：
+Compact mode:
 
 ```powershell
 chemvcs log --oneline
 ```
 
-**预期输出** (类似):
+**Expected Output** (similar to):
 ```
 d77f4cb K-point convergence: 8x8x8, ISMEAR=1, E=-10.8489 eV
 3fcec3e ENCUT convergence: 400->520 eV, E=-10.8452 eV
@@ -223,92 +223,92 @@ d77f4cb K-point convergence: 8x8x8, ISMEAR=1, E=-10.8489 eV
 41c41d0 Initial setup: Si bulk SCF (ENCUT=400, K=4x4x4)
 ```
 
-**讲解要点**: 可以清楚看到能量从 -10.8265 → -10.8452 → -10.8489 eV 逐步收敛。
+**Key Talking Point**: Energy converges progressively from -10.8265 → -10.8452 → -10.8489 eV.
 
 ---
 
-## Step 10: 语义 Diff ⭐⭐⭐
+## Step 10: Semantic Diff ⭐⭐⭐
 
-**讲解**: 这是 ChemVCS 的核心特色——对 VASP 文件做语义级别的比较。
+**Narration**: This is ChemVCS's core feature — semantic-level comparison of VASP files.
 
-### 10a. 详细 diff（默认）
+### 10a. Detailed diff (default)
 
 ```powershell
 chemvcs diff
 ```
 
-**预期输出**: 显示 HEAD 和上一个提交的完整语义差异，包括每个参数的 ‼️ critical / ⚠️ major 标记。
+**Expected Output**: Shows complete semantic differences between HEAD and previous commit, including ‼️ critical / ⚠️ major markers for each parameter.
 
-### 10b. 摘要模式
+### 10b. Summary mode
 
 ```powershell
 chemvcs diff --summary
 ```
 
-**预期输出**: 只显示变化数量统计。
+**Expected Output**: Only displays change count statistics.
 
-### 10c. JSON 输出（机器可读）
+### 10c. JSON output (machine-readable)
 
 ```powershell
 chemvcs diff --format json
 ```
 
-**讲解要点**: JSON 格式可以被其他工具解析，方便做自动化分析,比如批量比较收敛性测试的参数变化。
+**Key Talking Point**: JSON format can be parsed by other tools, facilitating automated analysis of parameter changes in convergence tests.
 
 ---
 
-## Step 11: 复现历史计算 ⭐⭐⭐
+## Step 11: Reproduce Historical Calculation ⭐⭐⭐
 
-**讲解**: 最核心的功能之一 —— 给定提交哈希，完整复现该版本的计算输入。
+**Narration**: One of the most critical features — given a commit hash, completely reproduce that version's calculation inputs.
 
 ```powershell
-# 先找到初始提交的哈希
+# First find the initial commit hash
 chemvcs log --oneline
 ```
 
 ```powershell
-# 用初始提交的哈希来复现 (替换为你实际看到的哈希)
-chemvcs reproduce <初始提交哈希> -o reproduce_initial
+# Reproduce using the initial commit hash (replace with your actual hash)
+chemvcs reproduce <initial-commit-hash> -o reproduce_initial
 ```
 
 ```powershell
-# 查看复现的文件
+# View reproduced files
 Get-ChildItem reproduce_initial
 
-# 验证 INCAR 是初始版本 (ENCUT=400)
+# Verify INCAR is the initial version (ENCUT=400)
 type reproduce_initial\INCAR
 ```
 
-**讲解要点**:
-- 完整导出该版本的所有输入文件到新目录
-- 确保计算 100% 可重复
-- 对论文审稿、结果验证至关重要
+**Key Talking Points**:
+- Completely exports all input files from that version to a new directory
+- Ensures 100% calculation reproducibility
+- Critical for paper review and result verification
 
 ---
 
-## Step 12: 总结
+## Step 12: Summary
 
-| 功能 | 命令 | 解决的问题 |
-|------|------|-----------|
-| 初始化 | `chemvcs init` | 为计算项目建立版本控制 |
-| 追踪文件 | `chemvcs add` | 自动识别 VASP 文件类型 |
-| 查看状态 | `chemvcs status` | 了解工作区的变化 |
-| 提交快照 | `chemvcs commit` | 保存计算参数+结果的完整快照 |
-| 语义 Diff | `chemvcs diff` | **理解**参数变化，不只是看文本差异 |
-| 版本历史 | `chemvcs log` | 追踪计算演化过程 |
-| 复现计算 | `chemvcs reproduce` | 确保计算可重复 |
+| Feature | Command | Problem Solved |
+|---------|---------|----------------|
+| Initialize | `chemvcs init` | Establish version control for computational projects |
+| Track files | `chemvcs add` | Automatically identify VASP file types |
+| Check status | `chemvcs status` | Understand workspace changes |
+| Commit snapshot | `chemvcs commit` | Save complete snapshot of parameters + results |
+| Semantic Diff | `chemvcs diff` | **Understand** parameter changes, not just text diffs |
+| Version history | `chemvcs log` | Track calculation evolution process |
+| Reproduce | `chemvcs reproduce` | Ensure calculation reproducibility |
 
-### 能量收敛过程
+### Energy Convergence Process
 
 ```
 ENCUT=400, K=4×4×4  →  E = -10.8265 eV
 ENCUT=520, K=4×4×4  →  E = -10.8452 eV  (ΔE = 18.7 meV)
-ENCUT=520, K=8×8×8  →  E = -10.8489 eV  (ΔE =  3.7 meV → 收敛!)
+ENCUT=520, K=8×8×8  →  E = -10.8489 eV  (ΔE =  3.7 meV → Converged!)
 ```
 
 ---
 
-## 清理
+## Cleanup
 
 ```powershell
 cd ~
@@ -317,24 +317,24 @@ Remove-Item $env:TEMP\si_convergence -Recurse -Force
 
 ---
 
-## 文件结构说明
+## File Structure Reference
 
 ```
 demo/
-├── GUIDE.md                      ← 本文件（操作手册）
-├── run_demo.py                   ← 自动化演示脚本（备用）
-└── vasp_files/                   ← 各阶段预制的 VASP 文件
-    ├── step1_initial/            ← 初始输入
-    │   ├── POSCAR                   Si 金刚石结构
+├── GUIDE.md                      ← This file (manual walkthrough)
+├── run_demo.py                   ← Automated demo script (alternative)
+└── vasp_files/                   ← Pre-made VASP files for each stage
+    ├── step1_initial/            ← Initial inputs
+    │   ├── POSCAR                   Si diamond structure
     │   ├── INCAR                    ENCUT=400, ISMEAR=0
     │   └── KPOINTS                  4×4×4 Gamma
-    ├── step2_scf_done/           ← 计算完成后新增
+    ├── step2_scf_done/           ← After calculation completion
     │   └── OUTCAR                   E=-10.8265 eV
-    ├── step3_encut_conv/         ← ENCUT 收敛测试
-    │   ├── INCAR                    ENCUT=520 (变化!)
+    ├── step3_encut_conv/         ← ENCUT convergence test
+    │   ├── INCAR                    ENCUT=520 (changed!)
     │   └── OUTCAR                   E=-10.8452 eV
-    └── step4_kpoint_conv/        ← K-point 收敛测试
-        ├── INCAR                    ISMEAR=1, SIGMA=0.1 (多处变化!)
-        ├── KPOINTS                  8×8×8 (变化!)
+    └── step4_kpoint_conv/        ← K-point convergence test
+        ├── INCAR                    ISMEAR=1, SIGMA=0.1 (multiple changes!)
+        ├── KPOINTS                  8×8×8 (changed!)
         └── OUTCAR                   E=-10.8489 eV
 ```
