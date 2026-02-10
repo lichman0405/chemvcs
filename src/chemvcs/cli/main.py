@@ -12,6 +12,7 @@ from rich.panel import Panel
 
 from chemvcs.constants import CHEMVCS_DIR, COMMITS_DIR, OBJECTS_DIR
 from chemvcs.core import StagingManager
+from chemvcs.parsers import DiffEngine
 from chemvcs.storage import CommitBuilder, MetadataDB, ObjectStore
 
 console = Console()
@@ -384,9 +385,12 @@ def commit(
         console.print(f"\n[bold]Committing {len(staged_files)} file(s)...[/bold]\n")
         
         commit_builder = CommitBuilder(chemvcs_dir, object_store, metadata_db)
+        diff_engine = DiffEngine()
         
-        # Prepare file list for commit
+        # Prepare file list for commit and compute semantic diffs
         files_for_commit = []
+        semantic_changes = []
+        
         for rel_path, file_info in staged_files.items():
             blob_hash = file_info["blob_hash"]
             file_type = file_info.get("file_type", "unknown")
@@ -399,6 +403,33 @@ def commit(
             
             # Read content from blob store
             content = object_store.read_blob(blob_hash)
+            
+            # Try to compute semantic diff if file type is supported
+            if diff_engine.can_parse(rel_path) and parent_id:
+                try:
+                    # Get parent commit's version of this file
+                    parent_commit = commit_builder.read_commit(parent_id)
+                    if parent_commit:
+                        parent_files = parent_commit.get("files", [])
+                        parent_file = next(
+                            (f for f in parent_files if f["path"] == rel_path),
+                            None
+                        )
+                        
+                        if parent_file:
+                            # File exists in parent - compute diff
+                            old_content = object_store.read_blob(parent_file["blob_hash"]).decode("utf-8")
+                            new_content = content.decode("utf-8")
+                            diff_entries = diff_engine.diff_files(old_content, new_content, rel_path)
+                            
+                            if diff_entries:
+                                semantic_changes.append({
+                                    "file": rel_path,
+                                    "entries": diff_entries,
+                                })
+                except Exception:
+                    # Silently ignore semantic diff errors
+                    pass
             
             files_for_commit.append({
                 "path": rel_path,
@@ -435,6 +466,39 @@ def commit(
         
         console.print(f"  [dim]Parent:[/dim]  {parent_id[:7] if parent_id else '(root commit)'}")
         console.print(f"\n  {message}")
+        
+        # Display semantic diff summary if available
+        if semantic_changes:
+            console.print("\n[bold]Semantic Changes:[/bold]")
+            for change in semantic_changes:
+                file_name = change["file"]
+                entries = change["entries"]
+                summary = diff_engine.summarize_diff(entries)
+                
+                # Show file and summary
+                console.print(f"\n  [cyan]{file_name}[/cyan]:")
+                
+                # Show counts by significance
+                sig = summary["by_significance"]
+                if sig.get("critical", 0) > 0:
+                    console.print(f"    ‼️  {sig['critical']} critical change(s)")
+                if sig.get("major", 0) > 0:
+                    console.print(f"    ⚠️  {sig['major']} major change(s)")
+                if sig.get("minor", 0) > 0:
+                    console.print(f"    ℹ️  {sig['minor']} minor change(s)")
+                
+                # Show top changes (limit to 3 per file)
+                console.print("    [dim]Key changes:[/dim]")
+                for entry in entries[:3]:
+                    if entry.change_type == "added":
+                        console.print(f"      [green]+[/green] {entry.path} = {entry.new_value}")
+                    elif entry.change_type == "deleted":
+                        console.print(f"      [red]-[/red] {entry.path} = {entry.old_value}")
+                    else:
+                        console.print(f"      [yellow]~[/yellow] {entry.path}: {entry.old_value} → {entry.new_value}")
+                
+                if len(entries) > 3:
+                    console.print(f"    [dim]... and {len(entries) - 3} more change(s)[/dim]")
         
         metadata_db.close()
         
@@ -571,10 +635,189 @@ def diff(
         "--summary",
         help="Show only change summary",
     ),
+    file: Optional[str] = typer.Option(
+        None,
+        "--file",
+        help="Show diff for specific file only",
+    ),
 ) -> None:
     """Compare two revisions or working directory."""
-    typer.echo("🚧 chemvcs diff - Not implemented yet")
-    raise typer.Exit(1)
+    workspace_root = Path.cwd()
+    chemvcs_dir = workspace_root / CHEMVCS_DIR
+    
+    # Check if repository is initialized
+    if not chemvcs_dir.exists():
+        console.print(
+            "[bold red]Error:[/bold red] Not a ChemVCS repository",
+            style="red",
+        )
+        console.print(
+            f"  No .chemvcs/ directory found in {workspace_root}",
+            style="dim",
+        )
+        console.print(
+            "\nRun [bold]chemvcs init[/bold] to initialize a repository",
+            style="yellow",
+        )
+        raise typer.Exit(1)
+    
+    try:
+        # Initialize storage
+        object_store = ObjectStore(chemvcs_dir)
+        metadata_db = MetadataDB(chemvcs_dir)
+        metadata_db.open()
+        
+        try:
+            commit_builder = CommitBuilder(chemvcs_dir, object_store, metadata_db)
+            diff_engine = DiffEngine()
+            
+            # Determine source revision (rev1)
+            if rev1 is None:
+                # Default to HEAD
+                head_file = chemvcs_dir / "HEAD"
+                if not head_file.exists() or not head_file.read_text(encoding="utf-8").strip():
+                    console.print(
+                        "[bold yellow]Warning:[/bold yellow] No commits yet",
+                        style="yellow",
+                    )
+                    raise typer.Exit(1)
+                rev1 = head_file.read_text(encoding="utf-8").strip()
+            
+            # Read source commit
+            commit1 = commit_builder.read_commit(rev1)
+            if not commit1:
+                console.print(
+                    f"[bold red]Error:[/bold red] Commit not found: {rev1}",
+                    style="red",
+                )
+                raise typer.Exit(1)
+            
+            # Determine target revision (rev2)
+            if rev2 is None:
+                # Compare with working directory (not implemented - use HEAD~1 as demo)
+                console.print(
+                    "[yellow]Note: Working directory comparison not yet implemented[/yellow]"
+                )
+                console.print("[yellow]Showing diff between HEAD and parent[/yellow]\n")
+                
+                parent_hash = commit1.get("parent")
+                if not parent_hash:
+                    console.print("[dim]This is the root commit (no parent to compare)[/dim]")
+                    raise typer.Exit(0)
+                
+                commit2 = commit_builder.read_commit(parent_hash)
+                files1 = {f["path"]: f for f in commit1.get("files", [])}
+                files2 = {f["path"]: f for f in commit2.get("files", [])}
+            else:
+                # Compare two specific commits
+                commit2 = commit_builder.read_commit(rev2)
+                if not commit2:
+                    console.print(
+                        f"[bold red]Error:[/bold red] Commit not found: {rev2}",
+                        style="red",
+                    )
+                    raise typer.Exit(1)
+                
+                files1 = {f["path"]: f for f in commit1.get("files", [])}
+                files2 = {f["path"]: f for f in commit2.get("files", [])}
+            
+            # Get all file paths
+            all_paths = set(files1.keys()) | set(files2.keys())
+            if file:
+                # Filter to specific file
+                if file not in all_paths:
+                    console.print(f"[yellow]File not found in either revision: {file}[/yellow]")
+                    raise typer.Exit(1)
+                all_paths = {file}
+            
+            # Display header
+            commit1_hash = commit1.get("hash", rev1)
+            commit2_hash = commit2.get("hash", rev2) if rev2 else parent_hash
+            console.print(f"[bold]Comparing:[/bold] {commit2_hash[:7]} → {commit1_hash[:7]}\n")
+            
+            # Process each file
+            has_changes = False
+            for path in sorted(all_paths):
+                file1_info = files1.get(path)
+                file2_info = files2.get(path)
+                
+                # Determine change type
+                if file1_info and not file2_info:
+                    change_type = "added"
+                    has_changes = True
+                elif file2_info and not file1_info:
+                    change_type = "deleted"
+                    has_changes = True
+                elif file1_info["blob_hash"] == file2_info["blob_hash"]:
+                    # No changes
+                    continue
+                else:
+                    change_type = "modified"
+                    has_changes = True
+                
+                # Display file header
+                if change_type == "added":
+                    console.print(f"[bold green]+ {path}[/bold green] (added)")
+                elif change_type == "deleted":
+                    console.print(f"[bold red]- {path}[/bold red] (deleted)")
+                else:
+                    console.print(f"[bold yellow]~ {path}[/bold yellow] (modified)")
+                
+                # Try semantic diff for modified files
+                if change_type == "modified" and diff_engine.can_parse(path):
+                    try:
+                        old_content = object_store.read_blob(file2_info["blob_hash"]).decode("utf-8")
+                        new_content = object_store.read_blob(file1_info["blob_hash"]).decode("utf-8")
+                        
+                        diff_entries = diff_engine.diff_files(old_content, new_content, path)
+                        
+                        if diff_entries:
+                            if summary:
+                                # Just show summary
+                                diff_summary = diff_engine.summarize_diff(diff_entries)
+                                console.print(f"  Total: {diff_summary['total_changes']} change(s)")
+                                
+                                sig = diff_summary["by_significance"]
+                                if sig.get("critical", 0) > 0:
+                                    console.print(f"  ‼️  {sig['critical']} critical")
+                                if sig.get("major", 0) > 0:
+                                    console.print(f"  ⚠️  {sig['major']} major")
+                                if sig.get("minor", 0) > 0:
+                                    console.print(f"  ℹ️  {sig['minor']} minor")
+                            else:
+                                # Show detailed diff
+                                if format == "json":
+                                    import json
+                                    entries_dict = [e.to_dict() for e in diff_entries]
+                                    console.print(json.dumps(entries_dict, indent=2))
+                                else:
+                                    style = "compact" if format == "unified" else "default"
+                                    formatted = diff_engine.format_diff(diff_entries, style=style)
+                                    for line in formatted.split("\n"):
+                                        console.print(f"  {line}")
+                        else:
+                            console.print("  [dim](no semantic changes detected)[/dim]")
+                    
+                    except Exception as e:
+                        console.print(f"  [yellow]Semantic diff failed: {e}[/yellow]")
+                        console.print("  [dim]Use text-based diff for details[/dim]")
+                
+                console.print()
+            
+            if not has_changes:
+                console.print("[dim]No changes between revisions[/dim]")
+        
+        finally:
+            metadata_db.close()
+    
+    except Exception as e:
+        console.print(
+            f"[bold red]Error:[/bold red] {e}",
+            style="red",
+        )
+        if 'metadata_db' in locals():
+            metadata_db.close()
+        raise typer.Exit(1)
 
 
 @app.command()
