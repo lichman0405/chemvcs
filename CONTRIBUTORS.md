@@ -18,7 +18,7 @@ This file lists all contributors to the ChemVCS project. Thank you for your cont
 
 ## How to Contribute
 
-We welcome contributions from the community! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute to ChemVCS.
+We welcome contributions from the community! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ### Ways to Contribute
 

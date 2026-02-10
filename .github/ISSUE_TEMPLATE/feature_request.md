@@ -1,47 +1,47 @@
 ---
 name: Feature Request
-about: 建议新功能或改进
+about: Suggest a new feature or improvement
 title: '[FEATURE] '
 labels: enhancement
 assignees: ''
 ---
 
-## 功能描述
-<!-- 清晰简洁地描述你希望的功能 -->
+## Feature Description
+<!-- A clear and concise description of the feature you'd like -->
 
-## 使用场景
-<!-- 描述这个功能解决什么问题或满足什么需求 -->
+## Use Case
+<!-- Describe what problem this feature solves or what need it addresses -->
 
-**当前的解决方案：**
-<!-- 你现在如何处理这个问题？ -->
+**Current Workaround:**
+<!-- How are you currently handling this? -->
 
-**建议的解决方案：**
-<!-- 你希望如何实现这个功能？ -->
+**Proposed Solution:**
+<!-- How would you like this feature to be implemented? -->
 
-## 示例用法
-<!-- 如果可能，提供命令行示例 -->
+## Example Usage
+<!-- If possible, provide command-line examples -->
 
 ```bash
-# 期望的命令格式
+# Expected command format
 chemvcs new-command --option value
 ```
 
-## 预期输出
-<!-- 描述命令的预期输出 -->
+## Expected Output
+<!-- Describe the expected output of the command -->
 
 ```
-期望的输出示例
+Example of expected output
 ```
 
-## 替代方案
-<!-- 是否考虑过其他实现方式？ -->
+## Alternatives
+<!-- Have you considered any alternative approaches? -->
 
-## 优先级
-<!-- 这个功能对你有多重要？ -->
+## Priority
+<!-- How important is this feature to you? -->
 
-- [ ] 必需（阻碍了我的工作流）
-- [ ] 重要（会显著提高效率）
-- [ ] 一般（有了更好）
+- [ ] Critical (blocking my workflow)
+- [ ] Important (would significantly improve efficiency)
+- [ ] Nice to have
 
-## 附加信息
-<!-- 任何其他相关信息、参考资料或截图 -->
+## Additional Context
+<!-- Any other relevant information, references, or screenshots -->

@@ -1,51 +1,51 @@
-# ChemVCS 开发规范
+# ChemVCS Development Guidelines
 
 > v1.0 | 2026-02-09  
-> 适用范围：所有贡献者（核心团队 + 社区）
+> Scope: All contributors (core team + community)
 
 ---
 
-## 1. 开发环境设置
+## 1. Development Environment Setup
 
-### 1.1 前置要求
+### 1.1 Prerequisites
 
-- Python ≥3.8（推荐 3.10 或 3.11）
+- Python ≥3.8 (recommended 3.10 or 3.11)
 - Git ≥2.30
-- 操作系统：Linux / macOS / Windows（WSL2 或 PowerShell）
+- Operating System: Linux / macOS / Windows (WSL2 or PowerShell)
 
-### 1.2 初次设置
+### 1.2 Initial Setup
 
 ```bash
-# 1. Fork 仓库（如果你是外部贡献者）
-# 访问 https://github.com/lichman0405/chemvcs 并 fork
+# 1. Fork the repository (if you're an external contributor)
+# Visit https://github.com/lichman0405/chemvcs and fork
 
-# 2. Clone 到本地
+# 2. Clone to local
 git clone https://github.com/<your-username>/chemvcs.git
 cd chemvcs
 
-# 3. 添加上游远程仓库
+# 3. Add upstream remote
 git remote add upstream https://github.com/lichman0405/chemvcs.git
 
-# 4. 创建虚拟环境（推荐）
+# 4. Create virtual environment (recommended)
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# 5. 安装开发依赖
+# 5. Install development dependencies
 pip install -e ".[dev]"
 
-# 6. 安装 pre-commit hooks
+# 6. Install pre-commit hooks
 pre-commit install
 
-# 7. 验证安装
+# 7. Verify installation
 chemvcs --version
 pytest --version
 ruff --version
 ```
 
-### 1.3 开发依赖
+### 1.3 Development Dependencies
 
 ```toml
-# pyproject.toml 中的 dev 依赖
+# dev dependencies in pyproject.toml
 [project.optional-dependencies]
 dev = [
     "pytest >=7.4.0",
@@ -53,20 +53,19 @@ dev = [
     "pytest-timeout >=2.1.0",
     "ruff >=0.1.9",
     "mypy >=1.8.0",
-    "black >=23.12.0",
     "pre-commit >=3.5.0",
-    "ipython >=8.12.0",  # REPL 调试
-    "hypothesis >=6.92.0",  # 属性测试
+    "ipython >=8.12.0",  # REPL debugging
+    "hypothesis >=6.92.0",  # property testing
 ]
 ```
 
 ---
 
-## 2. 代码风格
+## 2. Code Style
 
-### 2.1 自动化工具配置
+### 2.1 Automated Tool Configuration
 
-#### Ruff（Linter + Formatter）
+#### Ruff (Linter + Formatter)
 
 ```toml
 # pyproject.toml
@@ -87,7 +86,7 @@ select = [
     "SIM", # flake8-simplify
 ]
 ignore = [
-    "E501",  # line too long (由 formatter 处理)
+    "E501",  # line too long (handled by formatter)
     "B008",  # do not perform function calls in argument defaults
 ]
 
@@ -100,20 +99,20 @@ skip-magic-trailing-comma = false
 known-first-party = ["chemvcs"]
 ```
 
-**使用方式：**
+**Usage:**
 
 ```bash
-# 检查代码
+# Check code
 ruff check chemvcs/
 
-# 自动修复
+# Auto-fix
 ruff check --fix chemvcs/
 
-# 格式化
+# Format
 ruff format chemvcs/
 ```
 
-#### MyPy（类型检查）
+#### MyPy (Type Checking)
 
 ```toml
 # pyproject.toml
@@ -135,50 +134,50 @@ module = "pymatgen.*"
 ignore_missing_imports = true
 ```
 
-**使用方式：**
+**Usage:**
 
 ```bash
 mypy chemvcs/
 ```
 
-### 2.2 命名约定
+### 2.2 Naming Conventions
 
-| 类型 | 规则 | 示例 |
-|------|------|------|
-| **模块** | 小写 + 下划线 | `object_store.py`, `incar_parser.py` |
-| **类** | PascalCase | `ObjectStore`, `IncarParser` |
-| **函数/方法** | 小写 + 下划线 | `write_blob()`, `parse_incar()` |
-| **常量** | 大写 + 下划线 | `DEFAULT_IGNORE_PATTERNS`, `MAX_FILE_SIZE` |
-| **私有成员** | 前缀 `_` | `_compute_hash()`, `_internal_state` |
-| **类型变量** | PascalCase + `T` | `FileT`, `CommitT` |
+| Type | Rule | Example |
+|------|------|---------|
+| **Modules** | lowercase + underscore | `object_store.py`, `incar_parser.py` |
+| **Classes** | PascalCase | `ObjectStore`, `IncarParser` |
+| **Functions/Methods** | lowercase + underscore | `write_blob()`, `parse_incar()` |
+| **Constants** | uppercase + underscore | `DEFAULT_IGNORE_PATTERNS`, `MAX_FILE_SIZE` |
+| **Private members** | prefix `_` | `_compute_hash()`, `_internal_state` |
+| **Type variables** | PascalCase + `T` | `FileT`, `CommitT` |
 
-### 2.3 类型注解
+### 2.3 Type Annotations
 
-**所有公开 API 必须包含类型注解：**
+**All public APIs must include type annotations:**
 
 ```python
-# ✅ 正确
+# ✅ Correct
 def write_blob(content: bytes, objects_dir: Path) -> str:
-    """写入 blob，返回 SHA-256 hash。
+    """Write blob and return SHA-256 hash.
     
     Args:
-        content: 文件内容
-        objects_dir: objects/ 目录路径
+        content: File content
+        objects_dir: Path to objects/ directory
     
     Returns:
-        40 字符的 SHA-256 hex string
+        40-character SHA-256 hex string
     
     Raises:
-        OSError: 写入失败（权限/磁盘满）
+        OSError: Write failed (permission/disk full)
     """
     ...
 
-# ❌ 错误（缺少类型注解）
+# ❌ Wrong (missing type annotations)
 def write_blob(content, objects_dir):
     ...
 ```
 
-**使用 `typing` 模块：**
+**Use `typing` module:**
 
 ```python
 from typing import Optional, Dict, List, Tuple, Union
@@ -188,21 +187,21 @@ def parse_incar(path: Path) -> Dict[str, Union[int, float, bool, str, List[float
     ...
 
 def get_commit(commit_id: str) -> Optional[Dict]:
-    """找不到时返回 None"""
+    """Returns None when not found"""
     ...
 ```
 
-### 2.4 Docstring 规范（Google Style）
+### 2.4 Docstring Guidelines (Google Style)
 
 ```python
 class IncarParser:
-    """INCAR 文件的语义解析器。
+    """Semantic parser for INCAR files.
     
-    使用 pymatgen 作为主解析器，失败时退回正则表达式。
+    Uses pymatgen as primary parser, falls back to regex on failure.
     
     Attributes:
-        fallback_enabled: 是否启用正则回退模式
-        param_meta: 参数元数据（类型、单位等）
+        fallback_enabled: Whether to enable regex fallback mode
+        param_meta: Parameter metadata (types, units, etc.)
     
     Example:
         >>> parser = IncarParser()
@@ -212,59 +211,59 @@ class IncarParser:
     """
     
     def parse(self, path: Path) -> Dict[str, Any]:
-        """解析 INCAR 文件。
+        """Parse INCAR file.
         
         Args:
-            path: INCAR 文件路径
+            path: Path to INCAR file
         
         Returns:
-            参数字典，键为参数名，值为归一化后的值
+            Parameter dictionary with normalized values
         
         Raises:
-            FileNotFoundError: 文件不存在
-            ValueError: 文件内容无法解析
+            FileNotFoundError: File does not exist
+            ValueError: File content cannot be parsed
         """
         ...
 ```
 
 ---
 
-## 3. 分支策略
+## 3. Branching Strategy
 
-### 3.1 分支模型
+### 3.1 Branch Model
 
 ```
-main (protected)          ← 稳定版本，每次发布打 tag
+main (protected)          ← Stable version, tag on each release
   ↑
-  merge ← dev             ← 开发分支，集成所有功能
+  merge ← dev             ← Development branch, integrates all features
            ↑
            merge ← feature/issue-123-incar-parser
                 ← feature/issue-124-diff-poscar
                 ← fix/issue-125-potcar-hash
 ```
 
-### 3.2 分支命名规则
+### 3.2 Branch Naming Rules
 
-| 类型 | 格式 | 示例 |
-|------|------|------|
-| 功能开发 | `feature/<issue-号>-<简短描述>` | `feature/42-semantic-diff` |
-| Bug 修复 | `fix/<issue-号>-<简短描述>` | `fix/55-potcar-hash-mismatch` |
-| 文档 | `docs/<描述>` | `docs/update-cli-spec` |
-| 重构 | `refactor/<描述>` | `refactor/storage-layer` |
-| 发布准备 | `release/v<版本号>` | `release/v0.1.0` |
+| Type | Format | Example |
+|------|--------|---------|
+| Feature | `feature/<issue-number>-<short-description>` | `feature/42-semantic-diff` |
+| Bug fix | `fix/<issue-number>-<short-description>` | `fix/55-potcar-hash-mismatch` |
+| Documentation | `docs/<description>` | `docs/update-cli-spec` |
+| Refactoring | `refactor/<description>` | `refactor/storage-layer` |
+| Release prep | `release/v<version>` | `release/v0.1.0` |
 
-### 3.3 工作流程
+### 3.3 Workflow
 
 ```bash
-# 1. 更新本地 dev 分支
+# 1. Update local dev branch
 git checkout dev
 git pull upstream dev
 
-# 2. 创建功能分支（从 dev 拉取）
+# 2. Create feature branch (from dev)
 git checkout -b feature/42-semantic-diff
 
-# 3. 开发 + commit
-# ... 编码 ...
+# 3. Develop + commit
+# ... coding ...
 git add chemvcs/parsers/incar_diff.py
 git commit -m "feat: implement INCAR semantic diff
 
@@ -274,22 +273,22 @@ git commit -m "feat: implement INCAR semantic diff
 
 Closes #42"
 
-# 4. 本地测试
+# 4. Local testing
 pytest tests/unit/parsers/
 ruff check chemvcs/
 mypy chemvcs/
 
-# 5. 推送到 fork
+# 5. Push to fork
 git push origin feature/42-semantic-diff
 
-# 6. 在 GitHub 上创建 PR（target: upstream/dev）
+# 6. Create PR on GitHub (target: upstream/dev)
 ```
 
 ---
 
-## 4. Commit 规范
+## 4. Commit Guidelines
 
-### 4.1 Commit Message 格式（Conventional Commits）
+### 4.1 Commit Message Format (Conventional Commits)
 
 ```
 <type>(<scope>): <subject>
@@ -299,27 +298,27 @@ git push origin feature/42-semantic-diff
 <footer>
 ```
 
-**Type（必需）：**
+**Type (required):**
 
-| Type | 说明 | 示例 |
-|------|------|------|
-| `feat` | 新功能 | `feat(cli): add chemvcs reproduce command` |
-| `fix` | Bug 修复 | `fix(storage): handle disk full error in write_blob` |
-| `docs` | 文档 | `docs: update CLI_SPEC with --format option` |
-| `test` | 测试 | `test(parsers): add edge case for INCAR comments` |
-| `refactor` | 重构 | `refactor(diff): extract common diff logic` |
-| `perf` | 性能优化 | `perf(commit): cache blob hash to avoid recalc` |
-| `chore` | 构建/工具 | `chore: upgrade ruff to 0.2.0` |
+| Type | Description | Example |
+|------|-------------|---------|
+| `feat` | New feature | `feat(cli): add chemvcs reproduce command` |
+| `fix` | Bug fix | `fix(storage): handle disk full error in write_blob` |
+| `docs` | Documentation | `docs: update CLI_SPEC with --format option` |
+| `test` | Testing | `test(parsers): add edge case for INCAR comments` |
+| `refactor` | Refactoring | `refactor(diff): extract common diff logic` |
+| `perf` | Performance | `perf(commit): cache blob hash to avoid recalc` |
+| `chore` | Build/tools | `chore: upgrade ruff to 0.2.0` |
 
-**Scope（可选）：** 受影响的模块，如 `cli`, `storage`, `parsers`, `diff`
+**Scope (optional):** Affected module, e.g., `cli`, `storage`, `parsers`, `diff`
 
-**Subject：** 简短描述（≤50 字符），使用祈使句（add, fix, update）
+**Subject:** Short description (≤50 chars), use imperative mood (add, fix, update)
 
-**Body（可选）：** 详细说明（wrap at 72 chars）
+**Body (optional):** Detailed explanation (wrap at 72 chars)
 
-**Footer（可选）：** Issue 引用，Breaking Changes
+**Footer (optional):** Issue references, Breaking Changes
 
-**示例：**
+**Example:**
 
 ```
 feat(parsers): add KPOINTS parser with grid mode support
@@ -332,44 +331,44 @@ feat(parsers): add KPOINTS parser with grid mode support
 Closes #42
 ```
 
-### 4.2 Commit 原子性
+### 4.2 Commit Atomicity
 
-- 每个 commit 应该是**独立可测试的**（不破坏 CI）
-- 单一职责：一个 commit 只做一件事（实现功能 vs 重构 vs 修复 bug）
-- 避免"WIP"、"fix typo"等无信息 commit（可在本地 squash 后再推送）
+- Each commit should be **independently testable** (doesn't break CI)
+- Single responsibility: one commit does one thing (implement feature vs refactor vs fix bug)
+- Avoid "WIP", "fix typo" commits (squash locally before pushing)
 
 ---
 
-## 5. Pull Request 流程
+## 5. Pull Request Process
 
-### 5.1 PR 检查清单
+### 5.1 PR Checklist
 
-**提交 PR 前必须确认：**
+**Before submitting PR, verify:**
 
-- [ ] 所有测试通过（`pytest tests/`）
-- [ ] 代码风格检查通过（`ruff check`）
-- [ ] 类型检查通过（`mypy chemvcs/`）
-- [ ] 新增代码有单元测试（覆盖率 ≥85%）
-- [ ] 更新了相关文档（若改动了 API）
-- [ ] PR 描述清晰且关联了 Issue（`Closes #123`）
+- [ ] All tests pass (`pytest tests/`)
+- [ ] Code style check passes (`ruff check`)
+- [ ] Type check passes (`mypy chemvcs/`)
+- [ ] New code has unit tests (coverage ≥85%)
+- [ ] Documentation updated (if API changed)
+- [ ] PR description is clear and links to issue (`Closes #123`)
 
-### 5.2 PR 模板
+### 5.2 PR Template
 
 ```markdown
 ## Description
-<!-- 简要描述这个 PR 做了什么 -->
+<!-- Brief description of what this PR does -->
 
 Closes #<issue-number>
 
 ## Changes
-<!-- 列出主要变更点 -->
+<!-- List main changes -->
 
 - Added X
 - Fixed Y
 - Refactored Z
 
 ## Testing
-<!-- 如何测试这些变更？ -->
+<!-- How were these changes tested? -->
 
 - [ ] Unit tests added (coverage: __%)
 - [ ] Integration test: <scenario>
@@ -384,34 +383,34 @@ Closes #<issue-number>
 ## Screenshots/Output (if applicable)
 ```
 
-### 5.3 Code Review 要求
+### 5.3 Code Review Requirements
 
-**所有 PR 必须经过 ≥1 人 review 才能合并。**
+**All PRs must be reviewed by ≥1 person before merging.**
 
-**Reviewer checklist：**
+**Reviewer checklist:**
 
-- [ ] 代码逻辑正确
-- [ ] 边缘情况处理（空文件、大文件、并发等）
-- [ ] 错误处理完善（有意义的错误信息）
-- [ ] 性能无明显退化
-- [ ] 测试覆盖关键路径
-- [ ] 代码可读性（命名、注释）
+- [ ] Code logic is correct
+- [ ] Edge cases handled (empty files, large files, concurrency, etc.)
+- [ ] Error handling is comprehensive (meaningful error messages)
+- [ ] No significant performance regression
+- [ ] Tests cover critical paths
+- [ ] Code readability (naming, comments)
 
-**PR 反馈响应时间：**
+**PR feedback response time:**
 
-- 核心团队：24 小时内首次响应
-- 社区贡献者：48 小时内首次响应
+- Core team: First response within 24 hours
+- Community contributors: First response within 48 hours
 
 ---
 
-## 6. 测试要求
+## 6. Testing Requirements
 
-### 6.1 单元测试覆盖率
+### 6.1 Unit Test Coverage
 
-- **最低要求**：新增代码覆盖率 ≥85%
-- **目标**：核心模块覆盖率 ≥90%（`storage/`, `parsers/`, `cli/`）
+- **Minimum requirement**: New code coverage ≥85%
+- **Target**: Core modules coverage ≥90% (`storage/`, `parsers/`, `cli/`)
 
-### 6.2 测试文件组织
+### 6.2 Test File Organization
 
 ```
 tests/
@@ -437,96 +436,96 @@ tests/
 └── conftest.py
 ```
 
-### 6.3 测试命名规则
+### 6.3 Test Naming Rules
 
 ```python
-# 测试函数命名：test_<被测函数>_<场景>_<预期结果>
+# Test function naming: test_<function>_<scenario>_<expected>
 def test_write_blob_deduplication_skips_existing():
-    """测试 write_blob 在内容已存在时跳过写入"""
+    """Test write_blob skips writing when content already exists"""
     ...
 
 def test_parse_incar_with_comments_ignores_them():
-    """测试 parse_incar 在遇到注释时正确忽略"""
+    """Test parse_incar correctly ignores comments"""
     ...
 ```
 
-### 6.4 运行测试
+### 6.4 Running Tests
 
 ```bash
-# 运行所有测试
+# Run all tests
 pytest
 
-# 运行特定模块
+# Run specific module
 pytest tests/unit/parsers/
 
-# 带覆盖率报告
+# With coverage report
 pytest --cov=chemvcs --cov-report=html
 
-# 快速模式（跳过慢速测试）
+# Fast mode (skip slow tests)
 pytest -m "not slow"
 
-# 详细模式（失败时显示完整 traceback）
+# Verbose mode (show full traceback on failure)
 pytest -vv
 ```
 
 ---
 
-## 7. 文档规范
+## 7. Documentation Guidelines
 
-### 7.1 文档类型
+### 7.1 Documentation Types
 
-| 类型 | 位置 | 受众 |
-|------|------|------|
-| 用户文档 | `docs/` | 终端用户 |
-| API 文档 | Docstring（自动生成） | 开发者 |
-| 架构文档 | `docs/TECH_ARCHITECTURE.md` | 贡献者 |
-| 开发规范 | `CONTRIBUTING.md`（本文） | 贡献者 |
+| Type | Location | Audience |
+|------|----------|----------|
+| User docs | `README.md`, `COMMANDS.md` | End users |
+| API docs | Docstrings (auto-generated) | Developers |
+| Architecture docs | `docs/TECH_ARCHITECTURE.md` | Contributors |
+| Development guidelines | `CONTRIBUTING.md` (this file) | Contributors |
 
-### 7.2 更新文档的时机
+### 7.2 When to Update Documentation
 
-**必须同步更新文档：**
+**Must synchronize documentation when:**
 
-- 新增 CLI 命令 → 更新 `CLI_SPEC.md`
-- 修改退出码 → 更新 `CLI_SPEC.md` 的退出码表
-- 新增存储字段 → 更新 `TECH_ARCHITECTURE.md` 的表结构
-- Breaking change → 在 `CHANGELOG.md` 中特别标注
+- Adding CLI command → Update `COMMANDS.md`
+- Modifying exit codes → Update exit code table in `COMMANDS.md`
+- Adding storage fields → Update schema in `TECH_ARCHITECTURE.md`
+- Breaking change → Mark specially in `CHANGELOG.md`
 
 ---
 
-## 8. 发布流程
+## 8. Release Process
 
-### 8.1 版本号规范（Semantic Versioning）
+### 8.1 Version Numbering (Semantic Versioning)
 
 ```
 v<MAJOR>.<MINOR>.<PATCH>
 
-v0.1.0 → 初次 MVP 发布
-v0.1.1 → Bug 修复
-v0.2.0 → 新增 HPC 集成功能
-v1.0.0 → 稳定版（生产就绪）
+v0.1.0 → Initial MVP release
+v0.1.1 → Bug fixes
+v0.2.0 → New HPC integration features
+v1.0.0 → Stable version (production-ready)
 ```
 
 ### 8.2 Release Checklist
 
 ```markdown
-- [ ] 所有 CI 通过（dev 分支）
-- [ ] 版本号更新（`chemvcs/__init__.py`, `pyproject.toml`）
-- [ ] CHANGELOG.md 更新
-- [ ] 创建 release/v<version> 分支
-- [ ] 在 HPC 环境手动测试（至少 2 种文件系统）
-- [ ] 合并 release 分支到 main
-- [ ] 在 main 上打 tag：`git tag -a v0.1.0 -m "Release v0.1.0"`
-- [ ] 推送 tag：`git push upstream v0.1.0`
-- [ ] 构建并上传到 PyPI：`python -m build && twine upload dist/*`
-- [ ] 在 GitHub 上创建 Release（附带 changelog）
-- [ ] 公告（邮件列表 / 论坛 / Twitter）
+- [ ] All CI passes (dev branch)
+- [ ] Version number updated (`chemvcs/__init__.py`, `pyproject.toml`)
+- [ ] CHANGELOG.md updated
+- [ ] Create release/v<version> branch
+- [ ] Manual testing on HPC environment (at least 2 filesystems)
+- [ ] Merge release branch to main
+- [ ] Tag on main: `git tag -a v0.1.0 -m "Release v0.1.0"`
+- [ ] Push tag: `git push upstream v0.1.0`
+- [ ] Build and upload to PyPI: `python -m build && twine upload dist/*`
+- [ ] Create GitHub Release (with changelog)
+- [ ] Announcement (mailing list / forum / Twitter)
 ```
 
 ---
 
-## 9. 问题追踪
+## 9. Issue Tracking
 
-### 9.1 Issue 模板
+### 9.1 Issue Templates
 
 #### Bug Report
 
@@ -552,86 +551,86 @@ v1.0.0 → 稳定版（生产就绪）
 
 ```markdown
 **Problem Statement:**
-<!-- 描述你想解决的问题 -->
+<!-- Describe the problem you want to solve -->
 
 **Proposed Solution:**
-<!-- 你建议的解决方案 -->
+<!-- Your suggested solution -->
 
 **Alternatives Considered:**
-<!-- 其他方案 -->
+<!-- Other approaches -->
 
 **Additional Context:**
-<!-- 任何其他信息 -->
+<!-- Any other information -->
 ```
 
-### 9.2 Issue 标签
+### 9.2 Issue Labels
 
-| 标签 | 说明 |
-|------|------|
-| `bug` | Bug 报告 |
-| `enhancement` | 新功能请求 |
-| `documentation` | 文档改进 |
-| `good first issue` | 适合新贡献者 |
-| `help wanted` | 需要社区帮助 |
-| `priority: high` | 高优先级 |
-| `wontfix` | 不会修复 |
-
----
-
-## 10. 社区行为准则
-
-### 10.1 核心原则
-
-- **友好与尊重**：欢迎所有技能水平的贡献者
-- **建设性反馈**：批评代码而非人；提出问题时附带解决方案
-- **耐心**：社区成员可能来自不同时区和背景
-- **包容性**：避免使用排他性语言（如"显而易见"、"任何人都知道"）
-
-### 10.2 不当行为
-
-以下行为不被接受：
-
-- 人身攻击、侮辱、贬低性评论
-- 未经许可发布他人私人信息
-- 骚扰行为（公开或私下）
-- 其他违反职业道德的行为
-
-**报告机制：** 发送邮件至 <maintainer-email>（保密处理）
+| Label | Description |
+|-------|-------------|
+| `bug` | Bug report |
+| `enhancement` | New feature request |
+| `documentation` | Documentation improvement |
+| `good first issue` | Suitable for new contributors |
+| `help wanted` | Community help needed |
+| `priority: high` | High priority |
+| `wontfix` | Will not be fixed |
 
 ---
 
-## 11. 常见问题（FAQ for Contributors）
+## 10. Community Code of Conduct
 
-### Q1: 我是新手，从哪里开始？
+### 10.1 Core Principles
 
-**A:** 查找标记为 `good first issue` 的 Issue，这些通常是独立且范围明确的任务。
+- **Friendly & Respectful**: Welcome contributors of all skill levels
+- **Constructive Feedback**: Critique code, not people; suggest solutions when raising issues
+- **Patience**: Community members may be from different timezones and backgrounds
+- **Inclusivity**: Avoid exclusionary language (e.g., "obviously", "everyone knows")
 
-### Q2: 我需要在真实 HPC 环境测试吗？
+### 10.2 Unacceptable Behavior
 
-**A:** 对于核心功能（如 blob 存储、commit），本地测试 + 单元测试即可。HPC 特定功能（如 SLURM 集成）可在 PR 中说明"未在 HPC 测试"，由维护者安排。
+The following behaviors are not tolerated:
 
-### Q3: 我的 PR 被要求修改，但我不同意怎么办？
+- Personal attacks, insults, derogatory comments
+- Publishing others' private information without permission
+- Harassment (public or private)
+- Other behavior violating professional ethics
 
-**A:** 在 PR 评论中礼貌地说明你的理由。如果仍有分歧，可标记 `@chemvcs/maintainers` 请求第三方意见。
-
-### Q4: 如何设置远程调试（在 HPC 上）？
-
-**A:** 使用 `chemvcs --debug` 启用详细日志。或在代码中插入 `import pdb; pdb.set_trace()` 断点（需交互式 shell）。
-
-### Q5: 测试失败但本地无法复现怎么办？
-
-**A:** 检查是否与操作系统相关（Linux vs Windows 路径）。可在 PR 中标注 `needs-investigation`，CI 日志通常有详细信息。
+**Reporting mechanism:** Email shadow.li981@gmail.com (handled confidentially)
 
 ---
 
-## 12. 联系方式
+## 11. FAQ for Contributors
+
+### Q1: I'm a beginner, where should I start?
+
+**A:** Look for issues labeled `good first issue`. These are typically independent and well-scoped tasks.
+
+### Q2: Do I need to test in a real HPC environment?
+
+**A:** For core functionality (blob storage, commit), local testing + unit tests are sufficient. HPC-specific features (e.g., SLURM integration) can be noted as "not HPC-tested" in PR, and maintainers will arrange testing.
+
+### Q3: My PR was requested changes, but I disagree. What should I do?
+
+**A:** Politely explain your reasoning in PR comments. If disagreement persists, tag `@chemvcs/maintainers` for a third-party opinion.
+
+### Q4: How do I set up remote debugging (on HPC)?
+
+**A:** Use `chemvcs --debug` to enable verbose logging. Or insert `import pdb; pdb.set_trace()` breakpoints in code (requires interactive shell).
+
+### Q5: Tests fail but I can't reproduce locally. What now?
+
+**A:** Check if it's OS-related (Linux vs Windows paths). Mark PR with `needs-investigation`. CI logs usually have detailed information.
+
+---
+
+## 12. Contact
 
 - **GitHub Issues**: <https://github.com/lichman0405/chemvcs/issues>
 - **Discussion Forum**: <https://github.com/lichman0405/chemvcs/discussions>
-- **Email**: shadow.li981@gmail.com（技术问题优先使用 GitHub）
+- **Email**: shadow.li981@gmail.com (prioritize GitHub for technical issues)
 
 ---
 
-**感谢你的贡献！** 🎉
+**Thank you for your contribution!** 🎉
 
-所有贡献者将被列入 `CONTRIBUTORS.md` 文件。我们致力于构建一个友好且高效的计算材料开源社区。
+All contributors will be listed in `CONTRIBUTORS.md`. We're committed to building a friendly and efficient open-source community for computational materials science.

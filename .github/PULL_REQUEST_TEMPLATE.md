@@ -1,89 +1,89 @@
 # Pull Request
 
-## 概述
-<!-- 简要描述这个 PR 的目的 -->
+## Overview
+<!-- Brief description of the purpose of this PR -->
 
-## 变更类型
-<!-- 请勾选适用的选项 -->
+## Type of Change
+<!-- Please check applicable options -->
 
-- [ ] 🐛 Bug 修复（不破坏现有功能的修复）
-- [ ] ✨ 新功能（添加新功能）
-- [ ] 💥 破坏性变更（导致现有功能不兼容的修改）
-- [ ] 📝 文档更新
-- [ ] 🎨 代码风格/重构（不改变功能的代码改进）
-- [ ] ⚡ 性能优化
-- [ ] ✅ 测试相关
+- [ ] 🐛 Bug fix (non-breaking fix for an issue)
+- [ ] ✨ New feature (non-breaking change that adds functionality)
+- [ ] 💥 Breaking change (fix or feature that causes existing functionality to not work as expected)
+- [ ] 📝 Documentation update
+- [ ] 🎨 Code style/refactoring (code improvement without changing functionality)
+- [ ] ⚡ Performance optimization
+- [ ] ✅ Test-related
 
-## 相关 Issue
-<!-- 如果有，请链接相关 Issue -->
+## Related Issue
+<!-- If applicable, link to related issue -->
 
 Fixes #(issue number)
 
-## 变更说明
-<!-- 详细描述你做了哪些改动 -->
+## Description of Changes
+<!-- Detailed description of what you changed -->
 
-### 主要变更
+### Main Changes
 - 
 - 
 
-### 技术细节
-<!-- 如有必要，说明实现的技术细节 -->
+### Technical Details
+<!-- If necessary, explain technical implementation details -->
 
-## 测试
-<!-- 描述你如何测试这些变更 -->
+## Testing
+<!-- Describe how you tested these changes -->
 
-### 测试环境
-- Python 版本：
-- 操作系统：
-- 测试场景：
+### Test Environment
+- Python version:
+- Operating system:
+- Test scenario:
 
-### 测试步骤
+### Test Steps
 1. 
 2. 
 
-### 测试结果
+### Test Results
 ```bash
-# 粘贴测试输出
-pytest 输出
+# Paste test output
+pytest output
 ```
 
-## 变更影响
-<!-- 这些变更会影响哪些部分？ -->
+## Impact
+<!-- Which parts will these changes affect? -->
 
-- [ ] 核心存储层
-- [ ] VASP 解析器
-- [ ] CLI 命令
-- [ ] 文档
-- [ ] 测试
-- [ ] 其他：
+- [ ] Core storage layer
+- [ ] VASP parsers
+- [ ] CLI commands
+- [ ] Documentation
+- [ ] Tests
+- [ ] Other:
 
-## 代码检查清单
-<!-- 提交前请确认 -->
+## Code Review Checklist
+<!-- Please confirm before submitting -->
 
-- [ ] 代码遵循项目的代码风格 (`ruff check` 通过)
-- [ ] 已添加类型注解，`mypy` 检查通过
-- [ ] 已添加单元测试，覆盖率满足要求
-- [ ] 所有测试通过 (`pytest` 成功)
-- [ ] 已更新相关文档（README.md, COMMANDS.md, docstrings）
-- [ ] commit 消息符合规范（参见 CONTRIBUTING.md）
-- [ ] 已在本地运行 `pre-commit` 检查
+- [ ] Code follows project style guidelines (`ruff check` passes)
+- [ ] Type annotations added, `mypy` check passes
+- [ ] Unit tests added with adequate coverage
+- [ ] All tests pass (`pytest` succeeds)
+- [ ] Documentation updated (README.md, COMMANDS.md, docstrings)
+- [ ] Commit messages follow conventions (see CONTRIBUTING.md)
+- [ ] Ran `pre-commit` checks locally
 
-## 截图/输出示例
-<!-- 如果适用，提供命令输出或界面截图 -->
+## Screenshots/Output Examples
+<!-- If applicable, provide command output or screenshots -->
 
 ```bash
-# 粘贴命令输出示例
+# Paste command output example
 ```
 
-## 附加说明
-<!-- 任何审查者需要知道的额外信息 -->
+## Additional Notes
+<!-- Any extra information reviewers should know -->
 
-## 审查建议
-<!-- 你希望审查者重点关注哪些部分？ -->
+## Review Focus
+<!-- What should reviewers pay special attention to? -->
 
 - 
 - 
 
 ---
 
-**感谢你的贡献！** 🎉
+**Thank you for your contribution!** 🎉
