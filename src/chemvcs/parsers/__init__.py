@@ -8,6 +8,7 @@ from chemvcs.parsers.base_parser import BaseParser, DiffEntry, ParserError
 from chemvcs.parsers.diff_engine import DiffEngine
 from chemvcs.parsers.incar_parser import IncarParser
 from chemvcs.parsers.kpoints_parser import KpointsParser
+from chemvcs.parsers.outcar_parser import OutcarParser
 
 __all__ = [
     "BaseParser",
@@ -16,4 +17,5 @@ __all__ = [
     "ParserError",
     "IncarParser",
     "KpointsParser",
+    "OutcarParser",
 ]

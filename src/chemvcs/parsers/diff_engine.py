@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 from chemvcs.parsers.base_parser import BaseParser, DiffEntry, ParserError
 from chemvcs.parsers.incar_parser import IncarParser
 from chemvcs.parsers.kpoints_parser import KpointsParser
+from chemvcs.parsers.outcar_parser import OutcarParser
 
 
 class DiffEngine:
@@ -24,7 +25,7 @@ class DiffEngine:
         self.parsers: Dict[str, BaseParser] = {
             "INCAR": IncarParser(),
             "KPOINTS": KpointsParser(),
-            # POSCAR, POTCAR, OUTCAR parsers can be added later
+            "OUTCAR": OutcarParser(),
         }
     
     def get_file_type(self, filename: str) -> Optional[str]:

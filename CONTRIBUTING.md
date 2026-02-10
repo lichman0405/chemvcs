@@ -197,27 +197,24 @@ def get_commit(commit_id: str) -> Optional[Dict]:
 class IncarParser:
     """Semantic parser for INCAR files.
     
-    Uses pymatgen as primary parser, falls back to regex on failure.
-    
-    Attributes:
-        fallback_enabled: Whether to enable regex fallback mode
-        param_meta: Parameter metadata (types, units, etc.)
+    Powered by pymatgen.io.vasp.inputs.Incar for robust parsing.
+    Automatically handles type inference, booleans, lists, comments.
     
     Example:
         >>> parser = IncarParser()
-        >>> params = parser.parse(Path("INCAR"))
+        >>> params = parser.parse("ENCUT = 520\\nISMEAR = 0\\n...")
         >>> params["ENCUT"]
         520.0
     """
     
-    def parse(self, path: Path) -> Dict[str, Any]:
-        """Parse INCAR file.
+    def parse(self, content: str) -> Dict[str, Any]:
+        """Parse INCAR file content.
         
         Args:
-            path: Path to INCAR file
+            content: Raw INCAR file content as string
         
         Returns:
-            Parameter dictionary with normalized values
+            Parameter dictionary with typed values (int/float/bool/str/list)
         
         Raises:
             FileNotFoundError: File does not exist

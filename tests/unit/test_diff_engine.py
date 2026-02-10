@@ -37,10 +37,18 @@ class TestDiffEngine:
         assert engine.can_parse("INCAR") is True
         assert engine.can_parse("KPOINTS") is True
     
+    def test_can_parse_outcar(self) -> None:
+        """Test can_parse for OUTCAR."""
+        engine = DiffEngine()
+
+        assert engine.can_parse("OUTCAR") is True
+        assert engine.get_file_type("OUTCAR") == "OUTCAR"
+        assert engine.get_file_type("path/to/OUTCAR") == "OUTCAR"
+
     def test_can_parse_unsupported(self) -> None:
         """Test can_parse for unsupported files."""
         engine = DiffEngine()
-        
+
         assert engine.can_parse("unknown.txt") is False
         assert engine.can_parse("POSCAR") is False  # Not yet implemented
     

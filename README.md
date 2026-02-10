@@ -103,9 +103,9 @@ mypy chemvcs/
 ### Phase 1: Core Version Control ✅ **COMPLETE**
 - ✅ Project setup and scaffolding
 - ✅ Storage layer (content-addressable blob store, SQLite metadata DB)
-- ✅ VASP parsers (INCAR, KPOINTS with semantic diff engine)
+- ✅ VASP parsers (INCAR, KPOINTS, OUTCAR with semantic diff engine, powered by pymatgen)
 - ✅ CLI commands (init, add, commit, log, diff, reproduce, status)
-- ✅ Comprehensive test suite (227 tests, 75% coverage)
+- ✅ Comprehensive test suite (240+ tests, 75% coverage)
 - ✅ Interactive demo and documentation
 
 ### Phase 2: HPC Integration

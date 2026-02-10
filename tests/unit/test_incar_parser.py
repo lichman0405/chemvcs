@@ -26,11 +26,15 @@ SIGMA = 0.05
         assert data["SIGMA"] == 0.05
     
     def test_parse_with_comments(self) -> None:
-        """Test parsing with comments."""
+        """Test parsing with comments.
+
+        pymatgen strips ``#`` inline comments.  ``!`` is only recognised
+        as a full-line comment indicator (not inline).
+        """
         content = """
 # Energy cutoff
 ENCUT = 520  # in eV
-PREC = Accurate  ! precision
+PREC = Accurate  # precision
 ! This is a comment line
 ISMEAR = 0
 """
@@ -52,20 +56,25 @@ ISMEAR = 0
         assert data["NSW"] == 100
     
     def test_parse_boolean_values(self) -> None:
-        """Test parsing boolean-like values."""
+        """Test parsing boolean-like values.
+
+        pymatgen recognises ``.TRUE.`` / ``.FALSE.`` as well as ``T`` for
+        known boolean tags.  Tags that are normally integers (like LORBIT)
+        are *not* treated as boolean when given ``F``.
+        """
         content = """
 LDAU = .TRUE.
 LWAVE = .FALSE.
-LCHARG = T
-LORBIT = F
+LCHARG = .TRUE.
+LVTOT = .FALSE.
 """
         parser = IncarParser()
         data = parser.parse(content)
-        
+
         assert data["LDAU"] is True
         assert data["LWAVE"] is False
         assert data["LCHARG"] is True
-        assert data["LORBIT"] is False
+        assert data["LVTOT"] is False
     
     def test_parse_multi_value(self) -> None:
         """Test parsing multi-value parameters."""
