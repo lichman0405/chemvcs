@@ -628,7 +628,7 @@ v1.0.0 → 稳定版（生产就绪）
 
 - **GitHub Issues**: <https://github.com/lichman0405/chemvcs/issues>
 - **Discussion Forum**: <https://github.com/lichman0405/chemvcs/discussions>
-- **Email**: <maintainer-email>（技术问题优先使用 GitHub）
+- **Email**: shadow.li981@gmail.com（技术问题优先使用 GitHub）
 
 ---
 

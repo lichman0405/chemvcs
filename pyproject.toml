@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "ChemVCS Contributors", email = "maintainer@example.com"}
+    {name = "ChemVCS Contributors", email = "shadow.li981@gmail.com"}
 ]
 keywords = ["vasp", "version-control", "computational-chemistry", "materials-science", "hpc"]
 classifiers = [
@@ -50,7 +50,7 @@ chemvcs = "chemvcs.cli.main:app"
 
 [project.urls]
 Homepage = "https://github.com/lichman0405/chemvcs"
-Documentation = "https://github.com/lichman0405/chemvcs/tree/main/docs"
+Documentation = "https://github.com/lichman0405/chemvcs#readme"
 Repository = "https://github.com/lichman0405/chemvcs"
 Issues = "https://github.com/lichman0405/chemvcs/issues"
 
