@@ -1,0 +1,31 @@
+# MOF + C2H2 with van der Waals Correction (D3-BJ)
+SYSTEM = Cu-BTC + acetylene with DFT-D3 dispersion
+
+# Electronic structure  
+PREC    = Accurate
+ENCUT   = 450
+EDIFF   = 1E-6
+NELM    = 120
+
+# K-space
+ISMEAR  = 0
+SIGMA   = 0.05
+
+# Geometry optimization (ions only)
+IBRION  = 2
+NSW     = 200
+ISIF    = 2
+EDIFFG  = -0.01
+
+# van der Waals correction
+IVDW    = 12
+LVDW    = .TRUE.
+
+# Output
+LWAVE   = .FALSE.
+LCHARG  = .FALSE.
+LORBIT  = 11
+
+# Spin
+ISPIN   = 2
+MAGMOM  = 4*5.0 14*0.6 12*0.6 8*0.0

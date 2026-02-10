@@ -1,0 +1,32 @@
+# High-Precision Single Point Calculation
+SYSTEM = Cu-BTC + acetylene final energy (HSE06 hybrid)
+
+# Electronic structure - HYBRID FUNCTIONAL
+PREC    = Accurate
+ENCUT   = 520
+EDIFF   = 1E-7
+NELM    = 150
+LHFCALC = .TRUE.
+HFSCREEN= 0.2
+AEXX    = 0.25
+
+# K-space
+ISMEAR  = 0
+SIGMA   = 0.05
+
+# NO geometry optimization (NSW=0)
+IBRION  = -1
+NSW     = 0
+
+# van der Waals correction
+IVDW    = 12
+LVDW    = .TRUE.
+
+# Output
+LWAVE   = .FALSE.
+LCHARG  = .TRUE.
+LORBIT  = 11
+
+# Spin
+ISPIN   = 2
+MAGMOM  = 4*5.0 14*0.6 12*0.6 8*0.0

@@ -1,0 +1,32 @@
+ vasp.6.4.1 21Jan23 (build Jan 21 2023 15:35:21) complex
+ running on   16 total cores
+ POSCAR found type information on POSCAR Cu C O H
+ POSCAR found :  4 types and      38 ions
+
+ E-fermi :   2.5267     XC(G=0):  -8.5123     alpha+bet : -5.3841
+
+ Free energy of the ion-electron system (eV)
+   ---------------------------------------------------
+   alpha Z        PSCENC =       458.12345678
+   Ewald energy   TEWEN  =     -2956.78901234
+   -1/2 Hartree   DENC   =      -893.45678901
+   exchange EXHF  =         0.00000000
+   -V(xc)+E(xc)   XCENC  =       436.12345678
+   PAW double counting   =      3418.23456789    -3422.34567890
+   entropy T*S    ECONTRIB =       -0.00156789
+   eigenvalues    EBANDS =      -246.78901234
+   atomic energy  EATOM  =      3045.12345678
+   Edisp (DFT-D)  =        -15.87654321
+   ---------------------------------------------------
+free  energy   TOTEN  =      -228.65267546 eV
+
+   energy  without entropy=     -228.65110757  energy(sigma->0) =     -228.65189151
+
+ General timing and accounting informations for this job:
+
+  Total CPU time used (sec):      2145.678
+  User time (sec):                1978.234
+  System time (sec):                167.444
+  Elapsed time (sec):              2234.567
+
+  Maximum memory used (kb):      3124567
