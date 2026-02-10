@@ -1,0 +1,36 @@
+ running on    4 total cores
+ vasp.6.3.2 03Jul22 (build Jul 04 2022 17:35:28) complex
+
+ POSCAR found type information on POSCAR: Si
+ POSCAR found :  1 types and       2 ions
+
+ ENCUT  =  520.0 eV
+
+ k-points in BZ     NKPTS =    60
+
+ E-fermi :   5.9012     XC(G=0):  -4.8951     alpha+bet : -3.8128
+
+ Free energy of the ion-electron system (eV)
+   ---------------------------------------------------
+   alpha Z        PSCENC =         3.37178130
+   Ewald energy   TEWEN  =      -255.20844012
+   -1/2 Hartree   DENC   =       -35.09584127
+   exchange EXHF  =         0.00000000
+   -V(xc)+E(xc)   XCENC  =        38.06524001
+   PAW double counting   =       247.50103842     -248.81445539
+   entropy T*S    ECONTRIB =       -0.00031130
+   eigenvalues    EBANDS =        -8.28793421
+   atomic energy  EATOM  =       215.60634181
+   ---------------------------------------------------
+   free  energy   TOTEN  =       -10.84893256 eV
+
+   energy  without entropy=     -10.84890143  energy(sigma->0) =     -10.84890143
+
+ General timing and accounting informations for this job:
+
+  Total CPU time used (sec):      124.875
+  User time (sec):                118.231
+  System time (sec):                6.644
+  Elapsed time (sec):             130.422
+
+  Maximum memory used (kb):      189504

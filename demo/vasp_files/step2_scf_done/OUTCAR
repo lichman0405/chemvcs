@@ -1,0 +1,52 @@
+ running on    4 total cores
+ distrk:  each k-point on    4 cores,    1 groups
+ distr:  one band on NCORE=   1 cores,    4 groups
+ vasp.6.3.2 03Jul22 (build Jul 04 2022 17:35:28) complex
+
+ POSCAR found type information on POSCAR: Si
+ POSCAR found :  1 types and       2 ions
+ LDA part: xc-table for Pade,01-May-2006
+ POSCAR, CURRENTPOS, and calculation types:
+  Si: ultrasoft pseudopotential found
+
+ -----------------------------------------------------------------------------
+|                                                                             |
+|           W    W    AA    RRRRR   N    N  II  N    N   GGGG                  |
+|           W    W   A  A   R    R  NN   N  II  NN   N  G    G                 |
+|           W    W  A    A  R    R  N N  N  II  N N  N  G                      |
+|            W  W   AAAAAA  RRRRR   N  N N  II  N  N N  G  GGG                 |
+|            W  W   A    A  R   R   N   NN  II  N   NN  G    G                 |
+|             WW    A    A  R    R  N    N  II  N    N   GGGG                   |
+|                                                                             |
+ -----------------------------------------------------------------------------
+
+ ENCUT  =  400.0 eV
+
+ k-points in BZ     NKPTS =     8
+
+ E-fermi :   5.8921     XC(G=0):  -4.8951     alpha+bet : -3.8128
+
+ Free energy of the ion-electron system (eV)
+   ---------------------------------------------------
+   alpha Z        PSCENC =         3.37178130
+   Ewald energy   TEWEN  =      -255.20844012
+   -1/2 Hartree   DENC   =       -35.06795802
+   exchange EXHF  =         0.00000000
+   -V(xc)+E(xc)   XCENC  =        38.04879640
+   PAW double counting   =       247.45653230     -248.77183524
+   entropy T*S    ECONTRIB =       -0.00026891
+   eigenvalues    EBANDS =        -8.26149268
+   atomic energy  EATOM  =       215.60634181
+   ---------------------------------------------------
+   free  energy   TOTEN  =       -10.82654316 eV
+
+   energy  without entropy=     -10.82654312  energy(sigma->0) =     -10.82654312
+
+ General timing and accounting informations for this job:
+
+  Total CPU time used (sec):       42.358
+  User time (sec):                 38.921
+  System time (sec):                3.437
+  Elapsed time (sec):              45.123
+
+  Maximum memory used (kb):      125408

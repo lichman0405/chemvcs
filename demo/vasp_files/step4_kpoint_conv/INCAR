@@ -1,0 +1,12 @@
+# Si bulk - final converged parameters
+SYSTEM  = Si-diamond
+PREC    = Accurate
+ENCUT   = 520
+ISMEAR  = 1
+SIGMA   = 0.1
+EDIFF   = 1E-7
+NELM    = 200
+LREAL   = .FALSE.
+LWAVE   = .FALSE.
+LCHARG  = .TRUE.
+NSW     = 0
