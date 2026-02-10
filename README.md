@@ -11,14 +11,14 @@ ChemVCS provides Git-like version control specifically designed for computationa
 ## 🎯 Features (MVP)
 
 - **Git-like Interface**: Familiar `init`, `add`, `commit`, `log`, `diff`, `reproduce` commands
-- **VASP-Aware**: Semantic parsing of INCAR, POSCAR, KPOINTS, OUTCAR
+- **VASP-Aware**: Semantic parsing of INCAR and KPOINTS files
 - **Semantic Diff**: Human-readable comparison of calculation parameters
-  - INCAR: Highlight changed parameters with units
-  - POSCAR: Structure matching, lattice parameter changes, coordinate RMSD
-  - KPOINTS: Grid size comparison
-- **Reproducibility**: Exact restoration of input files with environment verification
-- **HPC-Native**: Zero infrastructure dependencies, works on Lustre/GPFS/NFS
-- **Lightweight**: Content-addressable storage with automatic deduplication
+  - **INCAR**: Automatic detection of critical (ENCUT, PREC, ISMEAR), major (LWAVE, LDAU), and minor parameter changes
+  - **KPOINTS**: K-point grid changes, sampling type detection (Gamma/Monkhorst/Line-mode)
+  - Change significance indicators: ‼️ critical, ⚠️ major, ℹ️ minor
+- **Reproducibility**: Exact restoration of calculation inputs from any commit
+- **HPC-Native**: Zero infrastructure dependencies, works on any filesystem
+- **Lightweight**: Content-addressable storage with automatic deduplication and compression
 
 ## 🚀 Quick Start
 
@@ -55,11 +55,9 @@ mpirun vasp_std  # Ready to run
 
 ## 📖 Documentation
 
-- [Project Charter](docs/PROJECT_CHARTER.md) - Goals and scope
-- [MVP PRD](docs/MVP_PRD.md) - Product requirements
-- [Technical Architecture](docs/TECH_ARCHITECTURE.md) - System design
-- [CLI Specification](docs/CLI_SPEC.md) - Command reference
-- [Contributing](CONTRIBUTING.md) - Development guide
+- **[Command Reference](COMMANDS.md)** - Complete guide to all commands and options
+- **[Demo Guide](demo/GUIDE.md)** - Step-by-step tutorial with Si convergence test example
+- [Contributing](CONTRIBUTING.md) - Development guide and coding standards
 
 ## 🛠️ Development
 
@@ -102,12 +100,13 @@ mypy chemvcs/
 
 ## 🗺️ Roadmap
 
-### Phase 1: Core Version Control (Current - MVP)
+### Phase 1: Core Version Control ✅ **COMPLETE**
 - ✅ Project setup and scaffolding
-- 🚧 Storage layer (blob store, metadata DB)
-- 🚧 VASP parsers (INCAR, POSCAR, KPOINTS, OUTCAR)
-- 🚧 CLI commands (init, add, commit, log, diff, reproduce)
-- 📅 User interviews and validation
+- ✅ Storage layer (content-addressable blob store, SQLite metadata DB)
+- ✅ VASP parsers (INCAR, KPOINTS with semantic diff engine)
+- ✅ CLI commands (init, add, commit, log, diff, reproduce, status)
+- ✅ Comprehensive test suite (227 tests, 75% coverage)
+- ✅ Interactive demo and documentation
 
 ### Phase 2: HPC Integration
 - SLURM job tracking
