@@ -31,8 +31,9 @@ chemvcs init
 
 ## Step 2: Create Initial VASP Input Files
 
-**Narration**: We'll perform a DFT calculation on Si bulk. Prepare three standard VASP input files:
+**Narration**: We'll perform a DFT calculation on Si bulk. Prepare four standard VASP input files:
 - **POSCAR** — Silicon diamond structure (lattice constant 5.43 Å)
+- **POTCAR** — PAW pseudopotential for Si
 - **INCAR** — Calculation parameters (ENCUT=400 eV, ISMEAR=0)
 - **KPOINTS** — 4×4×4 Gamma k-point grid
 
@@ -42,6 +43,7 @@ chemvcs init
 $DEMO = "C:\Users\lishi\code\chemvcs\demo\vasp_files"
 
 Copy-Item "$DEMO\step1_initial\POSCAR" .
+Copy-Item "$DEMO\step1_initial\POTCAR" .
 Copy-Item "$DEMO\step1_initial\INCAR"  .
 Copy-Item "$DEMO\step1_initial\KPOINTS" .
 ```
@@ -67,13 +69,15 @@ SIGMA   = 0.05
 
 ## Step 3: Add Files to Staging Area
 
-**Narration**: `chemvcs add` computes file content hashes and identifies VASP file types.
+**Narration**: `chemvcs add` computes file content hashes and identifies VASP file types. It also automatically validates that POSCAR and POTCAR element orders match.
 
 ```powershell
-chemvcs add POSCAR INCAR KPOINTS
+chemvcs add POSCAR POTCAR INCAR KPOINTS
 ```
 
-**Expected Output**: Shows 3 files added, each displaying size and type (POSCAR / INCAR / KPOINTS).
+**Expected Output**: Shows validation check passed (✓ poscar-potcar: passed), then 4 files added, each displaying size and type (POSCAR / POTCAR / INCAR / KPOINTS).
+
+> 💡 **Plugin Validation**: ChemVCS automatically checks POSCAR-POTCAR element order consistency. Use `--no-validate` to skip this check if needed.
 
 ---
 
@@ -83,7 +87,7 @@ chemvcs add POSCAR INCAR KPOINTS
 
 ```powershell
 chemvcs status
-```
+```4
 
 **Expected Output**: Shows 3 files to be committed with their hash values.
 
@@ -326,6 +330,7 @@ demo/
 └── vasp_files/                   ← Pre-made VASP files for each stage
     ├── step1_initial/            ← Initial inputs
     │   ├── POSCAR                   Si diamond structure
+    │   ├── POTCAR                   Si pseudopotential
     │   ├── INCAR                    ENCUT=400, ISMEAR=0
     │   └── KPOINTS                  4×4×4 Gamma
     ├── step2_scf_done/           ← After calculation completion

@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chemvcs-validator"
+version = "0.1.0"
+description = "Input file validators for ChemVCS"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "ChemVCS Contributors", email = "shadow.li981@gmail.com"}
+]
+keywords = ["vasp", "validation", "chemvcs", "materials-science"]
+
+dependencies = [
+    "chemvcs >=0.1.0",  # Core ChemVCS (for plugin base classes)
+    "pymatgen >=2024.1.0",  # For POSCAR parsing
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest >=7.4.0",
+    "pytest-cov >=4.1.0",
+    "ruff >=0.1.9",
+]
+
+# 🔑 Key: Register plugins via entry points
+[project.entry-points."chemvcs.validators"]
+poscar-potcar = "chemvcs_validator.poscar_potcar:POSCARPOTCARValidator"
+incar-poscar = "chemvcs_validator.incar_poscar:INCARPOSCARValidator"
+file-format = "chemvcs_validator.file_format:FileFormatValidator"
+
+[project.urls]
+Homepage = "https://github.com/lichman0405/chemvcs-validator"
+Repository = "https://github.com/lichman0405/chemvcs-validator"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py38"
+line-length = 100

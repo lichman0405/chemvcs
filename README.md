@@ -16,6 +16,10 @@ ChemVCS provides Git-like version control specifically designed for computationa
   - **INCAR**: Automatic detection of critical (ENCUT, PREC, ISMEAR), major (LWAVE, LDAU), and minor parameter changes
   - **KPOINTS**: K-point grid changes, sampling type detection (Gamma/Monkhorst/Line-mode)
   - Change significance indicators: ‼️ critical, ⚠️ major, ℹ️ minor
+- **Plugin System**: Extensible validation framework
+  - **POSCAR-POTCAR validator**: Automatic element order consistency checking
+  - **Pluggable architecture**: Easy to add custom validators for domain-specific checks
+  - **Optional validation**: Use `--no-validate` flag to skip checks when needed
 - **Reproducibility**: Exact restoration of calculation inputs from any commit
 - **HPC-Native**: Zero infrastructure dependencies, works on any filesystem
 - **Lightweight**: Content-addressable storage with automatic deduplication and compression
@@ -36,13 +40,13 @@ cd /scratch/username/LCO_doping
 chemvcs init
 
 # Add files to staging
-chemvcs add INCAR POSCAR KPOINTS
+chemvcs add INCAR POSCAR KPOINTS POTCAR  # Automatic POSCAR-POTCAR validation
 
 # Commit snapshot
 chemvcs commit -m "PBE+U, U=3.5eV, kpoints 4x4x4"
 
-# View history
-chemvcs log
+# View plugin status
+chemvcs plugin list
 
 # Compare versions
 chemvcs diff HEAD~1 HEAD
@@ -57,6 +61,8 @@ mpirun vasp_std  # Ready to run
 
 - **[Command Reference](COMMANDS.md)** - Complete guide to all commands and options
 - **[Demo Guide](demo/GUIDE.md)** - Step-by-step tutorial with Si convergence test example
+- **[Advanced Demo](demo_advanced/GUIDE_ADVANCED.md)** - MOF-acetylene adsorption workflow with plugin validation
+- **[Plugin Architecture](docs/PLUGIN_ARCHITECTURE.md)** - Plugin system design and development guide
 - [Contributing](CONTRIBUTING.md) - Development guide and coding standards
 
 ## 🛠️ Development
@@ -103,8 +109,16 @@ mypy chemvcs/
 ### Phase 1: Core Version Control ✅ **COMPLETE**
 - ✅ Project setup and scaffolding
 - ✅ Storage layer (content-addressable blob store, SQLite metadata DB)
-- ✅ VASP parsers (INCAR, KPOINTS, OUTCAR with semantic diff engine, powered by pymatgen)
-- ✅ CLI commands (init, add, commit, log, diff, reproduce, status)
+- ✅ Plugin system for extensible validation (POSCAR-POTCAR validator included)
+- ✅ Comprehensive test suite (240+ tests, 75% coverage)
+- ✅ Interactive demo and documentation
+
+### Phase 1.5: Plugin Ecosystem 🚧 **IN PROGRESS**
+- ✅ POSCAR-POTCAR element order validator
+- 🚧 INCAR-POSCAR consistency validator (ISPIN vs magnetic atoms, NSW vs ISIF)
+- 🚧 File format validator (POSCAR structure, INCAR syntax)
+- 📝 Configuration system for plugin enable/disable
+- 📝 Community plugin repositoryog, diff, reproduce, status)
 - ✅ Comprehensive test suite (240+ tests, 75% coverage)
 - ✅ Interactive demo and documentation
 

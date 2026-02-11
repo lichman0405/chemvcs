@@ -110,9 +110,12 @@ cd demo_advanced
 chemvcs init
 
 # vasp_files/ already contains step1 files (pristine MOF)
-chemvcs add vasp_files/INCAR vasp_files/KPOINTS vasp_files/POSCAR vasp_files/OUTCAR
+# ChemVCS will automatically validate POSCAR-POTCAR element order
+chemvcs add vasp_files/INCAR vasp_files/KPOINTS vasp_files/POSCAR vasp_files/POTCAR vasp_files/OUTCAR
 chemvcs commit -m "Step 1: MOF geometry optimization (PBE, ISIF=3)"
 ```
+
+**Note on Validation**: ChemVCS automatically validates that POSCAR and POTCAR element orders match. If there's a mismatch, staging will be aborted with a clear error message. Use `--no-validate` to skip this check if needed.
 
 ### Step 2: Add C₂H₂ Guest Molecule
 
@@ -120,10 +123,11 @@ chemvcs commit -m "Step 1: MOF geometry optimization (PBE, ISIF=3)"
 # Replace files with step2 versions (snapshots provided in snapshots/step2_add_c2h2/)
 cp snapshots/step2_add_c2h2/INCAR vasp_files/
 cp snapshots/step2_add_c2h2/POSCAR vasp_files/
+cp snapshots/step2_add_c2h2/POTCAR vasp_files/
 cp snapshots/step2_add_c2h2/OUTCAR vasp_files/
 
-# Track changes
-chemvcs add vasp_files/INCAR vasp_files/POSCAR vasp_files/OUTCAR
+# Track changes (validation runs automatically)
+chemvcs add vasp_files/INCAR vasp_files/POSCAR vasp_files/POTCAR vasp_files/OUTCAR
 chemvcs commit -m "Step 2: Add C2H2 guest molecule (ISIF=2, extended MAGMOM)"
 ```
 
@@ -138,10 +142,11 @@ chemvcs diff <step1_hash> <step2_hash>
 ```bash
 # Replace files with step3 versions
 cp snapshots/step3_vdw_opt/INCAR vasp_files/
-cp snapshots/step3_vdw_opt/KPOINTS vasp_files/
+cp snapshots/step3_vdw_opt/POTCAR vasp_files/
 cp snapshots/step3_vdw_opt/OUTCAR vasp_files/
 
 # Track changes
+chemvcs add vasp_files/INCAR vasp_files/KPOINTS vasp_files/POTCAR
 chemvcs add vasp_files/INCAR vasp_files/KPOINTS vasp_files/OUTCAR
 chemvcs commit -m "Step 3: Enable DFT-D3 dispersion (IVDW=12, tighter convergence)"
 ```
@@ -161,10 +166,11 @@ Expected output shows:
 ```bash
 # Replace files with step4 versions
 cp snapshots/step4_high_precision/INCAR vasp_files/
-cp snapshots/step4_high_precision/KPOINTS vasp_files/
+cp snapshots/step4_high_precision/POTCAR vasp_files/
 cp snapshots/step4_high_precision/OUTCAR vasp_files/
 
 # Track changes
+chemvcs add vasp_files/INCAR vasp_files/KPOINTS vasp_files/POTCAR
 chemvcs add vasp_files/INCAR vasp_files/KPOINTS vasp_files/OUTCAR
 chemvcs commit -m "Step 4: HSE06 hybrid functional (LHFCALC, ENCUT=520, 4x4x4 grid)"
 ```
@@ -188,7 +194,77 @@ chemvcs diff <step1_hash> <step4_hash>
 
 Shows cumulative changes across entire workflow!
 
+---Plugin System: Automatic Validation
+
+ChemVCS includes a plugin system for extensible validation. By default, the **POSCAR-POTCAR validator** ensures element order consistency.
+
+### Viewing Available Plugins
+
+```bash
+chemvcs plugin list
+```
+
+Output:
+```
+Discovered 3 validator plugin(s):
+
+  ○ disabled  file-format v0.1.0
+           Validates basic VASP file format correctness
+           Priority: 5
+
+  ✓ enabled  incar-poscar v0.1.0
+           Validates INCAR-POSCAR parameter consistency
+           Priority: 20
+
+  ✓ enabled  poscar-potcar v0.1.0
+           Validates POSCAR-POTCAR element order consistency
+           Priority: 10
+```
+
+### Plugin Information
+
+```bash
+chemvcs plugin info poscar-potcar
+```
+
+### Validation in Action
+
+When you run `chemvcs add`, validators automatically check files:
+
+```bash
+chemvcs add vasp_files/POSCAR vasp_files/POTCAR
+```
+
+Output (success):
+```
+Running validators...
+  ✓  poscar-potcar: passed
+
+Staging files...
+  + vasp_files/POSCAR  (1.5 KB, POSCAR)
+  + vasp_files/POTCAR  (777 B, POTCAR)
+```
+
+Output (failure - element mismatch):
+```
+Running validators...
+  ✗  poscar-potcar: Element order mismatch
+
+Staging aborted due to validation errors
+  Use --no-validate to skip validation
+```
+
+### Skipping Validation
+
+If you need to bypass validators (e.g., working with non-standard files):
+
+```bash
+chemvcs add vasp_files/* --no-validate
+```
+
 ---
+
+## 
 
 ## Key Insights from ChemVCS Tracking
 

@@ -13,6 +13,7 @@ from rich.panel import Panel
 from chemvcs.constants import CHEMVCS_DIR, COMMITS_DIR, OBJECTS_DIR
 from chemvcs.core import StagingManager
 from chemvcs.parsers import DiffEngine
+from chemvcs.plugins.manager import PluginManager
 from chemvcs.storage import CommitBuilder, MetadataDB, ObjectStore
 
 console = Console()
@@ -171,6 +172,11 @@ def add(
         "--dry-run",
         help="Show what would be added without modifying staging area",
     ),
+    no_validate: bool = typer.Option(
+        False,
+        "--no-validate",
+        help="Skip file validation checks",
+    ),
 ) -> None:
     """Add files to the staging area."""
     workspace_root = Path.cwd()
@@ -199,6 +205,28 @@ def add(
         
         # Convert string paths to Path objects
         path_objects = [Path(p) for p in paths]
+        
+        # Run validators before staging (unless disabled)
+        if not no_validate:
+            console.print("[bold]Running validators...[/bold]\n")
+            plugin_manager = PluginManager()
+            plugin_manager.discover_plugins()
+            validation_results = plugin_manager.run_validators(
+                workspace_root, 
+                path_objects,
+                skip_disabled=True,
+            )
+            
+            # Check if any validation failed
+            has_errors = any(not result.passed for result in validation_results)
+            
+            if has_errors:
+                console.print("\n[bold red]Staging aborted due to validation errors[/bold red]")
+                console.print("  Use [bold]--no-validate[/bold] to skip validation\n")
+                raise typer.Exit(1)
+            
+            if validation_results:
+                console.print()  # Empty line after validation
         
         # Dry run mode: just show what would be added
         if dry_run:
@@ -1049,6 +1077,110 @@ def status(
                 else:
                     console.print("[yellow]No files staged for commit[/yellow]")
                     console.print("  Use [bold]chemvcs add <file>[/bold] to stage files\n")
+    
+    except Exception as e:
+        console.print(
+            f"[bold red]Error:[/bold red] {e}",
+            style="red",
+        )
+        raise typer.Exit(1)
+
+
+@app.command()
+def plugin(
+    action: str = typer.Argument(
+        ...,
+        help="Action to perform: list, info, enable, disable",
+    ),
+    plugin_name: Optional[str] = typer.Argument(
+        None,
+        help="Plugin name (required for info, enable, disable)",
+    ),
+) -> None:
+    """Manage ChemVCS plugins."""
+    workspace_root = Path.cwd()
+    
+    # Only check repository for enable/disable actions
+    # list and info can work without a repository
+    if action in ["enable", "disable"]:
+        chemvcs_dir = workspace_root / CHEMVCS_DIR
+        if not chemvcs_dir.exists():
+            console.print(
+                "[bold red]Error:[/bold red] Not a ChemVCS repository",
+                style="red",
+            )
+            console.print(
+                f"  No .chemvcs/ directory found in {workspace_root}",
+                style="dim",
+            )
+            raise typer.Exit(1)
+    
+    try:
+        plugin_manager = PluginManager()
+        plugin_manager.discover_plugins()
+        
+        if action == "list":
+            # List all discovered plugins
+            validators = plugin_manager.validators
+            
+            if not validators:
+                console.print("[yellow]No plugins found[/yellow]")
+                console.print("\nInstall plugins with: [bold]pip install chemvcs-validator[/bold]")
+                return
+            
+            console.print(f"[bold]Discovered {len(validators)} validator plugin(s):[/bold]\n")
+            
+            for validator in validators.values():
+                enabled = "[green]✓ enabled[/green]" if validator.enabled_by_default else "[dim]○ disabled[/dim]"
+                console.print(f"  {enabled}  [cyan]{validator.name}[/cyan] v{validator.version}")
+                console.print(f"           {validator.description}")
+                console.print(f"           [dim]Priority: {validator.priority}[/dim]\n")
+        
+        elif action == "info":
+            if not plugin_name:
+                console.print("[bold red]Error:[/bold red] Plugin name required for 'info' action")
+                raise typer.Exit(1)
+            
+            # Find the plugin
+            validator = None
+            for v in plugin_manager.validators.values():
+                if v.name == plugin_name:
+                    validator = v
+                    break
+            
+            if not validator:
+                console.print(f"[bold red]Error:[/bold red] Plugin '{plugin_name}' not found")
+                console.print("\nAvailable plugins:")
+                for v in plugin_manager.validators.values():
+                    console.print(f"  - {v.name}")
+                raise typer.Exit(1)
+            
+            # Display detailed info
+            console.print(Panel(
+                f"""[bold cyan]{validator.name}[/bold cyan] v{validator.version}
+
+{validator.description}
+
+[bold]Priority:[/bold] {validator.priority}
+[bold]Enabled by default:[/bold] {'Yes' if validator.enabled_by_default else 'No'}
+[bold]Type:[/bold] Validator Plugin
+""",
+                title=f"Plugin: {validator.name}",
+                border_style="cyan",
+            ))
+        
+        elif action == "enable":
+            console.print("[yellow]Plugin enable/disable via CLI not yet implemented[/yellow]")
+            console.print("Plugins are automatically enabled based on their enabled_by_default setting")
+        
+        elif action == "disable":
+            console.print("[yellow]Plugin enable/disable via CLI not yet implemented[/yellow]")
+            console.print("Plugins are automatically enabled based on their enabled_by_default setting")
+        
+        else:
+            console.print(f"[bold red]Error:[/bold red] Unknown action '{action}'")
+            console.print("\nAvailable actions: list, info, enable, disable")
+            raise typer.Exit(1)
     
     except Exception as e:
         console.print(

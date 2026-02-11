@@ -1,0 +1,31 @@
+ PAW_PBE Cu 06Sep2000
+   4.00000000000000000
+ parameters from PSCTR are:
+   VRHFIN =Cu: d10 s1
+   TITEL  = PAW_PBE Cu 06Sep2000
+   LULTRA =        F    use ultrasoft PP ?
+ End of Dataset
+
+ PAW_PBE C 08Apr2002
+   4.00000000000000000
+ parameters from PSCTR are:
+   VRHFIN =C: s2p2
+   TITEL  = PAW_PBE C 08Apr2002
+   LULTRA =        F    use ultrasoft PP ?
+ End of Dataset
+
+ PAW_PBE O 08Apr2002
+   6.00000000000000000
+ parameters from PSCTR are:
+   VRHFIN =O: s2p4
+   TITEL  = PAW_PBE O 08Apr2002
+   LULTRA =        F    use ultrasoft PP ?
+ End of Dataset
+
+ PAW_PBE H 15Jun2001
+   1.00000000000000000
+ parameters from PSCTR are:
+   VRHFIN =H: ultrasoft test
+   TITEL  = PAW_PBE H 15Jun2001
+   LULTRA =        F    use ultrasoft PP ?
+ End of Dataset
