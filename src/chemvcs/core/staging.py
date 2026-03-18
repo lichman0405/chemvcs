@@ -83,7 +83,7 @@ class StagingManager:
         # Load ignore patterns
         ignore_patterns = self._load_ignore_patterns() if not force else []
         
-        stats = {
+        stats: Dict[str, List[str]] = {
             "added": [],
             "updated": [],
             "ignored": [],
@@ -178,7 +178,7 @@ class StagingManager:
         """
         index = self._load_index()
         
-        stats = {
+        stats: Dict[str, List[str]] = {
             "removed": [],
             "not_staged": [],
             "errors": [],
@@ -209,7 +209,7 @@ class StagingManager:
             Dictionary mapping relative paths to file metadata
         """
         index = self._load_index()
-        return index["entries"]
+        return dict(index["entries"])
 
     def clear(self) -> None:
         """Clear all staged files."""
@@ -233,7 +233,7 @@ class StagingManager:
             if index.get("version") != 1:
                 raise StagingError(f"Unsupported index version: {index.get('version')}")
             
-            return index
+            return dict(index)
             
         except json.JSONDecodeError as e:
             raise StagingError(f"Corrupted index file: {e}") from e
@@ -296,7 +296,7 @@ class StagingManager:
         self, dir_path: Path, ignore_patterns: List[str], force: bool
     ) -> Dict[str, Any]:
         """Recursively add all files in directory."""
-        stats = {
+        stats: Dict[str, List[str]] = {
             "added": [],
             "updated": [],
             "ignored": [],

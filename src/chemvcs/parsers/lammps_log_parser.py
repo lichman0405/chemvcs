@@ -175,7 +175,7 @@ class LammpsLogParser(BaseParser):
         as the final state.
         """
         try:
-            import yaml  # type: ignore[import]
+            import yaml  # type: ignore[import-untyped]
         except ImportError:
             return None
 

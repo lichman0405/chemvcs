@@ -4,7 +4,7 @@ import os
 import socket
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 import typer
 from rich.console import Console
@@ -225,7 +225,7 @@ def add(
             plugin_manager.load_config(chemvcs_dir)
             validation_results = plugin_manager.run_validators(
                 workspace_root, 
-                path_objects,
+                [str(p) for p in path_objects],
                 skip_disabled=True,
             )
             
@@ -428,8 +428,8 @@ def commit(
         diff_engine = DiffEngine()
         
         # Prepare file list for commit and compute semantic diffs
-        files_for_commit = []
-        semantic_changes = []
+        files_for_commit: List[Dict[str, Any]] = []
+        semantic_changes: List[Dict[str, Any]] = []
         
         for rel_path, file_info in staged_files.items():
             blob_hash = file_info["blob_hash"]
@@ -511,8 +511,9 @@ def commit(
         if semantic_changes:
             console.print("\n[bold]Semantic Changes:[/bold]")
             for change in semantic_changes:
+                from chemvcs.parsers.base_parser import DiffEntry
                 file_name = change["file"]
-                entries = change["entries"]
+                entries: List[DiffEntry] = list(change["entries"])
                 summary = diff_engine.summarize_diff(entries)
                 
                 # Show file and summary
@@ -530,6 +531,9 @@ def commit(
                 # Show top changes (limit to 3 per file)
                 console.print("    [dim]Key changes:[/dim]")
                 for entry in entries[:3]:
+                    from chemvcs.parsers.base_parser import DiffEntry
+                    if not isinstance(entry, DiffEntry):
+                        continue
                     if entry.change_type == "added":
                         console.print(f"      [green]+[/green] {entry.path} = {entry.new_value}")
                     elif entry.change_type == "deleted":
@@ -793,7 +797,8 @@ def diff(
             if compare_working_tree:
                 console.print(f"[bold]Comparing:[/bold] {commit1_hash[:7]} → working tree\n")
             else:
-                commit2_hash = commit2.get("hash", rev2)
+                assert commit2 is not None
+                commit2_hash = commit2.get("hash", rev2 or "")
                 console.print(f"[bold]Comparing:[/bold] {commit2_hash[:7]} → {commit1_hash[:7]}\n")
             
             # Process each file
@@ -814,7 +819,9 @@ def diff(
                 else:
                     # Both versions exist — check for modifications.
                     # First read content bytes for both sides.
+                    assert file2_info is not None
                     old_content_bytes = object_store.read_blob(file2_info["blob_hash"])
+                    assert file1_info is not None
                     if compare_working_tree:
                         new_content_bytes = file1_info["content"]
                     else:

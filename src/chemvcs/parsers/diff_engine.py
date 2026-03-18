@@ -30,7 +30,7 @@ class DiffEngine:
             LAMMPS_LOG   (``log.lammps``, ``log.*``)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the diff engine with available parsers."""
         self.parsers: Dict[str, BaseParser] = {
             "INCAR": IncarParser(),

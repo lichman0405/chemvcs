@@ -155,7 +155,8 @@ class PluginManager:
         
         # Check if explicitly disabled
         if validator.name in validators_config:
-            return validators_config[validator.name].get("enabled", True)
+            enabled = validators_config[validator.name].get("enabled", True)
+            return bool(enabled)
         
         # Use default
         return validator.enabled_by_default
@@ -256,7 +257,11 @@ class PluginManager:
                 "name": plugin.name,
                 "version": plugin.version,
                 "description": plugin.description,
-                "type": plugin.__class__.__base__.__name__,
+                "type": (
+                    plugin.__class__.__base__.__name__
+                    if plugin.__class__.__base__ is not None
+                    else "Plugin"
+                ),
             }
             for plugin in self.plugins.values()
         ]

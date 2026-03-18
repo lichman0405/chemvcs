@@ -122,7 +122,7 @@ class CommitBuilder:
             ]
 
             # Build commit object
-            commit_obj = {
+            commit_obj: Dict[str, Any] = {
                 "parent": parent_hash,
                 "timestamp": timestamp,
                 "author": author,
@@ -179,7 +179,7 @@ class CommitBuilder:
                 raise CommitBuilderError(f"Commit file not found: {commit_hash}")
 
             with open(commit_path, "r", encoding="utf-8") as f:
-                commit_obj = json.load(f)
+                commit_obj: Dict[str, Any] = json.load(f)
 
             # Verify hash integrity
             stored_hash = commit_obj.get("hash")
