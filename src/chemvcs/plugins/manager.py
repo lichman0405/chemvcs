@@ -1,8 +1,10 @@
 """Plugin manager for ChemVCS.
 
 Discovers and loads plugins using Python entry points mechanism.
+Plugin enable/disable state is persisted in .chemvcs/plugins.json.
 """
 
+import json
 import sys
 from importlib import metadata
 from pathlib import Path
@@ -13,6 +15,8 @@ from rich.console import Console
 from chemvcs.plugins.base import Plugin, ValidationResult, ValidatorPlugin
 
 console = Console()
+
+_PLUGIN_CONFIG_FILE = "plugins.json"
 
 
 class PluginManager:
@@ -176,11 +180,57 @@ class PluginManager:
             for error in result.errors:
                 console.print(f"      [red]{error}[/red]")
     
-    def set_config(self, config: dict[str, Any]) -> None:
-        """Set plugin configuration.
-        
+    def load_config(self, chemvcs_dir: Path) -> None:
+        """Load plugin configuration from .chemvcs/plugins.json.
+
         Args:
-            config: Configuration dictionary
+            chemvcs_dir: Path to the .chemvcs directory.
+        """
+        config_path = chemvcs_dir / _PLUGIN_CONFIG_FILE
+        if config_path.exists():
+            try:
+                self._config = json.loads(config_path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                self._config = {}
+        self._chemvcs_dir: Optional[Path] = chemvcs_dir
+
+    def save_config(self) -> None:
+        """Persist current configuration to .chemvcs/plugins.json."""
+        chemvcs_dir: Optional[Path] = getattr(self, "_chemvcs_dir", None)
+        if chemvcs_dir is None:
+            return
+        config_path = chemvcs_dir / _PLUGIN_CONFIG_FILE
+        config_path.write_text(
+            json.dumps(self._config, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+
+    def set_validator_enabled(self, name: str, enabled: bool) -> bool:
+        """Enable or disable a validator by name.
+
+        Args:
+            name: Validator plugin name.
+            enabled: True to enable, False to disable.
+
+        Returns:
+            True if the plugin was found and updated, False otherwise.
+        """
+        if name not in self.validators:
+            return False
+        validators_cfg = self._config.setdefault("validators", {})
+        validators_cfg.setdefault(name, {})["enabled"] = enabled
+        self.save_config()
+        return True
+
+    def is_validator_enabled(self, validator: ValidatorPlugin) -> bool:
+        """Public wrapper around the private enabled check."""
+        return self._is_validator_enabled(validator)
+
+    def set_config(self, config: dict[str, Any]) -> None:
+        """Set plugin configuration (in-memory only).
+
+        Args:
+            config: Configuration dictionary.
         """
         self._config = config
     

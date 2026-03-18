@@ -145,12 +145,11 @@ mypy chemvcs/
   - ✅ Interactive demo and documentation
   - ✅ Real working-tree semantic diff (cosmetic-only changes correctly ignored)
 
-### Phase 1.5: Plugin Ecosystem 🚧 **IN PROGRESS**
+### Phase 1.5: Plugin Ecosystem ✅ **COMPLETE**
 - ✅ POSCAR-POTCAR element order validator
-- 🚧 INCAR-POSCAR consistency validator (ISPIN vs magnetic atoms, NSW vs ISIF)
-- 🚧 File format validator (POSCAR structure, INCAR syntax)
-- 📝 Configuration system for plugin enable/disable
-- 📝 Community plugin repository
+- ✅ INCAR-POSCAR consistency validator (MAGMOM/LDAUU length, ISPIN vs magnetism, NSW vs ISIF)
+- ✅ File format validator (POSCAR structure, INCAR/KPOINTS syntax)
+- ✅ Configuration system for plugin enable/disable (`chemvcs plugin enable/disable <name>`)
 
 ### Phase 2: HPC Integration
 - SLURM job tracking
@@ -161,6 +160,7 @@ mypy chemvcs/
 - Remote repositories
 - Push/pull/clone
 - Conflict resolution
+- Community plugin repository
 
 ## 🤝 Contributing
 

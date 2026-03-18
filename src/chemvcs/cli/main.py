@@ -222,6 +222,7 @@ def add(
             console.print("[bold]Running validators...[/bold]\n")
             plugin_manager = PluginManager()
             plugin_manager.discover_plugins()
+            plugin_manager.load_config(chemvcs_dir)
             validation_results = plugin_manager.run_validators(
                 workspace_root, 
                 path_objects,
@@ -1168,19 +1169,25 @@ def plugin(
         plugin_manager = PluginManager()
         plugin_manager.discover_plugins()
         
+        # Load persisted config when a repo exists
+        chemvcs_dir = workspace_root / CHEMVCS_DIR
+        if chemvcs_dir.exists():
+            plugin_manager.load_config(chemvcs_dir)
+
         if action == "list":
             # List all discovered plugins
             validators = plugin_manager.validators
-            
+
             if not validators:
                 console.print("[yellow]No plugins found[/yellow]")
                 console.print("\nInstall plugins with: [bold]pip install chemvcs-validator[/bold]")
                 return
-            
+
             console.print(f"[bold]Discovered {len(validators)} validator plugin(s):[/bold]\n")
-            
+
             for validator in validators.values():
-                enabled = "[green]✓ enabled[/green]" if validator.enabled_by_default else "[dim]○ disabled[/dim]"
+                is_on = plugin_manager.is_validator_enabled(validator)
+                enabled = "[green]✓ enabled[/green]" if is_on else "[dim]○ disabled[/dim]"
                 console.print(f"  {enabled}  [cyan]{validator.name}[/cyan] v{validator.version}")
                 console.print(f"           {validator.description}")
                 console.print(f"           [dim]Priority: {validator.priority}[/dim]\n")
@@ -1219,12 +1226,32 @@ def plugin(
             ))
         
         elif action == "enable":
-            console.print("[yellow]Plugin enable/disable via CLI not yet implemented[/yellow]")
-            console.print("Plugins are automatically enabled based on their enabled_by_default setting")
-        
+            if not plugin_name:
+                console.print("[bold red]Error:[/bold red] Plugin name required for 'enable' action")
+                raise typer.Exit(1)
+            if not chemvcs_dir.exists():
+                console.print("[bold red]Error:[/bold red] Not a ChemVCS repository")
+                raise typer.Exit(1)
+            plugin_manager.load_config(chemvcs_dir)
+            if plugin_manager.set_validator_enabled(plugin_name, True):
+                console.print(f"[green]✓[/green] Plugin '[cyan]{plugin_name}[/cyan]' enabled")
+            else:
+                console.print(f"[bold red]Error:[/bold red] Plugin '{plugin_name}' not found")
+                raise typer.Exit(1)
+
         elif action == "disable":
-            console.print("[yellow]Plugin enable/disable via CLI not yet implemented[/yellow]")
-            console.print("Plugins are automatically enabled based on their enabled_by_default setting")
+            if not plugin_name:
+                console.print("[bold red]Error:[/bold red] Plugin name required for 'disable' action")
+                raise typer.Exit(1)
+            if not chemvcs_dir.exists():
+                console.print("[bold red]Error:[/bold red] Not a ChemVCS repository")
+                raise typer.Exit(1)
+            plugin_manager.load_config(chemvcs_dir)
+            if plugin_manager.set_validator_enabled(plugin_name, False):
+                console.print(f"[dim]○[/dim] Plugin '[cyan]{plugin_name}[/cyan]' disabled")
+            else:
+                console.print(f"[bold red]Error:[/bold red] Plugin '{plugin_name}' not found")
+                raise typer.Exit(1)
         
         else:
             console.print(f"[bold red]Error:[/bold red] Unknown action '{action}'")
