@@ -9,7 +9,7 @@ parameter, then running production.
 ```
 demo_lammps/
 ├── GUIDE_LAMMPS.md          # this file
-└── vasp_files/
+└── lammps_files/
     ├── step1_initial/        # initial equilibration (NVT, T=1.0)
     │   ├── in.lammps
     │   ├── data.lj_fluid
@@ -32,7 +32,7 @@ cd /scratch/username/lj_fluid
 chemvcs init
 
 # --- Step 1: Stage initial equilibration setup ---
-cp /path/to/demo_lammps/vasp_files/step1_initial/* .
+cp /path/to/demo_lammps/lammps_files/step1_initial/* .
 chemvcs add in.lammps data.lj_fluid
 chemvcs commit -m "Initial NVT equilibration: T=1.0, damp=0.1, 50k steps"
 
@@ -44,7 +44,7 @@ chemvcs add log.lammps
 chemvcs commit -m "Equilibration complete: TotEng=-1005.2, T=1.003"
 
 # --- Step 2: Production run with larger damping ---
-cp /path/to/demo_lammps/vasp_files/step2_production/in.lammps .
+cp /path/to/demo_lammps/lammps_files/step2_production/in.lammps .
 chemvcs add in.lammps
 chemvcs commit -m "Production NVT: damp=0.5, 200k steps"
 
