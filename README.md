@@ -91,6 +91,7 @@ chemvcs reproduce HEAD
 - **[Command Reference](COMMANDS.md)** - Complete guide to all commands and options
 - **[Demo Guide](demo/GUIDE.md)** - Step-by-step tutorial with Si convergence test example
 - **[Advanced Demo](demo_advanced/GUIDE_ADVANCED.md)** - MOF-acetylene adsorption workflow with plugin validation
+- **[LAMMPS Demo](demo_lammps/GUIDE_LAMMPS.md)** - Step-by-step LAMMPS workflow with semantic diffs
 - **[Plugin README](plugins/chemvcs-validator/README.md)** - Built-in validator plugin overview
 - [Contributing](CONTRIBUTING.md) - Development guide and coding standards
 
