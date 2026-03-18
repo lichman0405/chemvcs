@@ -13,7 +13,7 @@ ChemVCS provides Git-like version control specifically designed for computationa
 - **Git-like Interface**: Familiar `init`, `add`, `commit`, `log`, `diff`, `reproduce` commands
 - **VASP-Aware**: Semantic parsing of INCAR, KPOINTS, and OUTCAR files
 - **LAMMPS-Aware**: Semantic parsing of input scripts, data files, and log files
-- **Semantic Diff**: Human-readable comparison of calculation parameters
+- **Semantic Diff**: Human-readable comparison of calculation parameters — **semantic equality is the primary criterion**: cosmetic edits (whitespace, comments) do not trigger a "modified" report
   - **INCAR**: Automatic detection of critical (ENCUT, PREC, ISMEAR), major (LWAVE, LDAU), and minor parameter changes
   - **KPOINTS**: K-point grid changes, sampling type detection (Gamma/Monkhorst/Line-mode)
   - **LAMMPS input**: Thermostat/barostat, timestep, pair style, run/minimize settings
@@ -52,8 +52,11 @@ chemvcs commit -m "PBE+U, U=3.5eV, kpoints 4x4x4"
 # View plugin status
 chemvcs plugin list
 
-# Compare versions
-chemvcs diff HEAD~1 HEAD
+# Compare working tree against HEAD (default)
+chemvcs diff
+
+# Compare two specific commits
+chemvcs diff <hash1> <hash2>
 
 # Reproduce previous calculation
 chemvcs reproduce abc1234
@@ -138,8 +141,9 @@ mypy chemvcs/
 - ✅ Storage layer (content-addressable blob store, SQLite metadata DB)
 - ✅ Semantic diff engine for VASP and LAMMPS core file types
 - ✅ Plugin system for extensible validation (POSCAR-POTCAR validator included)
-- ✅ Comprehensive test suite (330+ tests, 74%+ coverage)
-- ✅ Interactive demo and documentation
+- ✅ Comprehensive test suite (337+ tests, 79%+ coverage)
+  - ✅ Interactive demo and documentation
+  - ✅ Real working-tree semantic diff (cosmetic-only changes correctly ignored)
 
 ### Phase 1.5: Plugin Ecosystem 🚧 **IN PROGRESS**
 - ✅ POSCAR-POTCAR element order validator
@@ -188,4 +192,4 @@ Inspired by version control needs in computational materials science community.
 
 ---
 
-**Note**: This project is in early development (v0.1.0). APIs may change before v1.0.0.
+**Note**: This project is in active development (v0.1.0). APIs may change before v1.0.0.
