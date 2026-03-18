@@ -91,7 +91,6 @@ chemvcs reproduce HEAD
 - **[Command Reference](COMMANDS.md)** - Complete guide to all commands and options
 - **[Demo Guide](demo/GUIDE.md)** - Step-by-step tutorial with Si convergence test example
 - **[Advanced Demo](demo_advanced/GUIDE_ADVANCED.md)** - MOF-acetylene adsorption workflow with plugin validation
-- **[LAMMPS Demo](demo_lammps/GUIDE_LAMMPS.md)** - Step-by-step LAMMPS workflow with semantic diffs
 - **[Plugin README](plugins/chemvcs-validator/README.md)** - Built-in validator plugin overview
 - [Contributing](CONTRIBUTING.md) - Development guide and coding standards
 
@@ -141,7 +140,7 @@ mypy chemvcs/
 - ✅ Storage layer (content-addressable blob store, SQLite metadata DB)
 - ✅ Semantic diff engine for VASP and LAMMPS core file types
 - ✅ Plugin system for extensible validation (POSCAR-POTCAR validator included)
-- ✅ Comprehensive test suite (337+ tests, 79%+ coverage)
+- ✅ Comprehensive test suite (478+ tests, 87%+ coverage)
   - ✅ Interactive demo and documentation
   - ✅ Real working-tree semantic diff (cosmetic-only changes correctly ignored)
 
