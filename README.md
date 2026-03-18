@@ -2,8 +2,10 @@
 
 **Version Control for Computational Materials Science**
 
-[![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://github.com/lichman0405/chemvcs/actions/workflows/test.yml/badge.svg)](https://github.com/lichman0405/chemvcs/actions/workflows/test.yml)
+[![Lint](https://github.com/lichman0405/chemvcs/actions/workflows/lint.yml/badge.svg)](https://github.com/lichman0405/chemvcs/actions/workflows/lint.yml)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 ChemVCS provides Git-like version control specifically designed for computational materials science calculations, with semantic understanding of VASP and LAMMPS files.
@@ -151,12 +153,12 @@ mypy chemvcs/
 - ✅ File format validator (POSCAR structure, INCAR/KPOINTS syntax)
 - ✅ Configuration system for plugin enable/disable (`chemvcs plugin enable/disable <name>`)
 
-### Phase 2: HPC Integration
+### Phase 2: HPC Integration 🔲 PLANNED
 - SLURM job tracking
 - Automatic commit on job completion
 - Resource usage statistics
 
-### Phase 3: Collaboration
+### Phase 3: Collaboration 🔲 PLANNED
 - Remote repositories
 - Push/pull/clone
 - Conflict resolution
