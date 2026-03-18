@@ -1,0 +1,40 @@
+# LAMMPS input script: Step 1 - NVT equilibration of LJ fluid
+# Units: LJ (reduced units), ~500 atoms
+
+units        lj
+atom_style   atomic
+dimension    3
+boundary     p p p
+
+# Read initial configuration
+read_data    data.lj_fluid
+
+# LJ pair potential (epsilon=1.0, sigma=1.0, cutoff=2.5)
+pair_style   lj/cut 2.5
+pair_coeff   1 1 1.0 1.0 2.5
+
+# Neighbor list settings
+neighbor     0.3 bin
+neigh_modify delay 0 every 1 check yes
+
+# Energy minimization first to remove bad contacts
+minimize     1.0e-4 1.0e-6 1000 10000
+
+# Assign velocities at T=1.0
+velocity     all create 1.0 42 dist gaussian
+
+# NVT thermostat: T=1.0, damping=0.1
+fix          1 all nvt temp 1.0 1.0 0.1
+
+# Output: print thermo every 100 steps
+thermo       100
+thermo_style custom step temp etotal pe ke press vol
+
+# Timestep in reduced units
+timestep     0.005
+
+# Dump trajectory every 1000 steps
+dump         1 all atom 1000 dump.lj_nvt.lammpstrj
+
+# Run 50,000 steps (~200 ps in reduced units)
+run          50000

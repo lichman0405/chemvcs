@@ -1,0 +1,34 @@
+# LAMMPS input script: Step 2 - NVT production run
+# Increased timestep and damping for better sampling
+
+units        lj
+atom_style   atomic
+dimension    3
+boundary     p p p
+
+# Read equilibrated configuration from step 1 restart
+read_data    data.lj_fluid
+
+pair_style   lj/cut 2.5
+pair_coeff   1 1 1.0 1.0 2.5
+
+neighbor     0.3 bin
+neigh_modify delay 0 every 1 check yes
+
+velocity     all create 1.0 84 dist gaussian
+
+# NVT with larger damping (0.5 vs 0.1 in step 1) for better statistics
+fix          1 all nvt temp 1.0 1.0 0.5
+
+# Output every 500 steps (vs 100 in step 1)
+thermo       500
+thermo_style custom step temp etotal pe ke press vol
+
+# Larger timestep (0.002 vs 0.005 — tighter integration for production)
+timestep     0.002
+
+# Trajectory dump
+dump         1 all atom 2000 dump.lj_production.lammpstrj
+
+# 200k steps production
+run          200000

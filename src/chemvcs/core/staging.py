@@ -389,11 +389,37 @@ class StagingManager:
             return "VASPRUN"
         elif name == "OSZICAR":
             return "OSZICAR"
-        
+
+        # LAMMPS log files must be checked before generic *.lammps input rules.
+        elif (
+            name == "LOG.LAMMPS"
+            or name.startswith("LOG.")
+            or name.endswith(".LOG")
+            or name == "LAMMPS.LOG"
+        ):
+            return "LAMMPS_LOG"
+
+        # LAMMPS data files must also be checked before generic *.lammps rules.
+        elif (
+            name.startswith("DATA.")
+            or name.endswith(".LMP")
+            or name.endswith(".DATA")
+            or name == "DATA"
+        ):
+            return "LAMMPS_DATA"
+
+        # LAMMPS input scripts: in.*, *.lammps, lammps.in
+        elif (
+            name.startswith("IN.")
+            or name.endswith(".LAMMPS")
+            or name in ("LAMMPS.IN", "INPUT.LAMMPS", "IN.LAMMPS")
+        ):
+            return "LAMMPS_INPUT"
+
         # Other
         elif path.suffix == ".json":
             return "JSON"
-        elif path.suffix in [".txt", ".log"]:
+        elif path.suffix == ".txt":
             return "TEXT"
         else:
             return "UNKNOWN"

@@ -1,0 +1,34 @@
+LAMMPS (22 Jul 2025)
+OMP_NUM_THREADS environment is not set. Defaulting to 1 thread. (src/comm.cpp:98)
+  using 1 OpenMP thread(s) per MPI task
+Reading data file ...
+  orthogonal box = (0 0 0) to (8.059277 8.059277 8.059277)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  500 atoms
+  read_data CPU = 0.001 seconds
+Setting up Verlet run ...
+  Unit style    : lj
+  Current step  : 0
+  Timestep      : 0.002
+  Total # of neighbors = 8452
+  Ave neighs/atom = 16.904
+  Neighbor list builds during run = 312
+  Dangerous builds = 0
+Per MPI rank memory allocation (min/avg/max) = 4.1 | 4.1 | 4.1 Mbytes
+   Step          Temp          TotEng         PotEng         KinEng         Press          Volume     
+          0   1.0000042      -1004.2850     -1005.4936      1.8130        0.33680        522.977     
+        500   1.0003218      -1004.2851     -1005.4937      1.8130        0.33681        522.977     
+       1000   0.9998721      -1004.2850     -1005.4936      1.8130        0.33680        522.977     
+       5000   1.0001543      -1004.2850     -1005.4936      1.8130        0.33680        522.977     
+      10000   0.9999812      -1004.2850     -1005.4936      1.8130        0.33680        522.977     
+      50000   1.0000234      -1004.2850     -1005.4936      1.8130        0.33680        522.977     
+     100000   1.0000073      -1004.2850     -1005.4936      1.8130        0.33680        522.977     
+     150000   0.9999981      -1004.2850     -1005.4936      1.8130        0.33680        522.977     
+     200000   1.0000012      -1007.8214     -1009.0344      1.8130        0.33681        522.977     
+Loop time of 57.4312 seconds with 1 procs for 200000 steps with 500 atoms
+
+Performance: 120234.891 tau/day, 3483.7 timesteps/s, 1.742 Matom-step/s
+99.9% CPU use with 1 MPI tasks x 1 OpenMP thread
+
+Total wall time: 0:00:57

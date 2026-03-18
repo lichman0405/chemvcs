@@ -101,10 +101,21 @@ def init(
 .DS_Store
 Thumbs.db
 
-# Large output files (consider storing separately)
+# ---- VASP large output files (consider storing separately) ----
 # WAVECAR
 # CHG
 # CHGCAR
+
+# ---- LAMMPS large output files --------------------------------
+# Trajectory dump files can be many GB – ignore by default.
+# Use `chemvcs add --force dump.myrun` to track a specific file.
+dump.*
+*.dump
+# Restart files are binary and large
+restart.*
+*.restart
+# Binary files
+*.bin
 
 # Compiled Python
 __pycache__/
@@ -721,21 +732,32 @@ def diff(
                 raise typer.Exit(1)
             
             # Determine target revision (rev2)
+            compare_working_tree = rev2 is None
             if rev2 is None:
-                # Compare with working directory (not implemented - use HEAD~1 as demo)
-                console.print(
-                    "[yellow]Note: Working directory comparison not yet implemented[/yellow]"
-                )
-                console.print("[yellow]Showing diff between HEAD and parent[/yellow]\n")
-                
-                parent_hash = commit1.get("parent")
-                if not parent_hash:
-                    console.print("[dim]This is the root commit (no parent to compare)[/dim]")
-                    raise typer.Exit(0)
-                
-                commit2 = commit_builder.read_commit(parent_hash)
-                files1 = {f["path"]: f for f in commit1.get("files", [])}
-                files2 = {f["path"]: f for f in commit2.get("files", [])}
+                commit2 = None
+                files2 = {f["path"]: f for f in commit1.get("files", [])}
+                files1 = {}
+
+                # Compare HEAD-tracked files against the current working tree.
+                for tracked_path in files2:
+                    working_path = workspace_root / tracked_path
+                    if not working_path.exists() or not working_path.is_file():
+                        continue
+
+                    files1[tracked_path] = {
+                        "path": tracked_path,
+                        "content": working_path.read_bytes(),
+                    }
+
+                # Allow explicit comparison for a working-tree file that is not
+                # present in HEAD (reported as added).
+                if file:
+                    requested_path = workspace_root / file
+                    if requested_path.exists() and requested_path.is_file() and file not in files1:
+                        files1[file] = {
+                            "path": file,
+                            "content": requested_path.read_bytes(),
+                        }
             else:
                 # Compare two specific commits
                 commit2 = commit_builder.read_commit(rev2)
@@ -753,22 +775,34 @@ def diff(
             all_paths = set(files1.keys()) | set(files2.keys())
             if file:
                 # Filter to specific file
-                if file not in all_paths:
+                working_path = workspace_root / file
+                if compare_working_tree and working_path.exists() and working_path.is_file():
+                    all_paths = {file}
+                elif file not in all_paths:
                     console.print(f"[yellow]File not found in either revision: {file}[/yellow]")
                     raise typer.Exit(1)
-                all_paths = {file}
+                else:
+                    all_paths = {file}
+            elif compare_working_tree:
+                # Default working-tree diff only reports tracked files.
+                all_paths = set(files2.keys())
             
             # Display header
             commit1_hash = commit1.get("hash", rev1)
-            commit2_hash = commit2.get("hash", rev2) if rev2 else parent_hash
-            console.print(f"[bold]Comparing:[/bold] {commit2_hash[:7]} → {commit1_hash[:7]}\n")
+            if compare_working_tree:
+                console.print(f"[bold]Comparing:[/bold] {commit1_hash[:7]} → working tree\n")
+            else:
+                commit2_hash = commit2.get("hash", rev2)
+                console.print(f"[bold]Comparing:[/bold] {commit2_hash[:7]} → {commit1_hash[:7]}\n")
             
             # Process each file
             has_changes = False
             for path in sorted(all_paths):
                 file1_info = files1.get(path)
                 file2_info = files2.get(path)
-                
+
+                diff_entries = None
+
                 # Determine change type
                 if file1_info and not file2_info:
                     change_type = "added"
@@ -776,13 +810,41 @@ def diff(
                 elif file2_info and not file1_info:
                     change_type = "deleted"
                     has_changes = True
-                elif file1_info["blob_hash"] == file2_info["blob_hash"]:
-                    # No changes
-                    continue
                 else:
+                    # Both versions exist — check for modifications.
+                    # First read content bytes for both sides.
+                    old_content_bytes = object_store.read_blob(file2_info["blob_hash"])
+                    if compare_working_tree:
+                        new_content_bytes = file1_info["content"]
+                    else:
+                        if file1_info["blob_hash"] == file2_info["blob_hash"]:
+                            continue  # identical blobs → definitely unchanged
+                        new_content_bytes = object_store.read_blob(file1_info["blob_hash"])
+
+                    # Identical bytes → unchanged regardless of file type
+                    if old_content_bytes == new_content_bytes:
+                        continue
+
+                    # For files with a semantic parser, semantic equality is the
+                    # real test.  A cosmetic edit (whitespace, comments) that
+                    # produces no parameter changes is NOT a modification in
+                    # ChemVCS terms.
+                    if diff_engine.can_parse(path):
+                        try:
+                            diff_entries = diff_engine.diff_files(
+                                old_content_bytes.decode("utf-8"),
+                                new_content_bytes.decode("utf-8"),
+                                path,
+                            )
+                            if not diff_entries:
+                                # Bytes differ but semantics are unchanged
+                                continue
+                        except Exception:
+                            diff_entries = None  # parser error → fall through
+
                     change_type = "modified"
                     has_changes = True
-                
+
                 # Display file header
                 if change_type == "added":
                     console.print(f"[bold green]+ {path}[/bold green] (added)")
@@ -790,46 +852,33 @@ def diff(
                     console.print(f"[bold red]- {path}[/bold red] (deleted)")
                 else:
                     console.print(f"[bold yellow]~ {path}[/bold yellow] (modified)")
-                
-                # Try semantic diff for modified files
-                if change_type == "modified" and diff_engine.can_parse(path):
-                    try:
-                        old_content = object_store.read_blob(file2_info["blob_hash"]).decode("utf-8")
-                        new_content = object_store.read_blob(file1_info["blob_hash"]).decode("utf-8")
-                        
-                        diff_entries = diff_engine.diff_files(old_content, new_content, path)
-                        
-                        if diff_entries:
-                            if summary:
-                                # Just show summary
-                                diff_summary = diff_engine.summarize_diff(diff_entries)
-                                console.print(f"  Total: {diff_summary['total_changes']} change(s)")
-                                
-                                sig = diff_summary["by_significance"]
-                                if sig.get("critical", 0) > 0:
-                                    console.print(f"  ‼️  {sig['critical']} critical")
-                                if sig.get("major", 0) > 0:
-                                    console.print(f"  ⚠️  {sig['major']} major")
-                                if sig.get("minor", 0) > 0:
-                                    console.print(f"  ℹ️  {sig['minor']} minor")
-                            else:
-                                # Show detailed diff
-                                if format == "json":
-                                    import json
-                                    entries_dict = [e.to_dict() for e in diff_entries]
-                                    console.print(json.dumps(entries_dict, indent=2))
-                                else:
-                                    style = "compact" if format == "unified" else "default"
-                                    formatted = diff_engine.format_diff(diff_entries, style=style)
-                                    for line in formatted.split("\n"):
-                                        console.print(f"  {line}")
+
+                # Show semantic diff detail for modified files
+                if change_type == "modified" and diff_entries is not None:
+                    if summary:
+                        diff_summary = diff_engine.summarize_diff(diff_entries)
+                        console.print(f"  Total: {diff_summary['total_changes']} change(s)")
+                        sig = diff_summary["by_significance"]
+                        if sig.get("critical", 0) > 0:
+                            console.print(f"  ‼️  {sig['critical']} critical")
+                        if sig.get("major", 0) > 0:
+                            console.print(f"  ⚠️  {sig['major']} major")
+                        if sig.get("minor", 0) > 0:
+                            console.print(f"  ℹ️  {sig['minor']} minor")
+                    else:
+                        if format == "json":
+                            import json
+                            entries_dict = [e.to_dict() for e in diff_entries]
+                            console.print(json.dumps(entries_dict, indent=2))
                         else:
-                            console.print("  [dim](no semantic changes detected)[/dim]")
-                    
-                    except Exception as e:
-                        console.print(f"  [yellow]Semantic diff failed: {e}[/yellow]")
-                        console.print("  [dim]Use text-based diff for details[/dim]")
-                
+                            style = "compact" if format == "unified" else "default"
+                            formatted = diff_engine.format_diff(diff_entries, style=style)
+                            for line in formatted.split("\n"):
+                                console.print(f"  {line}")
+                elif change_type == "modified":
+                    # Non-parseable file (POSCAR, POTCAR, README, …) — contents differ
+                    console.print("  [dim](binary or unrecognised format — contents differ)[/dim]")
+
                 console.print()
             
             if not has_changes:

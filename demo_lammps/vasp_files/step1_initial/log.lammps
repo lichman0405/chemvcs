@@ -1,0 +1,82 @@
+LAMMPS (22 Jul 2025)
+OMP_NUM_THREADS environment is not set. Defaulting to 1 thread. (src/comm.cpp:98)
+  using 1 OpenMP thread(s) per MPI task
+Reading data file ...
+  orthogonal box = (0 0 0) to (8.059277 8.059277 8.059277)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  500 atoms
+  reading velocities ...
+  500 velocities
+  read_data CPU = 0.002 seconds
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 2.8
+  ghost atom cutoff = 2.8
+  binsize = 1.4, bins = 6 6 6
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair lj/cut, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton
+      stencil: half/bin/3d
+      bin: standard
+Setting up Minimization run ...
+  Unit style    : lj
+  Current step  : 0
+  Stopping criteria for minimization:
+    energy tolerance = 1.00e-04
+    force tolerance  = 1.00e-06
+    max iterations   = 1000
+    max evaluations  = 10000
+Per MPI rank memory allocation (min/avg/max) = 3.8 | 3.8 | 3.8 Mbytes
+   Step          Temp          E_pair         E_mol          TotEng         Press     
+          0   0              -1001.3205      0             -1001.3205     -5.8321     
+         42   0              -1005.7832      0             -1005.7832     -0.0024     
+Loop time of 0.0712 seconds with 1 procs for 42 steps with 500 atoms
+
+99.7% CPU use with 1 MPI tasks x 1 OpenMP thread
+
+Minimization stats:
+  Stopping criterion = energy tolerance
+  Energy initial, next-to-last, final = 
+     -1001.3205    -1005.7831    -1005.7832
+  Force two-norm initial, final = 12.345 0.00012
+  Force max-component initial, final = 3.2145 0.000034
+  Final line search alpha, max atom move = 0.5 1.7e-05
+  Iterations, force evaluations = 42 104
+
+Setting up Verlet run ...
+  Unit style    : lj
+  Current step  : 42
+  Timestep      : 0.005
+  Total # of neighbors = 8452
+  Ave neighs/atom = 16.904
+  Neighbor list builds during run = 78
+  Dangerous builds = 0
+Per MPI rank memory allocation (min/avg/max) = 4.1 | 4.1 | 4.1 Mbytes
+   Step          Temp          TotEng         PotEng         KinEng         Press          Volume     
+         42   1.0000381      -1004.2840     -1005.7834      2.2432        0.38210        522.977     
+        100   1.0128453      -1004.2913     -1005.5040      1.8659        0.35012        522.977     
+        200   0.9974231      -1004.2871     -1005.4815      1.7874        0.33451        522.977     
+        300   1.0043128      -1004.2850     -1005.4944      1.8141        0.33712        522.977     
+        400   0.9988142      -1004.2862     -1005.5011      1.8224        0.34123        522.977     
+        500   1.0019374      -1004.2855     -1005.4965      1.8165        0.33891        522.977     
+       1000   1.0002781      -1004.2849     -1005.4934      1.8128        0.33678        522.977     
+       2000   0.9997643      -1004.2851     -1005.4937      1.8129        0.33692        522.977     
+       5000   1.0005321      -1004.2850     -1005.4936      1.8130        0.33681        522.977     
+      10000   0.9998234      -1004.2850     -1005.4936      1.8130        0.33680        522.977     
+      20000   1.0001423      -1004.2850     -1005.4936      1.8130        0.33681        522.977     
+      30000   0.9999876      -1004.2850     -1005.4936      1.8130        0.33680        522.977     
+      40000   1.0000234      -1004.2850     -1005.4936      1.8130        0.33680        522.977     
+      50000   1.0000042      -1004.2850     -1005.4936      1.8130        0.33680        522.977     
+Loop time of 14.3218 seconds with 1 procs for 50000 steps with 500 atoms
+
+Performance: 150123.457 tau/day, 3491.2 timesteps/s, 1.746 Matom-step/s
+99.8% CPU use with 1 MPI tasks x 1 OpenMP thread
+
+MSD dynamics:
+  Mean square displacement: 12.8347
+  Diffusion coefficient: 0.04278
+
+Total wall time: 0:00:14

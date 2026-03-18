@@ -1,0 +1,29 @@
+# LAMMPS input script: Step 3 - NPT production run
+# Pressure coupling to get correct density
+
+units        lj
+atom_style   atomic
+dimension    3
+boundary     p p p
+
+read_data    data.lj_fluid
+
+pair_style   lj/cut 2.5
+pair_coeff   1 1 1.0 1.0 2.5
+
+neighbor     0.3 bin
+neigh_modify delay 0 every 1 check yes
+
+velocity     all create 1.0 123 dist gaussian
+
+# NPT: T=1.0, P=0.1 (liquid-state LJ), Tdamp=0.5, Pdamp=2.0
+fix          1 all npt temp 1.0 1.0 0.5 iso 0.1 0.1 2.0
+
+thermo       500
+thermo_style custom step temp etotal pe press vol lx ly lz
+
+timestep     0.002
+
+dump         1 all atom 2000 dump.lj_npt.lammpstrj
+
+run          200000

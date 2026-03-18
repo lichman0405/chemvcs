@@ -1,6 +1,6 @@
 # ChemVCS Command Reference
 
-Complete reference for all ChemVCS commands, options, and usage patterns.
+Complete reference for all ChemVCS commands, options, and usage patterns for VASP and LAMMPS workflows.
 
 ---
 
@@ -113,6 +113,12 @@ chemvcs add INCAR POSCAR KPOINTS POTCAR
 # Add all VASP input files
 chemvcs add INCAR POSCAR KPOINTS POTCAR
 
+# Add common LAMMPS inputs
+chemvcs add in.lammps data.system
+
+# Track a finished LAMMPS run
+chemvcs add log.lammps
+
 # Add directory recursively
 chemvcs add calculations/
 
@@ -125,7 +131,7 @@ chemvcs add debug.log --force
 
 ### File Type Detection
 
-ChemVCS automatically detects VASP file types:
+ChemVCS automatically detects supported VASP and LAMMPS file types:
 
 | Filename Pattern | Detected Type |
 |-----------------|---------------|
@@ -134,6 +140,9 @@ ChemVCS automatically detects VASP file types:
 | `KPOINTS*` | KPOINTS (k-point sampling) |
 | `POTCAR*` | POTCAR (pseudopotentials) |
 | `OUTCAR*` | OUTCAR (calculation output) |
+| `in.*`, `*.lammps`, `lammps.in` | LAMMPS input script |
+| `data.*`, `*.lmp`, `*.data` | LAMMPS data file |
+| `log.lammps`, `log.*`, `*.log`, `lammps.log` | LAMMPS thermo/log output |
 | Others | Unknown (stored as binary blob) |
 
 ### Notes
@@ -245,7 +254,7 @@ chemvcs commit -m "Checkpoint before optimization" --allow-empty
 
 ### Semantic Diff Display
 
-When committing VASP files that have changed since the parent commit, ChemVCS shows **semantic changes**:
+When committing supported scientific input or output files that have changed since the parent commit, ChemVCS shows **semantic changes**.
 
 ```
 Semantic Changes:
@@ -257,6 +266,25 @@ Semantic Changes:
       ~ ENCUT: 400 → 520
       ~ ISMEAR: 0 → 1
       ~ LWAVE: True → False
+```
+
+LAMMPS files show the same style of summary. For example:
+
+```
+Semantic Changes:
+
+  in.lammps:
+    ‼️  2 critical change(s)
+    ⚠️  1 major change(s)
+    Key changes:
+      ~ timestep: 0.005 → 0.002
+      ~ run: 50000 → 200000
+      ~ fix_nvt: {'style': 'nvt', 'Tstart': 1.0, 'Tstop': 1.0, 'Tdamp': 0.1} → {'style': 'nvt', 'Tstart': 1.0, 'Tstop': 1.0, 'Tdamp': 0.5}
+
+  log.lammps:
+    ‼️  1 critical change(s)
+    Key changes:
+      ~ final_etotal: -1004.285 → -1007.8214
 ```
 
 **Significance Levels**:

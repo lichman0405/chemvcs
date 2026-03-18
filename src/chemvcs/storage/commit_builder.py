@@ -88,8 +88,17 @@ class CommitBuilder:
             # Generate timestamp
             timestamp = datetime.now(timezone.utc).isoformat()
 
-            # Process files - store blobs and collect metadata
-            processed_files = []
+            # Start from the parent snapshot, then overlay newly staged files.
+            # This makes each commit a full reproducible snapshot instead of an
+            # incremental patch consisting only of files staged for this commit.
+            processed_by_path: Dict[str, Dict[str, Any]] = {}
+
+            if parent_hash:
+                parent_commit = self.read_commit(parent_hash)
+                for file_entry in parent_commit.get("files", []):
+                    processed_by_path[file_entry["path"]] = dict(file_entry)
+
+            # Process staged files - store blobs and collect metadata
             for file_entry in files:
                 path = file_entry["path"]
                 content = file_entry["content"]
@@ -100,15 +109,17 @@ class CommitBuilder:
                 # Write blob to object store
                 blob_hash = self.object_store.write_blob(content)
 
-                processed_files.append(
-                    {
-                        "path": path,
-                        "blob_hash": blob_hash,
-                        "file_type": file_type,
-                        "is_reference": is_reference,
-                        "size_bytes": size_bytes,
-                    }
-                )
+                processed_by_path[path] = {
+                    "path": path,
+                    "blob_hash": blob_hash,
+                    "file_type": file_type,
+                    "is_reference": is_reference,
+                    "size_bytes": size_bytes,
+                }
+
+            processed_files = [
+                processed_by_path[path] for path in sorted(processed_by_path)
+            ]
 
             # Build commit object
             commit_obj = {

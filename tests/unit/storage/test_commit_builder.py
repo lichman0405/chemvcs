@@ -113,6 +113,31 @@ class TestCreateCommit:
         child_obj = commit_builder.read_commit(child_hash)
         assert child_obj["parent"] == parent_hash
 
+    def test_create_commit_inherits_parent_files(self, commit_builder: CommitBuilder) -> None:
+        """Child commits should remain full snapshots and keep unchanged parent files."""
+        parent_hash = commit_builder.create_commit(
+            files=[
+                {"path": "in.lammps", "content": b"run 50000\n", "file_type": "LAMMPS_INPUT"},
+                {"path": "data.lammps", "content": b"500 atoms\n", "file_type": "LAMMPS_DATA"},
+            ],
+            message="Parent commit",
+            author="test@host",
+        )
+
+        child_hash = commit_builder.create_commit(
+            files=[
+                {"path": "log.lammps", "content": b"Total wall time: 0:00:10\n", "file_type": "LAMMPS_LOG"},
+            ],
+            message="Child commit",
+            author="test@host",
+            parent_hash=parent_hash,
+        )
+
+        child_obj = commit_builder.read_commit(child_hash)
+        paths = [file_entry["path"] for file_entry in child_obj["files"]]
+
+        assert paths == ["data.lammps", "in.lammps", "log.lammps"]
+
     def test_create_commit_with_metadata(self, commit_builder: CommitBuilder) -> None:
         """Test creating commit with semantic and output metadata."""
         files = [

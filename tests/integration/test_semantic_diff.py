@@ -146,10 +146,13 @@ class TestSemanticDiffIntegration:
         result = run_chemvcs(["commit", "-m", "Update"], workspace)
         assert result.returncode == 0
         
-        # Run diff command
+        # Modify working tree after the second commit
+        incar.write_text("ENCUT = 650\nISMEAR = -5\n")
+
+        # Run diff command against working tree
         result = run_chemvcs(["diff"], workspace)
         
-        # Should show comparison between HEAD and parent
+        # Should show comparison between HEAD and working tree
         assert result.returncode == 0
         assert "Comparing:" in result.stdout
         assert "INCAR" in result.stdout
@@ -174,6 +177,9 @@ class TestSemanticDiffIntegration:
         result = run_chemvcs(["commit", "-m", "v2"], workspace)
         assert result.returncode == 0
         
+        # Modify working tree after the second commit
+        incar.write_text("ENCUT = 700\nPREC = Normal\n")
+
         # Run diff with summary
         result = run_chemvcs(["diff", "--summary"], workspace)
         
@@ -199,6 +205,9 @@ class TestSemanticDiffIntegration:
         result = run_chemvcs(["commit", "-m", "v2"], workspace)
         assert result.returncode == 0
         
+        # Modify working tree after the second commit
+        incar.write_text("ENCUT = 700\n")
+
         # Run diff with JSON format
         result = run_chemvcs(["diff", "--format", "json"], workspace)
         
@@ -230,6 +239,10 @@ class TestSemanticDiffIntegration:
         result = run_chemvcs(["commit", "-m", "v2"], workspace)
         assert result.returncode == 0
         
+        # Modify working tree after the second commit
+        incar.write_text("ENCUT = 700\n")
+        kpoints.write_text("Automatic\n0\nGamma\n10 10 10\n0 0 0\n")
+
         # Diff only INCAR
         result = run_chemvcs(["diff", "--file", "INCAR"], workspace)
         
@@ -237,6 +250,43 @@ class TestSemanticDiffIntegration:
         assert "INCAR" in result.stdout
         # Should not show KPOINTS
         assert "KPOINTS" not in result.stdout or result.stdout.count("KPOINTS") == 0
+
+    def test_diff_command_clean_working_tree(self, initialized_repo):
+        """Test diff command reports no changes when working tree matches HEAD."""
+        workspace = initialized_repo
+
+        incar = workspace / "INCAR"
+        incar.write_text("ENCUT = 520\n")
+
+        result = run_chemvcs(["add", "INCAR"], workspace)
+        assert result.returncode == 0
+        result = run_chemvcs(["commit", "-m", "v1"], workspace)
+        assert result.returncode == 0
+
+        result = run_chemvcs(["diff"], workspace)
+
+        assert result.returncode == 0
+        assert "No changes between revisions" in result.stdout
+
+    def test_diff_command_detects_deleted_tracked_file(self, initialized_repo):
+        """Test diff command reports deletion of a tracked working-tree file."""
+        workspace = initialized_repo
+
+        incar = workspace / "INCAR"
+        incar.write_text("ENCUT = 520\n")
+
+        result = run_chemvcs(["add", "INCAR"], workspace)
+        assert result.returncode == 0
+        result = run_chemvcs(["commit", "-m", "v1"], workspace)
+        assert result.returncode == 0
+
+        incar.unlink()
+
+        result = run_chemvcs(["diff"], workspace)
+
+        assert result.returncode == 0
+        assert "INCAR" in result.stdout
+        assert "deleted" in result.stdout
     
     def test_commit_no_semantic_diff_for_first_commit(self, initialized_repo):
         """Test that first commit doesn't show semantic diff (no parent)."""

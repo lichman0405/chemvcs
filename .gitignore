@@ -73,3 +73,7 @@ docs/
 
 # sample-pos/pot
 sample-pospot/
+
+# Documentation PDFs (not synced to repo)
+Manual.pdf
+*.pdf

@@ -1,4 +1,4 @@
-"""Semantic diff engine for VASP files.
+"""Semantic diff engine for VASP and LAMMPS files.
 
 This module provides high-level diff functionality that automatically
 selects and applies appropriate parsers based on file type.
@@ -10,48 +10,92 @@ from typing import Any, Dict, List, Optional
 from chemvcs.parsers.base_parser import BaseParser, DiffEntry, ParserError
 from chemvcs.parsers.incar_parser import IncarParser
 from chemvcs.parsers.kpoints_parser import KpointsParser
+from chemvcs.parsers.lammps_data_parser import LammpsDataParser
+from chemvcs.parsers.lammps_input_parser import LammpsInputParser
+from chemvcs.parsers.lammps_log_parser import LammpsLogParser
 from chemvcs.parsers.outcar_parser import OutcarParser
 
 
 class DiffEngine:
-    """Main diff engine for semantic comparison of VASP files.
-    
+    """Main diff engine for semantic comparison of VASP and LAMMPS files.
+
     Automatically detects file types and applies appropriate parsers
     to compute semantic diffs rather than line-by-line text diffs.
+
+    Supported file types
+    --------------------
+    VASP:   INCAR, KPOINTS, OUTCAR
+    LAMMPS: LAMMPS_INPUT (``in.*``, ``*.lammps``, ``lammps.in``),
+            LAMMPS_DATA  (``data.*``, ``*.lmp``, ``*.data``),
+            LAMMPS_LOG   (``log.lammps``, ``log.*``)
     """
-    
+
     def __init__(self):
         """Initialize the diff engine with available parsers."""
         self.parsers: Dict[str, BaseParser] = {
             "INCAR": IncarParser(),
             "KPOINTS": KpointsParser(),
             "OUTCAR": OutcarParser(),
+            "LAMMPS_INPUT": LammpsInputParser(),
+            "LAMMPS_DATA": LammpsDataParser(),
+            "LAMMPS_LOG": LammpsLogParser(),
         }
-    
+
     def get_file_type(self, filename: str) -> Optional[str]:
         """Detect file type from filename.
-        
+
         Args:
-            filename: Name of the file
-            
+            filename: Name of the file (path or basename).
+
         Returns:
-            File type string (e.g., "INCAR") or None if not recognized
+            File type string (e.g., ``"INCAR"``, ``"LAMMPS_INPUT"``) or
+            ``None`` if not recognised.
         """
-        # Get base filename without path
-        base = Path(filename).name.upper()
-        
-        # Check for known VASP file types
-        if base == "INCAR":
+        base = Path(filename).name
+        base_upper = base.upper()
+
+        # ---- VASP ---------------------------------------------------- #
+        if base_upper == "INCAR":
             return "INCAR"
-        elif base == "KPOINTS":
+        if base_upper == "KPOINTS":
             return "KPOINTS"
-        elif base == "POSCAR" or base == "CONTCAR":
+        if base_upper in ("POSCAR", "CONTCAR"):
             return "POSCAR"
-        elif base.startswith("POTCAR"):
+        if base_upper.startswith("POTCAR"):
             return "POTCAR"
-        elif base == "OUTCAR":
+        if base_upper == "OUTCAR":
             return "OUTCAR"
-        
+
+        # ---- LAMMPS -------------------------------------------------- #
+        # Log files MUST be checked before input scripts because
+        # "log.lammps" ends in ".LAMMPS" and would otherwise be misclassified.
+        if (
+            base_upper == "LOG.LAMMPS"
+            or base_upper.startswith("LOG.")
+            or base_upper.endswith(".LOG")
+            or base_upper == "LAMMPS.LOG"
+        ):
+            return "LAMMPS_LOG"
+
+        # Data files: data.*, *.lmp, *.data
+        if (
+            base_upper.startswith("DATA.")
+            or base_upper.endswith(".LMP")
+            or base_upper.endswith(".DATA")
+            or base_upper == "DATA"
+        ):
+            return "LAMMPS_DATA"
+
+        # Input scripts: in.*, *.lammps, lammps.in
+        if (
+            base_upper.startswith("IN.")
+            or base_upper.endswith(".LAMMPS")
+            or base_upper == "LAMMPS.IN"
+            or base_upper == "INPUT.LAMMPS"
+            or base_upper == "IN.LAMMPS"
+        ):
+            return "LAMMPS_INPUT"
+
         return None
     
     def can_parse(self, filename: str) -> bool:

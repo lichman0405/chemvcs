@@ -58,5 +58,29 @@ VASP_OUTPUT_FILES = {
     "DOSCAR": "density_of_states",
 }
 
+# LAMMPS file types
+# Input scripts:  recognised by prefix/suffix (in.*, *.lammps, lammps.in)
+# Data files:     recognised by prefix/suffix (data.*, *.lmp, *.data)
+# Log files:      recognised by name          (log.lammps, log.*, *.log)
+LAMMPS_INPUT_FILES = {
+    "LAMMPS_INPUT": "md_input_script",
+    "LAMMPS_DATA": "md_structure_topology",
+}
+
+LAMMPS_OUTPUT_FILES = {
+    "LAMMPS_LOG": "md_thermo_log",
+    "LAMMPS_DUMP": "md_trajectory",    # tracked only, not semantically parsed
+    "LAMMPS_RESTART": "md_restart",    # binary, tracked only
+}
+
+# LAMMPS files that are typically large and should be ignored by default
+LAMMPS_DEFAULT_IGNORE = [
+    "dump.*",
+    "*.dump",
+    "restart.*",
+    "*.restart",
+    "*.bin",
+]
+
 # Database schema version
 DB_SCHEMA_VERSION = 1

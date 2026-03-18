@@ -6,15 +6,19 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-ChemVCS provides Git-like version control specifically designed for computational materials science calculations, with semantic understanding of VASP files.
+ChemVCS provides Git-like version control specifically designed for computational materials science calculations, with semantic understanding of VASP and LAMMPS files.
 
 ## 🎯 Features (MVP)
 
 - **Git-like Interface**: Familiar `init`, `add`, `commit`, `log`, `diff`, `reproduce` commands
-- **VASP-Aware**: Semantic parsing of INCAR and KPOINTS files
+- **VASP-Aware**: Semantic parsing of INCAR, KPOINTS, and OUTCAR files
+- **LAMMPS-Aware**: Semantic parsing of input scripts, data files, and log files
 - **Semantic Diff**: Human-readable comparison of calculation parameters
   - **INCAR**: Automatic detection of critical (ENCUT, PREC, ISMEAR), major (LWAVE, LDAU), and minor parameter changes
   - **KPOINTS**: K-point grid changes, sampling type detection (Gamma/Monkhorst/Line-mode)
+  - **LAMMPS input**: Thermostat/barostat, timestep, pair style, run/minimize settings
+  - **LAMMPS data**: Atom counts, topology counts, box dimensions, masses
+  - **LAMMPS log**: Final energies, temperature, pressure, completion status, wall time
   - Change significance indicators: ‼️ critical, ⚠️ major, ℹ️ minor
 - **Plugin System**: Extensible validation framework
   - **POSCAR-POTCAR validator**: Automatic element order consistency checking
@@ -57,12 +61,35 @@ cd reproduce_abc1234
 mpirun vasp_std  # Ready to run
 ```
 
+### LAMMPS Workflow
+
+```bash
+# Initialize a repository for a LAMMPS run directory
+cd /scratch/username/lj_fluid
+chemvcs init
+
+# Stage LAMMPS inputs
+chemvcs add in.lammps data.lammps
+chemvcs commit -m "Initial LJ fluid equilibration"
+
+# After the run, track the primary thermo log
+chemvcs add log.lammps
+chemvcs commit -m "Completed NVT run at T*=1.0"
+
+# Compare parameter or thermodynamic changes
+chemvcs diff --summary
+
+# Reproduce the latest tracked snapshot
+chemvcs reproduce HEAD
+```
+
 ## 📖 Documentation
 
 - **[Command Reference](COMMANDS.md)** - Complete guide to all commands and options
 - **[Demo Guide](demo/GUIDE.md)** - Step-by-step tutorial with Si convergence test example
 - **[Advanced Demo](demo_advanced/GUIDE_ADVANCED.md)** - MOF-acetylene adsorption workflow with plugin validation
-- **[Plugin Architecture](docs/PLUGIN_ARCHITECTURE.md)** - Plugin system design and development guide
+- **[LAMMPS Demo](demo_lammps/GUIDE_LAMMPS.md)** - Step-by-step LAMMPS workflow with semantic diffs
+- **[Plugin README](plugins/chemvcs-validator/README.md)** - Built-in validator plugin overview
 - [Contributing](CONTRIBUTING.md) - Development guide and coding standards
 
 ## 🛠️ Development
@@ -109,8 +136,9 @@ mypy chemvcs/
 ### Phase 1: Core Version Control ✅ **COMPLETE**
 - ✅ Project setup and scaffolding
 - ✅ Storage layer (content-addressable blob store, SQLite metadata DB)
+- ✅ Semantic diff engine for VASP and LAMMPS core file types
 - ✅ Plugin system for extensible validation (POSCAR-POTCAR validator included)
-- ✅ Comprehensive test suite (240+ tests, 75% coverage)
+- ✅ Comprehensive test suite (330+ tests, 74%+ coverage)
 - ✅ Interactive demo and documentation
 
 ### Phase 1.5: Plugin Ecosystem 🚧 **IN PROGRESS**
@@ -118,9 +146,7 @@ mypy chemvcs/
 - 🚧 INCAR-POSCAR consistency validator (ISPIN vs magnetic atoms, NSW vs ISIF)
 - 🚧 File format validator (POSCAR structure, INCAR syntax)
 - 📝 Configuration system for plugin enable/disable
-- 📝 Community plugin repositoryog, diff, reproduce, status)
-- ✅ Comprehensive test suite (240+ tests, 75% coverage)
-- ✅ Interactive demo and documentation
+- 📝 Community plugin repository
 
 ### Phase 2: HPC Integration
 - SLURM job tracking
