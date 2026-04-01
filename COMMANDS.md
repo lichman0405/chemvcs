@@ -230,6 +230,7 @@ chemvcs commit [OPTIONS]
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--message` / `-m` | text | **Required** | Commit message describing this snapshot |
+| `--all` / `-a` | flag | `False` | Auto-stage all files tracked in the previous commit |
 | `--author` | text | `$USER@$HOSTNAME` | Override default author |
 | `--allow-empty` | flag | `False` | Create commit even if staging area is empty |
 
@@ -238,6 +239,9 @@ chemvcs commit [OPTIONS]
 ```bash
 # Basic commit
 chemvcs commit -m "Initial VASP setup for LCO"
+
+# Auto-stage all previously tracked files (like git commit -a)
+chemvcs commit -a -m "Updated parameters"
 
 # Multi-line commit message
 chemvcs commit -m "ENCUT convergence test
@@ -519,7 +523,7 @@ ChemVCS performs **parameter-level analysis** for supported file types:
 - Unlike text diffs, semantic diffs **understand** parameter meanings
 - Critical parameters are automatically flagged (ENCUT, PREC, ISMEAR, k-grid, etc.)
 - Unsupported files fall back to checksum comparison
-- Working directory comparison not yet implemented (use commits only)
+- Working directory comparison is supported: `chemvcs diff` with no arguments compares HEAD against the current working tree
 
 ---
 
@@ -544,8 +548,8 @@ chemvcs reproduce <revision> [OPTIONS]
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--output-dir` / `-o` | text | `reproduce_<rev>/` | Output directory for extracted files |
-| `--verify-potcar` | flag | `True` | Verify POTCAR file hashes (future feature) |
-| `--verify-env` | flag | `True` | Compare environment info (future feature) |
+| `--verify-potcar` / `--no-verify-potcar` | flag | `True` | Verify SHA-256 hash of each restored file against commit record |
+| `--verify-env` / `--no-verify-env` | flag | `True` | Compare stored environment info (hostname, Python version) against current system |
 
 ### Examples
 
@@ -589,9 +593,37 @@ chemvcs log --oneline
 # Reproduce it
 chemvcs reproduce abc1234
 
+# Reproduce and verify file integrity
+chemvcs reproduce abc1234 --verify-potcar
+
+# Reproduce and compare environment metadata
+chemvcs reproduce abc1234 --verify-env
+
+# Skip verification entirely
+chemvcs reproduce abc1234 --no-verify-potcar --no-verify-env
+
 # Run calculation
 cd reproduce_abc1234
 mpirun -np 16 vasp_std
+```
+
+### Verification Output
+
+`--verify-potcar` checks that each restored file's SHA-256 hash matches the blob stored at commit time:
+
+```
+Verifying file integrity...
+  ✓ INCAR  hash ok
+  ✓ POSCAR  hash ok
+  ✓ KPOINTS  hash ok
+```
+
+`--verify-env` compares the environment recorded in the commit against the current machine:
+
+```
+Comparing environment...
+  ✓ hostname: hpc-node-01
+  ⚠  python: commit=3.10.12, current=3.13.9
 ```
 
 ### Notes

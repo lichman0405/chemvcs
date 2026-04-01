@@ -143,7 +143,7 @@ mypy chemvcs/
 - ✅ Storage layer (content-addressable blob store, SQLite metadata DB)
 - ✅ Semantic diff engine for VASP and LAMMPS core file types
 - ✅ Plugin system for extensible validation (POSCAR-POTCAR validator included)
-- ✅ Comprehensive test suite (478+ tests, 87%+ coverage)
+- ✅ Comprehensive test suite (490+ tests, 87%+ coverage)
   - ✅ Interactive demo and documentation
   - ✅ Real working-tree semantic diff (cosmetic-only changes correctly ignored)
 
