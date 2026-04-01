@@ -200,9 +200,93 @@ class TestCommitCommand:
         
         try:
             result = runner.invoke(app, ["commit", "-m", "Test"])
-            
+
             assert result.exit_code == 1
             assert "not a chemvcs repository" in result.stdout.lower()
-            
+
+        finally:
+            os.chdir(original_cwd)
+
+
+class TestCommitAllFlag:
+    """Tests for 'chemvcs commit --all' auto-staging behaviour."""
+
+    def test_commit_all_auto_stages_tracked_files(self, tmp_path: Path) -> None:
+        """--all re-stages files from the previous commit that exist on disk."""
+        original_cwd = Path.cwd()
+        os.chdir(tmp_path)
+        try:
+            runner.invoke(app, ["init", "--quiet"])
+
+            # First commit — stage and commit INCAR manually
+            (tmp_path / "INCAR").write_text("ENCUT = 520\n", encoding="utf-8")
+            runner.invoke(app, ["add", "INCAR"])
+            runner.invoke(app, ["commit", "-m", "Initial"])
+
+            # Modify file on disk WITHOUT calling 'add'
+            (tmp_path / "INCAR").write_text("ENCUT = 600\n", encoding="utf-8")
+
+            # commit --all should auto-stage the modified tracked file
+            result = runner.invoke(app, ["commit", "--all", "-m", "Updated via --all"])
+            assert result.exit_code == 0
+            assert "Committed" in result.stdout
+
+            # Verify the new commit contains the updated content
+            from chemvcs.constants import CHEMVCS_DIR
+            from chemvcs.storage import CommitBuilder, MetadataDB, ObjectStore
+
+            chemvcs_dir = tmp_path / CHEMVCS_DIR
+            db = MetadataDB(chemvcs_dir)
+            db.open()
+            obj_store = ObjectStore(chemvcs_dir)
+            builder = CommitBuilder(chemvcs_dir, obj_store, db)
+
+            head_hash = (chemvcs_dir / "HEAD").read_text().strip()
+            commit = builder.read_commit(head_hash)
+            incar_entry = next(f for f in commit["files"] if f["path"] == "INCAR")
+            content = obj_store.read_blob(incar_entry["blob_hash"]).decode()
+            assert "600" in content
+            db.close()
+
+        finally:
+            os.chdir(original_cwd)
+
+    def test_commit_all_on_first_commit_gives_hint(self, tmp_path: Path) -> None:
+        """--all on first commit (no HEAD) prints a hint and does not crash."""
+        original_cwd = Path.cwd()
+        os.chdir(tmp_path)
+        try:
+            runner.invoke(app, ["init", "--quiet"])
+            # Stage a file manually so the commit is not empty
+            (tmp_path / "INCAR").write_text("ENCUT = 520\n", encoding="utf-8")
+            runner.invoke(app, ["add", "INCAR"])
+            result = runner.invoke(app, ["commit", "--all", "-m", "First"])
+            assert result.exit_code == 0
+            # Should mention that there are no tracked files to auto-stage
+            assert "no tracked files" in result.stdout.lower() or "no previous commit" in result.stdout.lower()
+        finally:
+            os.chdir(original_cwd)
+
+    def test_commit_all_skips_deleted_tracked_file(self, tmp_path: Path) -> None:
+        """--all skips files that were tracked but no longer exist on disk."""
+        original_cwd = Path.cwd()
+        os.chdir(tmp_path)
+        try:
+            runner.invoke(app, ["init", "--quiet"])
+
+            (tmp_path / "INCAR").write_text("ENCUT = 520\n", encoding="utf-8")
+            (tmp_path / "KPOINTS").write_text("Automatic\n0\nGamma\n4 4 4\n", encoding="utf-8")
+            runner.invoke(app, ["add", "INCAR", "KPOINTS"])
+            runner.invoke(app, ["commit", "-m", "Initial"])
+
+            # Delete INCAR from disk
+            (tmp_path / "INCAR").unlink()
+            # Modify KPOINTS
+            (tmp_path / "KPOINTS").write_text("Automatic\n0\nGamma\n6 6 6\n", encoding="utf-8")
+
+            result = runner.invoke(app, ["commit", "--all", "-m", "After deletion"])
+            assert result.exit_code == 0
+            # Should mention skipping the missing file
+            assert "skipped" in result.stdout.lower()
         finally:
             os.chdir(original_cwd)

@@ -386,9 +386,37 @@ def commit(
         # Handle -a/--all flag (auto-stage tracked files)
         if all:
             console.print("[dim]Auto-staging tracked files...[/dim]")
-            # TODO: Implement tracking logic in Phase 1c later
-            # For now, just note that this is not implemented
-            console.print("[yellow]Warning: --all flag not yet implemented[/yellow]")
+            # Determine which files were tracked in the previous commit
+            head_file_early = chemvcs_dir / "HEAD"
+            early_parent = None
+            if head_file_early.exists():
+                early_content = head_file_early.read_text(encoding="utf-8").strip()
+                if early_content:
+                    early_parent = early_content
+
+            if early_parent is None:
+                console.print(
+                    "[dim]No previous commit — --all has no tracked files to stage[/dim]"
+                )
+            else:
+                _commit_builder_early = CommitBuilder(chemvcs_dir, object_store, metadata_db)
+                parent_commit_data = _commit_builder_early.read_commit(early_parent)
+                tracked_paths = [f["path"] for f in parent_commit_data.get("files", [])]
+                auto_staged = 0
+                auto_skipped = 0
+                for tracked in tracked_paths:
+                    disk_path = workspace_root / tracked
+                    if disk_path.exists() and disk_path.is_file():
+                        staging_manager.add([disk_path])
+                        auto_staged += 1
+                    else:
+                        console.print(f"  [dim]skipped {tracked} (not found on disk)[/dim]")
+                        auto_skipped += 1
+                console.print(
+                    f"  [dim]Auto-staged {auto_staged} tracked file(s)"
+                    + (f", skipped {auto_skipped}" if auto_skipped else "")
+                    + "[/dim]"
+                )
         
         # Check if staging area is empty
         staged_files = staging_manager.get_staged_files()
@@ -479,12 +507,26 @@ def commit(
                 "is_reference": False,
             })
         
+        # Build semantic_data dict from collected changes to persist in commit
+        semantic_data: Optional[Dict[str, Any]] = None
+        if semantic_changes:
+            semantic_data = {
+                "changes": [
+                    {
+                        "file": change["file"],
+                        "diffs": [e.to_dict() for e in change["entries"]],
+                    }
+                    for change in semantic_changes
+                ]
+            }
+
         # Create commit
         commit_hash = commit_builder.create_commit(
             files=files_for_commit,
             message=message,
             author=author,
             parent_hash=parent_id,
+            semantic_data=semantic_data,
         )
         
         # Update HEAD
@@ -1024,12 +1066,66 @@ def reproduce(
                     )
             
             console.print(f"\n[bold green]✓[/bold green] Reproduced successfully to {output_path}")
-            
-            # Note about verification flags (not implemented yet)
-            if verify_potcar or verify_env:
-                console.print(
-                    "\n[dim]Note: --verify-potcar and --verify-env are not yet implemented[/dim]"
-                )
+
+            # Verification: --verify-potcar checks that restored file hashes match commit records
+            if verify_potcar:
+                import hashlib
+                console.print("\n[bold]Verifying file integrity...[/bold]")
+                all_ok = True
+                for file_info in files:
+                    rel_path = file_info["path"]
+                    expected_hash = file_info["blob_hash"]
+                    output_file = output_path / rel_path
+                    if not output_file.exists():
+                        console.print(f"  [red]✗[/red] {rel_path}  [red](file missing)[/red]")
+                        all_ok = False
+                        continue
+                    actual_hash = hashlib.sha256(output_file.read_bytes()).hexdigest()
+                    if actual_hash == expected_hash:
+                        console.print(
+                            f"  [green]✓[/green] {rel_path}  [dim]hash ok[/dim]"
+                        )
+                    else:
+                        console.print(
+                            f"  [red]✗[/red] {rel_path}  "
+                            f"[red]hash mismatch (expected {expected_hash[:8]}, got {actual_hash[:8]})[/red]"
+                        )
+                        all_ok = False
+                if not all_ok:
+                    raise typer.Exit(1)
+
+            # Verification: --verify-env compares stored environment against current system
+            if verify_env:
+                import sys as _sys
+                stored_env = commit_data.get("environment", {})
+                if not stored_env:
+                    console.print(
+                        "\n[dim]Note: no environment info recorded in this commit "
+                        "(run with environment data to enable --verify-env)[/dim]"
+                    )
+                else:
+                    console.print("\n[bold]Comparing environment...[/bold]")
+                    stored_host = stored_env.get("hostname", "")
+                    current_host = socket.gethostname()
+                    if stored_host and stored_host != current_host:
+                        console.print(
+                            f"  [yellow]⚠[/yellow]  hostname: commit=[dim]{stored_host}[/dim]"
+                            f", current=[dim]{current_host}[/dim]"
+                        )
+                    else:
+                        console.print(f"  [green]✓[/green] hostname: {current_host}")
+
+                    stored_py = stored_env.get("python_version", "")
+                    current_py = f"{_sys.version_info.major}.{_sys.version_info.minor}.{_sys.version_info.micro}"
+                    if stored_py and stored_py != current_py:
+                        console.print(
+                            f"  [yellow]⚠[/yellow]  python: commit=[dim]{stored_py}[/dim]"
+                            f", current=[dim]{current_py}[/dim]"
+                        )
+                    else:
+                        console.print(
+                            f"  [green]✓[/green] python: {current_py}"
+                        )
         
         finally:
             metadata_db.close()

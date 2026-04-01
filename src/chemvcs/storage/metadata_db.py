@@ -477,3 +477,124 @@ class MetadataDB:
 
         except sqlite3.Error as e:
             raise DatabaseError(f"Failed to get schema version: {e}") from e
+
+    def insert_semantic_summary(self, file_id: int, summary_json: str) -> int:
+        """Insert a semantic summary record for a file.
+
+        Args:
+            file_id: Database ID of the parent file record
+            summary_json: JSON-serialized semantic summary data
+
+        Returns:
+            Database row ID of inserted record
+
+        Raises:
+            DatabaseError: If insert fails
+        """
+        if self.conn is None:
+            raise DatabaseError("Database not open")
+
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute(
+                "INSERT INTO semantic_summary (file_id, summary_json) VALUES (?, ?)",
+                (file_id, summary_json),
+            )
+            self.conn.commit()
+            return cursor.lastrowid  # type: ignore
+        except sqlite3.Error as e:
+            self.conn.rollback()
+            raise DatabaseError(f"Failed to insert semantic summary: {e}") from e
+
+    def insert_output_summary(
+        self,
+        commit_id: int,
+        total_energy_eV: Optional[float] = None,
+        is_converged: Optional[bool] = None,
+        ionic_steps: Optional[int] = None,
+        max_force: Optional[float] = None,
+        warnings: Optional[str] = None,
+        summary_json: Optional[str] = None,
+    ) -> int:
+        """Insert an output summary record for a commit.
+
+        Args:
+            commit_id: Database ID of the parent commit
+            total_energy_eV: Total energy in eV (from OUTCAR)
+            is_converged: Whether the calculation converged
+            ionic_steps: Number of ionic steps
+            max_force: Maximum force component
+            warnings: Warning messages as a string
+            summary_json: Full JSON-serialized output summary
+
+        Returns:
+            Database row ID of inserted record
+
+        Raises:
+            DatabaseError: If insert fails
+        """
+        if self.conn is None:
+            raise DatabaseError("Database not open")
+
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO output_summary
+                    (commit_id, total_energy_eV, is_converged, ionic_steps,
+                     max_force, warnings, summary_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (commit_id, total_energy_eV, is_converged, ionic_steps,
+                 max_force, warnings, summary_json),
+            )
+            self.conn.commit()
+            return cursor.lastrowid  # type: ignore
+        except sqlite3.Error as e:
+            self.conn.rollback()
+            raise DatabaseError(f"Failed to insert output summary: {e}") from e
+
+    def insert_environment(
+        self,
+        commit_id: int,
+        hostname: Optional[str] = None,
+        vasp_version: Optional[str] = None,
+        modules: Optional[str] = None,
+        python_version: Optional[str] = None,
+        env_json: Optional[str] = None,
+    ) -> int:
+        """Insert an environment record for a commit.
+
+        Args:
+            commit_id: Database ID of the parent commit
+            hostname: Machine hostname
+            vasp_version: VASP version string
+            modules: Loaded environment modules (space-separated or JSON)
+            python_version: Python version string
+            env_json: Full JSON-serialized environment dict
+
+        Returns:
+            Database row ID of inserted record
+
+        Raises:
+            DatabaseError: If insert fails
+        """
+        if self.conn is None:
+            raise DatabaseError("Database not open")
+
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO environment
+                    (commit_id, hostname, vasp_version, modules,
+                     python_version, env_json)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (commit_id, hostname, vasp_version, modules, python_version, env_json),
+            )
+            self.conn.commit()
+            return cursor.lastrowid  # type: ignore
+        except sqlite3.Error as e:
+            self.conn.rollback()
+            raise DatabaseError(f"Failed to insert environment: {e}") from e

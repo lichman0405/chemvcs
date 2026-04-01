@@ -301,9 +301,15 @@ class CommitBuilder:
                 message=commit_obj["message"],
             )
 
-            # Insert file records
+            # Build a lookup: file_path → semantic diff entries for that file
+            semantic_by_path: Dict[str, Any] = {}
+            if "semantic_summary" in commit_obj:
+                for change in commit_obj["semantic_summary"].get("changes", []):
+                    semantic_by_path[change["file"]] = change.get("diffs", [])
+
+            # Insert file records and per-file semantic summaries
             for file_entry in commit_obj["files"]:
-                self.metadata_db.insert_file(
+                file_id = self.metadata_db.insert_file(
                     commit_id=commit_id,
                     path=file_entry["path"],
                     blob_hash=file_entry["blob_hash"],
@@ -311,9 +317,37 @@ class CommitBuilder:
                     file_type=file_entry.get("file_type"),
                     size_bytes=file_entry.get("size_bytes"),
                 )
+                # Index semantic summary for this file if available
+                if file_entry["path"] in semantic_by_path:
+                    self.metadata_db.insert_semantic_summary(
+                        file_id=file_id,
+                        summary_json=json.dumps(semantic_by_path[file_entry["path"]]),
+                    )
 
-            # TODO: Index semantic_summary, output_summary, environment
-            # when those tables are fully integrated
+            # Index output_summary if present
+            if "output_summary" in commit_obj:
+                out = commit_obj["output_summary"]
+                self.metadata_db.insert_output_summary(
+                    commit_id=commit_id,
+                    total_energy_eV=out.get("total_energy_eV"),
+                    is_converged=out.get("is_converged"),
+                    ionic_steps=out.get("ionic_steps"),
+                    max_force=out.get("max_force"),
+                    warnings=out.get("warnings"),
+                    summary_json=json.dumps(out),
+                )
+
+            # Index environment if present
+            if "environment" in commit_obj:
+                env = commit_obj["environment"]
+                self.metadata_db.insert_environment(
+                    commit_id=commit_id,
+                    hostname=env.get("hostname"),
+                    vasp_version=env.get("vasp_version"),
+                    modules=env.get("modules"),
+                    python_version=env.get("python_version"),
+                    env_json=json.dumps(env),
+                )
 
         except Exception as e:
             raise CommitBuilderError(f"Failed to index commit: {e}") from e

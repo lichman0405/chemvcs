@@ -238,10 +238,95 @@ class TestReproduceCommand:
             
             # Reproduce
             result = runner.invoke(app, ["reproduce", commit_hash])
-            
+
             assert result.exit_code == 0
             assert "3 file(s)" in result.stdout
             assert "Reproduced successfully" in result.stdout
-            
+
+        finally:
+            os.chdir(original_cwd)
+
+
+class TestReproduceVerifyFlags:
+    """Tests for --verify-potcar and --verify-env flags."""
+
+    def _commit_file(self, tmp_path: Path, filename: str, content: str) -> str:
+        """Helper: stage and commit a single file; return commit hash."""
+        (tmp_path / filename).write_text(content, encoding="utf-8")
+        runner.invoke(app, ["add", filename])
+        result = runner.invoke(app, ["commit", "-m", f"add {filename}"])
+        assert result.exit_code == 0
+        for line in result.stdout.splitlines():
+            if "Committed" in line:
+                return line.strip().split()[-1]
+        raise AssertionError("Could not extract commit hash")
+
+    def test_verify_potcar_passes_for_intact_files(self, tmp_path: Path) -> None:
+        """--verify-potcar shows ✓ hash ok for all restored files."""
+        original_cwd = Path.cwd()
+        os.chdir(tmp_path)
+        try:
+            runner.invoke(app, ["init", "--quiet"])
+            commit_hash = self._commit_file(tmp_path, "INCAR", "ENCUT = 520\n")
+
+            result = runner.invoke(
+                app,
+                ["reproduce", commit_hash, "--verify-potcar"],
+            )
+            assert result.exit_code == 0
+            assert "Verifying file integrity" in result.stdout
+            assert "hash ok" in result.stdout
+        finally:
+            os.chdir(original_cwd)
+
+    def test_no_verify_potcar_skips_verification(self, tmp_path: Path) -> None:
+        """--no-verify-potcar does NOT print hash verification block."""
+        original_cwd = Path.cwd()
+        os.chdir(tmp_path)
+        try:
+            runner.invoke(app, ["init", "--quiet"])
+            commit_hash = self._commit_file(tmp_path, "INCAR", "ENCUT = 520\n")
+
+            result = runner.invoke(
+                app,
+                ["reproduce", commit_hash, "--no-verify-potcar"],
+            )
+            assert result.exit_code == 0
+            assert "Verifying file integrity" not in result.stdout
+        finally:
+            os.chdir(original_cwd)
+
+    def test_verify_env_no_env_recorded_gives_note(self, tmp_path: Path) -> None:
+        """--verify-env on a commit with no env data prints an informational note."""
+        original_cwd = Path.cwd()
+        os.chdir(tmp_path)
+        try:
+            runner.invoke(app, ["init", "--quiet"])
+            commit_hash = self._commit_file(tmp_path, "INCAR", "ENCUT = 520\n")
+
+            result = runner.invoke(
+                app,
+                ["reproduce", commit_hash, "--no-verify-potcar", "--verify-env"],
+            )
+            assert result.exit_code == 0
+            # Should say "no environment info" — not crash
+            assert "no environment info" in result.stdout.lower()
+        finally:
+            os.chdir(original_cwd)
+
+    def test_verify_potcar_and_env_together(self, tmp_path: Path) -> None:
+        """Both --verify-potcar and --verify-env can be used together."""
+        original_cwd = Path.cwd()
+        os.chdir(tmp_path)
+        try:
+            runner.invoke(app, ["init", "--quiet"])
+            commit_hash = self._commit_file(tmp_path, "file.txt", "data\n")
+
+            result = runner.invoke(
+                app,
+                ["reproduce", commit_hash, "--verify-potcar", "--verify-env"],
+            )
+            assert result.exit_code == 0
+            assert "Verifying file integrity" in result.stdout
         finally:
             os.chdir(original_cwd)
