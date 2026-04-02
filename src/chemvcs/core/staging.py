@@ -416,6 +416,14 @@ class StagingManager:
         ):
             return "LAMMPS_INPUT"
 
+        # ORCA input scripts: *.inp
+        elif name.endswith(".INP"):
+            return "ORCA_INPUT"
+
+        # ORCA output files: *.out (but not OUTCAR)
+        elif name.endswith(".OUT") and name != "OUTCAR.OUT":
+            return "ORCA_OUTPUT"
+
         # Other
         elif path.suffix == ".json":
             return "JSON"

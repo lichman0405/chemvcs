@@ -13,6 +13,8 @@ from chemvcs.parsers.kpoints_parser import KpointsParser
 from chemvcs.parsers.lammps_data_parser import LammpsDataParser
 from chemvcs.parsers.lammps_input_parser import LammpsInputParser
 from chemvcs.parsers.lammps_log_parser import LammpsLogParser
+from chemvcs.parsers.orca_input_parser import OrcaInputParser
+from chemvcs.parsers.orca_output_parser import OrcaOutputParser
 from chemvcs.parsers.outcar_parser import OutcarParser
 
 
@@ -28,6 +30,8 @@ class DiffEngine:
     LAMMPS: LAMMPS_INPUT (``in.*``, ``*.lammps``, ``lammps.in``),
             LAMMPS_DATA  (``data.*``, ``*.lmp``, ``*.data``),
             LAMMPS_LOG   (``log.lammps``, ``log.*``)
+    ORCA:   ORCA_INPUT   (``*.inp``),
+            ORCA_OUTPUT  (``*.out``, not ``OUTCAR``)
     """
 
     def __init__(self) -> None:
@@ -39,6 +43,8 @@ class DiffEngine:
             "LAMMPS_INPUT": LammpsInputParser(),
             "LAMMPS_DATA": LammpsDataParser(),
             "LAMMPS_LOG": LammpsLogParser(),
+            "ORCA_INPUT": OrcaInputParser(),
+            "ORCA_OUTPUT": OrcaOutputParser(),
         }
 
     def get_file_type(self, filename: str) -> Optional[str]:
@@ -65,6 +71,15 @@ class DiffEngine:
             return "POTCAR"
         if base_upper == "OUTCAR":
             return "OUTCAR"
+
+        # ---- ORCA ---------------------------------------------------- #
+        # *.inp → ORCA input script
+        if base_upper.endswith(".INP"):
+            return "ORCA_INPUT"
+
+        # *.out (but NOT named OUTCAR) → ORCA output log
+        if base_upper.endswith(".OUT") and base_upper != "OUTCAR.OUT":
+            return "ORCA_OUTPUT"
 
         # ---- LAMMPS -------------------------------------------------- #
         # Log files MUST be checked before input scripts because

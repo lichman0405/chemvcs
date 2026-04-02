@@ -73,6 +73,17 @@ LAMMPS_OUTPUT_FILES = {
     "LAMMPS_RESTART": "md_restart",    # binary, tracked only
 }
 
+# ORCA file types
+# Input scripts:  recognised by suffix (*.inp)
+# Output files:   recognised by suffix (*.out, not OUTCAR)
+ORCA_INPUT_FILES = {
+    "ORCA_INPUT": "orca_input_script",
+}
+
+ORCA_OUTPUT_FILES = {
+    "ORCA_OUTPUT": "orca_output_log",
+}
+
 # LAMMPS files that are typically large and should be ignored by default
 LAMMPS_DEFAULT_IGNORE = [
     "dump.*",

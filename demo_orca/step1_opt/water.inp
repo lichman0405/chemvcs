@@ -1,0 +1,17 @@
+# DFT geometry optimisation of water — B3LYP/def2-TZVP
+# Step 1 in the ORCA demo workflow
+
+! B3LYP def2-TZVP Opt TightSCF D3BJ RIJCOSX Grid4
+
+%pal nprocs 4 end
+%maxcore 2000
+
+%geom
+   MaxIter 50
+end
+
+* xyz 0 1
+  O    0.000000    0.000000    0.117176
+  H    0.000000    0.757360   -0.468704
+  H    0.000000   -0.757360   -0.468704
+*

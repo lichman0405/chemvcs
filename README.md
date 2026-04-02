@@ -8,19 +8,22 @@
 [![Lint](https://github.com/lichman0405/chemvcs/actions/workflows/lint.yml/badge.svg)](https://github.com/lichman0405/chemvcs/actions/workflows/lint.yml)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-ChemVCS provides Git-like version control specifically designed for computational materials science calculations, with semantic understanding of VASP and LAMMPS files.
+ChemVCS provides Git-like version control specifically designed for computational materials science calculations, with semantic understanding of VASP, LAMMPS, and ORCA files.
 
 ## 🎯 Features (MVP)
 
 - **Git-like Interface**: Familiar `init`, `add`, `commit`, `log`, `diff`, `reproduce` commands
 - **VASP-Aware**: Semantic parsing of INCAR, KPOINTS, and OUTCAR files
 - **LAMMPS-Aware**: Semantic parsing of input scripts, data files, and log files
+- **ORCA-Aware**: Semantic parsing of ORCA input (`.inp`) and output (`.out`) files
 - **Semantic Diff**: Human-readable comparison of calculation parameters — **semantic equality is the primary criterion**: cosmetic edits (whitespace, comments) do not trigger a "modified" report
   - **INCAR**: Automatic detection of critical (ENCUT, PREC, ISMEAR), major (LWAVE, LDAU), and minor parameter changes
   - **KPOINTS**: K-point grid changes, sampling type detection (Gamma/Monkhorst/Line-mode)
   - **LAMMPS input**: Thermostat/barostat, timestep, pair style, run/minimize settings
   - **LAMMPS data**: Atom counts, topology counts, box dimensions, masses
   - **LAMMPS log**: Final energies, temperature, pressure, completion status, wall time
+  - **ORCA input**: Method, basis set, run type, charge, multiplicity, dispersion, RI, block settings
+  - **ORCA output**: Final energy (Hartrees), termination status, SCF convergence, optimisation result
   - Change significance indicators: ‼️ critical, ⚠️ major, ℹ️ minor
 - **Plugin System**: Extensible validation framework
   - **POSCAR-POTCAR validator**: Automatic element order consistency checking
@@ -94,6 +97,7 @@ chemvcs reproduce HEAD
 - **[Demo Guide](demo/GUIDE.md)** - Step-by-step tutorial with Si convergence test example
 - **[Advanced Demo](demo_advanced/GUIDE_ADVANCED.md)** - MOF-acetylene adsorption workflow with plugin validation
 - **[LAMMPS Demo](demo_lammps/GUIDE_LAMMPS.md)** - Step-by-step LAMMPS workflow with semantic diffs
+- **[ORCA Demo](demo_orca/GUIDE_ORCA.md)** - ORCA quantum chemistry workflow (DFT opt → CCSD(T) single point)
 - **[Plugin README](plugins/chemvcs-validator/README.md)** - Built-in validator plugin overview
 - [Contributing](CONTRIBUTING.md) - Development guide and coding standards
 
@@ -141,9 +145,10 @@ mypy chemvcs/
 ### Phase 1: Core Version Control ✅ **COMPLETE**
 - ✅ Project setup and scaffolding
 - ✅ Storage layer (content-addressable blob store, SQLite metadata DB)
-- ✅ Semantic diff engine for VASP and LAMMPS core file types
+- ✅ Semantic diff engine for VASP, LAMMPS, and ORCA file types
+- ✅ ORCA support: `OrcaInputParser` (pure regex, `.inp`) and `OrcaOutputParser` (cclib + regex fallback, `.out`)
 - ✅ Plugin system for extensible validation (POSCAR-POTCAR validator included)
-- ✅ Comprehensive test suite (490+ tests, 87%+ coverage)
+- ✅ Comprehensive test suite (520+ tests, 87%+ coverage)
   - ✅ Interactive demo and documentation
   - ✅ Real working-tree semantic diff (cosmetic-only changes correctly ignored)
 
@@ -181,7 +186,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 This project builds on:
 
-- [pymatgen](https://pymatgen.org/) - Materials analysis framework
+- [pymatgen](https://pymatgen.org/) - Materials analysis framework (VASP output parsing)
+- [cclib](https://cclib.github.io/) - Computational chemistry logfile parser (ORCA output parsing)
 - [Typer](https://typer.tiangolo.com/) - CLI framework
 - [Rich](https://rich.readthedocs.io/) - Terminal formatting
 
