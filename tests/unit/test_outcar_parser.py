@@ -2,9 +2,8 @@
 
 import pytest
 
-from chemvcs.parsers.outcar_parser import OutcarParser
 from chemvcs.parsers.base_parser import ParserError
-
+from chemvcs.parsers.outcar_parser import OutcarParser
 
 # A minimal but realistic OUTCAR excerpt for testing
 SAMPLE_OUTCAR = """\
@@ -104,8 +103,7 @@ class TestOutcarParser:
         parser = OutcarParser()
         data = parser.parse(SAMPLE_OUTCAR)
 
-        for field in ["final_energy", "magnetization", "charge",
-                       "run_stats", "is_stopped"]:
+        for field in ["final_energy", "magnetization", "charge", "run_stats", "is_stopped"]:
             assert field in data, f"Missing field: {field}"
 
     def test_parse_empty_content_fails(self) -> None:

@@ -28,11 +28,11 @@ How to fix:
   2. Or reorder elements in POSCAR line 6
 ```
 
-### 🚧 INCAR-POSCAR Validator (Coming Soon)
+### ✅ INCAR-POSCAR Validator
 Validates INCAR parameters match POSCAR structure (MAGMOM, LDAUU, etc.).
 
-### 🚧 File Format Validator (Coming Soon)
-Validates basic VASP file format correctness.
+### ✅ File Format Validator
+Validates basic VASP file format correctness (POSCAR structure, INCAR/KPOINTS syntax).
 
 ---
 
@@ -76,7 +76,7 @@ chemvcs add POSCAR POTCAR --no-validate
 
 Disable specific validator globally:
 ```bash
-chemvcs config validator.poscar-potcar.enabled false
+chemvcs plugin disable poscar-potcar
 ```
 
 ### List Installed Validators
@@ -138,17 +138,14 @@ chemvcs add POSCAR  # Your validator runs automatically!
 
 ## Configuration
 
-Configure validators in ChemVCS config:
+Configure validators via the plugin CLI:
 
 ```bash
 # Disable a validator
-chemvcs config validator.poscar-potcar.enabled false
+chemvcs plugin disable poscar-potcar
 
-# Change priority (lower runs first)
-chemvcs config validator.poscar-potcar.priority 5
-
-# Validator-specific settings
-chemvcs config validator.poscar-potcar.strict-mode true
+# Re-enable a validator
+chemvcs plugin enable poscar-potcar
 ```
 
 ---

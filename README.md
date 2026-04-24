@@ -16,6 +16,7 @@ ChemVCS provides Git-like version control specifically designed for computationa
 - **VASP-Aware**: Semantic parsing of INCAR, KPOINTS, and OUTCAR files
 - **LAMMPS-Aware**: Semantic parsing of input scripts, data files, and log files
 - **ORCA-Aware**: Semantic parsing of ORCA input (`.inp`) and output (`.out`) files
+- **Remote Collaboration**: Push/pull to remote repositories over SSH + rsync — `chemvcs remote add/list/remove`, `push`, `pull`
 - **Semantic Diff**: Human-readable comparison of calculation parameters — **semantic equality is the primary criterion**: cosmetic edits (whitespace, comments) do not trigger a "modified" report
   - **INCAR**: Automatic detection of critical (ENCUT, PREC, ISMEAR), major (LWAVE, LDAU), and minor parameter changes
   - **KPOINTS**: K-point grid changes, sampling type detection (Gamma/Monkhorst/Line-mode)
@@ -25,9 +26,7 @@ ChemVCS provides Git-like version control specifically designed for computationa
   - **ORCA input**: Method, basis set, run type, charge, multiplicity, dispersion, RI, block settings
   - **ORCA output**: Final energy (Hartrees), termination status, SCF convergence, optimisation result
   - Change significance indicators: ‼️ critical, ⚠️ major, ℹ️ minor
-- **Plugin System**: Extensible validation framework
-  - **POSCAR-POTCAR validator**: Automatic element order consistency checking
-  - **Pluggable architecture**: Easy to add custom validators for domain-specific checks
+- **Plugin System**: Extensible validation with INCAR-POSCAR consistency, POSCAR-POTCAR element order, and file format validators
   - **Optional validation**: Use `--no-validate` flag to skip checks when needed
 - **Reproducibility**: Exact restoration of calculation inputs from any commit
 - **HPC-Native**: Zero infrastructure dependencies, works on any filesystem
@@ -67,6 +66,11 @@ chemvcs diff <hash1> <hash2>
 chemvcs reproduce abc1234
 cd reproduce_abc1234
 mpirun vasp_std  # Ready to run
+
+# Remote collaboration (Phase 3)
+chemvcs remote add origin user@server:/path/to/remote/repo
+chemvcs push origin
+chemvcs pull origin
 ```
 
 ### LAMMPS Workflow
@@ -148,7 +152,7 @@ mypy chemvcs/
 - ✅ Semantic diff engine for VASP, LAMMPS, and ORCA file types
 - ✅ ORCA support: `OrcaInputParser` (pure regex, `.inp`) and `OrcaOutputParser` (cclib + regex fallback, `.out`)
 - ✅ Plugin system for extensible validation (POSCAR-POTCAR validator included)
-- ✅ Comprehensive test suite (520+ tests, 87%+ coverage)
+- ✅ Comprehensive test suite (626+ tests, 87% target coverage)
   - ✅ Interactive demo and documentation
   - ✅ Real working-tree semantic diff (cosmetic-only changes correctly ignored)
 
@@ -163,11 +167,10 @@ mypy chemvcs/
 - Automatic commit on job completion
 - Resource usage statistics
 
-### Phase 3: Collaboration 🔲 PLANNED
-- Remote repositories
-- Push/pull/clone
-- Conflict resolution
-- Community plugin repository
+### Phase 3: Remote Collaboration ✅ **COMPLETE**
+- ✅ Remote repositories (`chemvcs remote add/list/remove`)
+- ✅ Push/pull over SSH + rsync (fast-forward only)
+- ✅ Integration and unit tests for all remote operations
 
 ## 🤝 Contributing
 

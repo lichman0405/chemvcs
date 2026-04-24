@@ -5,10 +5,9 @@ in a SQLite database. The database serves as a rebuildable index - the true
 source of truth is the commits/ directory.
 """
 
-import json
 import sqlite3
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from chemvcs.constants import DB_SCHEMA_VERSION, METADATA_DB
 
@@ -51,8 +50,8 @@ class MetadataDB:
         """
         self.chemvcs_dir = Path(chemvcs_dir)
         self.db_path = self.chemvcs_dir / METADATA_DB
-        self.conn: Optional[sqlite3.Connection] = None
-        self._wal_mode_supported: Optional[bool] = None
+        self.conn: sqlite3.Connection | None = None
+        self._wal_mode_supported: bool | None = None
 
     def open(self) -> None:
         """Open database connection and configure journal mode.
@@ -152,11 +151,11 @@ class MetadataDB:
                 )
             """)
             cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_commits_hash 
+                CREATE INDEX IF NOT EXISTS idx_commits_hash
                 ON commits(commit_hash)
             """)
             cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_commits_parent 
+                CREATE INDEX IF NOT EXISTS idx_commits_parent
                 ON commits(parent_hash)
             """)
 
@@ -174,11 +173,11 @@ class MetadataDB:
                 )
             """)
             cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_files_commit 
+                CREATE INDEX IF NOT EXISTS idx_files_commit
                 ON files(commit_id)
             """)
             cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_files_path 
+                CREATE INDEX IF NOT EXISTS idx_files_path
                 ON files(path)
             """)
 
@@ -192,7 +191,7 @@ class MetadataDB:
                 )
             """)
             cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_semantic_file 
+                CREATE INDEX IF NOT EXISTS idx_semantic_file
                 ON semantic_summary(file_id)
             """)
 
@@ -211,7 +210,7 @@ class MetadataDB:
                 )
             """)
             cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_output_commit 
+                CREATE INDEX IF NOT EXISTS idx_output_commit
                 ON output_summary(commit_id)
             """)
 
@@ -229,7 +228,7 @@ class MetadataDB:
                 )
             """)
             cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_env_commit 
+                CREATE INDEX IF NOT EXISTS idx_env_commit
                 ON environment(commit_id)
             """)
 
@@ -248,7 +247,7 @@ class MetadataDB:
     def insert_commit(
         self,
         commit_hash: str,
-        parent_hash: Optional[str],
+        parent_hash: str | None,
         timestamp: str,
         author: str,
         message: str,
@@ -296,8 +295,8 @@ class MetadataDB:
         path: str,
         blob_hash: str,
         is_reference: bool = False,
-        file_type: Optional[str] = None,
-        size_bytes: Optional[int] = None,
+        file_type: str | None = None,
+        size_bytes: int | None = None,
     ) -> int:
         """Insert a file record for a commit.
 
@@ -331,7 +330,7 @@ class MetadataDB:
             self.conn.rollback()
             raise DatabaseError(f"Failed to insert file: {e}") from e
 
-    def get_commit_by_hash(self, commit_hash: str) -> Optional[Dict[str, Any]]:
+    def get_commit_by_hash(self, commit_hash: str) -> dict[str, Any] | None:
         """Retrieve a commit by its hash.
 
         Args:
@@ -367,7 +366,7 @@ class MetadataDB:
         except sqlite3.Error as e:
             raise DatabaseError(f"Failed to query commit: {e}") from e
 
-    def get_latest_commit(self) -> Optional[Dict[str, Any]]:
+    def get_latest_commit(self) -> dict[str, Any] | None:
         """Get the most recent commit.
 
         Returns:
@@ -387,7 +386,7 @@ class MetadataDB:
         except sqlite3.Error as e:
             raise DatabaseError(f"Failed to get latest commit: {e}") from e
 
-    def get_files_for_commit(self, commit_id: int) -> List[Dict[str, Any]]:
+    def get_files_for_commit(self, commit_id: int) -> list[dict[str, Any]]:
         """Get all files for a commit.
 
         Args:
@@ -413,9 +412,9 @@ class MetadataDB:
 
     def get_commit_history(
         self,
-        limit: Optional[int] = None,
-        start_hash: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        limit: int | None = None,
+        start_hash: str | None = None,
+    ) -> list[dict[str, Any]]:
         """Get commit history in reverse chronological order.
 
         Args:
@@ -443,7 +442,7 @@ class MetadataDB:
                 start_time = row[0]
 
                 query = "SELECT * FROM commits WHERE timestamp <= ? ORDER BY timestamp DESC"
-                params: Tuple[Any, ...] = (start_time,)
+                params: tuple[Any, ...] = (start_time,)
             else:
                 query = "SELECT * FROM commits ORDER BY timestamp DESC"
                 params = ()
@@ -509,12 +508,12 @@ class MetadataDB:
     def insert_output_summary(
         self,
         commit_id: int,
-        total_energy_eV: Optional[float] = None,
-        is_converged: Optional[bool] = None,
-        ionic_steps: Optional[int] = None,
-        max_force: Optional[float] = None,
-        warnings: Optional[str] = None,
-        summary_json: Optional[str] = None,
+        total_energy_eV: float | None = None,
+        is_converged: bool | None = None,
+        ionic_steps: int | None = None,
+        max_force: float | None = None,
+        warnings: str | None = None,
+        summary_json: str | None = None,
     ) -> int:
         """Insert an output summary record for a commit.
 
@@ -545,8 +544,15 @@ class MetadataDB:
                      max_force, warnings, summary_json)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (commit_id, total_energy_eV, is_converged, ionic_steps,
-                 max_force, warnings, summary_json),
+                (
+                    commit_id,
+                    total_energy_eV,
+                    is_converged,
+                    ionic_steps,
+                    max_force,
+                    warnings,
+                    summary_json,
+                ),
             )
             self.conn.commit()
             return cursor.lastrowid  # type: ignore
@@ -557,11 +563,11 @@ class MetadataDB:
     def insert_environment(
         self,
         commit_id: int,
-        hostname: Optional[str] = None,
-        vasp_version: Optional[str] = None,
-        modules: Optional[str] = None,
-        python_version: Optional[str] = None,
-        env_json: Optional[str] = None,
+        hostname: str | None = None,
+        vasp_version: str | None = None,
+        modules: str | None = None,
+        python_version: str | None = None,
+        env_json: str | None = None,
     ) -> int:
         """Insert an environment record for a commit.
 

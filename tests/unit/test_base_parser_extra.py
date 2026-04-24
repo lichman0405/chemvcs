@@ -11,15 +11,14 @@ Targets uncovered lines:
    149  – BaseParser.validate default return
 """
 
-import pytest
 
 from chemvcs.parsers.base_parser import BaseParser, DiffEntry
 from chemvcs.parsers.incar_parser import IncarParser  # concrete implementation
 
-
 # ---------------------------------------------------------------------------
 # DiffEntry.__repr__
 # ---------------------------------------------------------------------------
+
 
 class TestDiffEntryRepr:
     def test_repr_added(self) -> None:
@@ -73,6 +72,7 @@ class TestDiffEntryRepr:
 # BaseParser.format_diff – compact style
 # ---------------------------------------------------------------------------
 
+
 class TestFormatDiffCompact:
     def setup_method(self) -> None:
         self.parser = IncarParser()
@@ -111,6 +111,7 @@ class TestFormatDiffCompact:
 # ---------------------------------------------------------------------------
 # BaseParser.format_diff – detailed style
 # ---------------------------------------------------------------------------
+
 
 class TestFormatDiffDetailed:
     def setup_method(self) -> None:
@@ -154,6 +155,7 @@ class TestFormatDiffDetailed:
 # BaseParser.format_diff – default style (already mostly covered, extras)
 # ---------------------------------------------------------------------------
 
+
 class TestFormatDiffDefault:
     def setup_method(self) -> None:
         self.parser = IncarParser()
@@ -176,6 +178,7 @@ class TestFormatDiffDefault:
 # BaseParser.validate – default implementation
 # ---------------------------------------------------------------------------
 
+
 class TestBaseParserValidate:
     def test_validate_returns_true_by_default(self) -> None:
         """IncarParser inherits BaseParser.validate which returns (True, [])
@@ -191,6 +194,7 @@ class TestBaseParserValidate:
 # ---------------------------------------------------------------------------
 # BaseParser abstract method bodies (pass statements)
 # ---------------------------------------------------------------------------
+
 
 class TestAbstractMethodBodies:
     """Call abstract method bodies via class reference to exercise the

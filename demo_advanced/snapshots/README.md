@@ -24,4 +24,4 @@ cp snapshots/step4_high_precision/* vasp_files/
 - **step3_vdw_opt**: With DFT-D3 dispersion corrections (IVDW=12, denser k-mesh)
 - **step4_high_precision**: HSE06 hybrid functional (LHFCALC, higher ENCUT)
 
-Each directory contains: INCAR, KPOINTS, POSCAR (step2-4 only), OUTCAR
+Each directory contains: INCAR, KPOINTS, POSCAR, OUTCAR

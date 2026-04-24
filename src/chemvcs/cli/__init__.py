@@ -3,4 +3,4 @@
 This module provides the CLI commands: init, add, commit, log, diff, reproduce, etc.
 """
 
-__all__ = []
+__all__: list[str] = []

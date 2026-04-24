@@ -1,6 +1,5 @@
 """Basic smoke tests to verify project setup."""
 
-import pytest
 from chemvcs import __version__
 
 
@@ -29,7 +28,7 @@ def test_temp_repo_fixture(temp_repo) -> None:
     assert (temp_repo / "INCAR").exists()
     assert (temp_repo / "POSCAR").exists()
     assert (temp_repo / "KPOINTS").exists()
-    
+
     # Check INCAR content
     incar_content = (temp_repo / "INCAR").read_text()
     assert "ENCUT" in incar_content

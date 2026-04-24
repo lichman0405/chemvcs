@@ -27,10 +27,10 @@ import pytest
 from chemvcs.plugins.base import Plugin, ValidationResult, ValidatorPlugin
 from chemvcs.plugins.manager import PluginManager
 
-
 # ---------------------------------------------------------------------------
 # Minimal concrete plugin implementations for testing
 # ---------------------------------------------------------------------------
+
 
 class _TestValidator(ValidatorPlugin):
     @property
@@ -41,9 +41,7 @@ class _TestValidator(ValidatorPlugin):
     def version(self) -> str:
         return "1.0.0"
 
-    def validate(
-        self, workspace_root: Path, files: list[str], **kwargs: Any
-    ) -> ValidationResult:
+    def validate(self, workspace_root: Path, files: list[str], **kwargs: Any) -> ValidationResult:
         return ValidationResult(passed=True, message="OK")
 
 
@@ -56,9 +54,7 @@ class _CrashingValidator(ValidatorPlugin):
     def version(self) -> str:
         return "1.0.0"
 
-    def validate(
-        self, workspace_root: Path, files: list[str], **kwargs: Any
-    ) -> ValidationResult:
+    def validate(self, workspace_root: Path, files: list[str], **kwargs: Any) -> ValidationResult:
         raise RuntimeError("Simulated crash")
 
 
@@ -71,12 +67,8 @@ class _WarnValidator(ValidatorPlugin):
     def version(self) -> str:
         return "1.0.0"
 
-    def validate(
-        self, workspace_root: Path, files: list[str], **kwargs: Any
-    ) -> ValidationResult:
-        return ValidationResult(
-            passed=True, message="OK with warning", warnings=["heads up"]
-        )
+    def validate(self, workspace_root: Path, files: list[str], **kwargs: Any) -> ValidationResult:
+        return ValidationResult(passed=True, message="OK with warning", warnings=["heads up"])
 
 
 class _FailValidator(ValidatorPlugin):
@@ -88,9 +80,7 @@ class _FailValidator(ValidatorPlugin):
     def version(self) -> str:
         return "1.0.0"
 
-    def validate(
-        self, workspace_root: Path, files: list[str], **kwargs: Any
-    ) -> ValidationResult:
+    def validate(self, workspace_root: Path, files: list[str], **kwargs: Any) -> ValidationResult:
         return ValidationResult(passed=False, message="failed", errors=["err1"])
 
 
@@ -110,6 +100,7 @@ class _NonValidatorPlugin(Plugin):
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def chemvcs_dir(tmp_path: Path) -> Path:
     d = tmp_path / ".chemvcs"
@@ -126,10 +117,9 @@ def manager() -> PluginManager:
 # _discover_validators – entry point loading
 # ---------------------------------------------------------------------------
 
+
 class TestDiscoverPlugins:
-    def test_discover_plugins_calls_discover_validators(
-        self, manager: PluginManager
-    ) -> None:
+    def test_discover_plugins_calls_discover_validators(self, manager: PluginManager) -> None:
         """Covers the discover_plugins() top-level method (line 50)."""
         ep = MagicMock()
         ep.name = "ep"
@@ -186,6 +176,7 @@ class TestDiscoverValidators:
 # run_validators – crash handler (lines 136-141)
 # ---------------------------------------------------------------------------
 
+
 class TestRunValidatorsCrash:
     def test_crashing_validator_produces_failed_result(
         self, manager: PluginManager, tmp_path: Path
@@ -196,35 +187,27 @@ class TestRunValidatorsCrash:
         assert results[0].passed is False
         assert "crashed" in results[0].message.lower()
 
-    def test_warn_validator_print_path(
-        self, manager: PluginManager, tmp_path: Path
-    ) -> None:
+    def test_warn_validator_print_path(self, manager: PluginManager, tmp_path: Path) -> None:
         """Covers the has_warnings branch in _print_validation_result (lines 173-181)."""
         manager.validators["warn-validator"] = _WarnValidator()
         results = manager.run_validators(tmp_path, ["INCAR"])
         assert len(results) == 1
         assert results[0].passed is True
 
-    def test_fail_validator_print_path(
-        self, manager: PluginManager, tmp_path: Path
-    ) -> None:
+    def test_fail_validator_print_path(self, manager: PluginManager, tmp_path: Path) -> None:
         """Covers the passed=False branch in _print_validation_result."""
         manager.validators["fail-validator"] = _FailValidator()
         results = manager.run_validators(tmp_path, ["INCAR"])
         assert results[0].passed is False
 
-    def test_skip_disabled_validator(
-        self, manager: PluginManager, tmp_path: Path
-    ) -> None:
+    def test_skip_disabled_validator(self, manager: PluginManager, tmp_path: Path) -> None:
         """Covers the skip_disabled=True continue (line 123)."""
         manager._config = {"validators": {"test-validator": {"enabled": False}}}
         manager.validators["test-validator"] = _TestValidator()
         results = manager.run_validators(tmp_path, ["INCAR"], skip_disabled=True)
         assert results == []
 
-    def test_skip_cant_validate_files(
-        self, manager: PluginManager, tmp_path: Path
-    ) -> None:
+    def test_skip_cant_validate_files(self, manager: PluginManager, tmp_path: Path) -> None:
         """Covers the can_validate() returning False continue (line 127)."""
 
         class _SelectiveValidator(_TestValidator):
@@ -239,6 +222,7 @@ class TestRunValidatorsCrash:
 # ---------------------------------------------------------------------------
 # _is_validator_enabled – explicit config paths (line 158)
 # ---------------------------------------------------------------------------
+
 
 class TestIsValidatorEnabled:
     def test_explicitly_disabled(self, manager: PluginManager) -> None:
@@ -256,6 +240,7 @@ class TestIsValidatorEnabled:
 # ---------------------------------------------------------------------------
 # _print_validation_result – standalone calls
 # ---------------------------------------------------------------------------
+
 
 class TestPrintValidationResult:
     def test_passed_no_warnings(self, manager: PluginManager) -> None:
@@ -275,14 +260,13 @@ class TestPrintValidationResult:
 # load_config / save_config (lines 191-203)
 # ---------------------------------------------------------------------------
 
+
 class TestLoadSaveConfig:
     def test_load_config_reads_existing_json(
         self, manager: PluginManager, chemvcs_dir: Path
     ) -> None:
         config = {"validators": {"x": {"enabled": False}}}
-        (chemvcs_dir / "plugins.json").write_text(
-            json.dumps(config), encoding="utf-8"
-        )
+        (chemvcs_dir / "plugins.json").write_text(json.dumps(config), encoding="utf-8")
         manager.load_config(chemvcs_dir)
         assert manager._config == config
 
@@ -299,15 +283,11 @@ class TestLoadSaveConfig:
         manager.load_config(chemvcs_dir)
         assert manager._config == {}
 
-    def test_save_config_writes_json_file(
-        self, manager: PluginManager, chemvcs_dir: Path
-    ) -> None:
+    def test_save_config_writes_json_file(self, manager: PluginManager, chemvcs_dir: Path) -> None:
         manager.load_config(chemvcs_dir)
         manager._config = {"key": "value"}
         manager.save_config()
-        data = json.loads(
-            (chemvcs_dir / "plugins.json").read_text(encoding="utf-8")
-        )
+        data = json.loads((chemvcs_dir / "plugins.json").read_text(encoding="utf-8"))
         assert data == {"key": "value"}
 
     def test_save_config_no_dir_is_noop(self, manager: PluginManager) -> None:
@@ -318,6 +298,7 @@ class TestLoadSaveConfig:
 # ---------------------------------------------------------------------------
 # set_validator_enabled (lines 218-223)
 # ---------------------------------------------------------------------------
+
 
 class TestSetValidatorEnabled:
     def test_unknown_validator_returns_false(
@@ -340,6 +321,7 @@ class TestSetValidatorEnabled:
 # is_validator_enabled public wrapper (line 227)
 # ---------------------------------------------------------------------------
 
+
 class TestIsValidatorEnabledPublic:
     def test_delegates_to_private_helper(self, manager: PluginManager) -> None:
         assert manager.is_validator_enabled(_TestValidator()) is True
@@ -348,6 +330,7 @@ class TestIsValidatorEnabledPublic:
 # ---------------------------------------------------------------------------
 # set_config (line 235)
 # ---------------------------------------------------------------------------
+
 
 class TestSetConfig:
     def test_set_config_replaces_config(self, manager: PluginManager) -> None:
@@ -358,6 +341,7 @@ class TestSetConfig:
 # ---------------------------------------------------------------------------
 # get_plugin / list_plugins (lines 246, 254)
 # ---------------------------------------------------------------------------
+
 
 class TestGetPluginListPlugins:
     def test_get_plugin_returns_registered_plugin(self, manager: PluginManager) -> None:

@@ -2,9 +2,8 @@
 
 import pytest
 
-from chemvcs.parsers.lammps_log_parser import LammpsLogParser
 from chemvcs.parsers.base_parser import ParserError
-
+from chemvcs.parsers.lammps_log_parser import LammpsLogParser
 
 # ---------------------------------------------------------------------------
 # Sample log content fixtures
@@ -72,6 +71,7 @@ Total wall time: 0:00:01
 # ---------------------------------------------------------------------------
 # Test cases
 # ---------------------------------------------------------------------------
+
 
 class TestLammpsLogParser:
     """Tests for LammpsLogParser."""

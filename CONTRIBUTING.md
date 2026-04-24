@@ -9,7 +9,7 @@
 
 ### 1.1 Prerequisites
 
-- Python ≥3.8 (recommended 3.10 or 3.11)
+- Python ≥3.10
 - Git ≥2.30
 - Operating System: Linux / macOS / Windows (WSL2 or PowerShell)
 
@@ -70,7 +70,7 @@ dev = [
 ```toml
 # pyproject.toml
 [tool.ruff]
-target-version = "py38"
+target-version = "py310"
 line-length = 100
 indent-width = 4
 
@@ -117,7 +117,7 @@ ruff format chemvcs/
 ```toml
 # pyproject.toml
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -416,20 +416,24 @@ tests/
 │   │   ├── test_object_store.py
 │   │   ├── test_metadata_db.py
 │   │   └── test_commit_builder.py
-│   ├── parsers/
-│   │   ├── test_incar_parser.py
-│   │   ├── test_poscar_parser.py
-│   │   └── test_outcar_extractor.py
-│   └── cli/
-│       ├── test_init.py
-│       ├── test_add.py
-│       └── test_commit.py
+│   ├── core/
+│   │   └── test_staging.py
+│   ├── cli/
+│   │   └── test_init.py
+│   ├── remote/
+│   │   ├── test_config.py
+│   │   └── test_manager.py
+│   ├── test_incar_parser.py
+│   ├── test_kpoints_parser.py
+│   └── test_orca_input_parser.py
 ├── integration/
-│   ├── test_init_workflow.py
-│   ├── test_commit_workflow.py
-│   └── test_reproduce_workflow.py
-├── fixtures/
-│   └── ...
+│   ├── cli/
+│   │   └── test_add_command.py
+│   ├── remote/
+│   │   └── test_push_pull.py
+│   ├── test_commit.py
+│   ├── test_diff_command.py
+│   └── test_lammps_workflow.py
 └── conftest.py
 ```
 
@@ -475,7 +479,6 @@ pytest -vv
 |------|----------|----------|
 | User docs | `README.md`, `COMMANDS.md` | End users |
 | API docs | Docstrings (auto-generated) | Developers |
-| Architecture docs | `docs/TECH_ARCHITECTURE.md` | Contributors |
 | Development guidelines | `CONTRIBUTING.md` (this file) | Contributors |
 
 ### 7.2 When to Update Documentation
@@ -484,8 +487,7 @@ pytest -vv
 
 - Adding CLI command → Update `COMMANDS.md`
 - Modifying exit codes → Update exit code table in `COMMANDS.md`
-- Adding storage fields → Update schema in `TECH_ARCHITECTURE.md`
-- Breaking change → Mark specially in `CHANGELOG.md`
+- Breaking change → Note in commit message and PR description
 
 ---
 
@@ -507,7 +509,7 @@ v1.0.0 → Stable version (production-ready)
 ```markdown
 - [ ] All CI passes (dev branch)
 - [ ] Version number updated (`chemvcs/__init__.py`, `pyproject.toml`)
-- [ ] CHANGELOG.md updated
+- [ ] Release notes drafted
 - [ ] Create release/v<version> branch
 - [ ] Manual testing on HPC environment (at least 2 filesystems)
 - [ ] Merge release branch to main

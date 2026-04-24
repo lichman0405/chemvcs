@@ -1,6 +1,5 @@
 """Tests for DiffEngine LAMMPS file type detection and diff."""
 
-import pytest
 from chemvcs.parsers.diff_engine import DiffEngine
 
 
@@ -89,9 +88,7 @@ run 50000
 """
 
     def test_diff_files_lammps_input(self) -> None:
-        entries = self.engine.diff_files(
-            self.LAMMPS_INPUT_V1, self.LAMMPS_INPUT_V2, "in.lammps"
-        )
+        entries = self.engine.diff_files(self.LAMMPS_INPUT_V1, self.LAMMPS_INPUT_V2, "in.lammps")
         assert entries is not None
         paths = [e.path for e in entries]
         assert "pair_style" in paths
@@ -114,9 +111,7 @@ Total wall time: 0:00:12
 """
 
     def test_diff_files_lammps_log(self) -> None:
-        entries = self.engine.diff_files(
-            self.LAMMPS_LOG_V1, self.LAMMPS_LOG_V2, "log.lammps"
-        )
+        entries = self.engine.diff_files(self.LAMMPS_LOG_V1, self.LAMMPS_LOG_V2, "log.lammps")
         assert entries is not None
         paths = [e.path for e in entries]
         assert "final_etotal" in paths
@@ -148,9 +143,7 @@ Atoms # atomic
 """
 
     def test_diff_files_lammps_data(self) -> None:
-        entries = self.engine.diff_files(
-            self.LAMMPS_DATA_V1, self.LAMMPS_DATA_V2, "data.lammps"
-        )
+        entries = self.engine.diff_files(self.LAMMPS_DATA_V1, self.LAMMPS_DATA_V2, "data.lammps")
         assert entries is not None
         paths = [e.path for e in entries]
         assert "num_atoms" in paths

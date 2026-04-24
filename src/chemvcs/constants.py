@@ -1,7 +1,5 @@
 """Constants used throughout ChemVCS."""
 
-from pathlib import Path
-
 # Version
 VERSION = "0.1.0"
 
@@ -16,6 +14,7 @@ METADATA_DB = "metadata.db"
 HEAD_FILE = "HEAD"
 STAGING_MANIFEST = "manifest.json"
 IGNORE_FILE = ".chemvcsignore"
+REMOTES_FILE = "remotes.toml"
 
 # Default ignore patterns
 DEFAULT_IGNORE_PATTERNS = [
@@ -28,7 +27,7 @@ DEFAULT_IGNORE_PATTERNS = [
 
 # File size limits (bytes)
 MAX_INLINE_SIZE = 100 * 1024 * 1024  # 100 MB
-GZIP_THRESHOLD = 200 * 1024 * 1024   # 200 MB
+GZIP_THRESHOLD = 200 * 1024 * 1024  # 200 MB
 
 # Hash algorithm
 HASH_ALGORITHM = "sha256"
@@ -69,8 +68,8 @@ LAMMPS_INPUT_FILES = {
 
 LAMMPS_OUTPUT_FILES = {
     "LAMMPS_LOG": "md_thermo_log",
-    "LAMMPS_DUMP": "md_trajectory",    # tracked only, not semantically parsed
-    "LAMMPS_RESTART": "md_restart",    # binary, tracked only
+    "LAMMPS_DUMP": "md_trajectory",  # tracked only, not semantically parsed
+    "LAMMPS_RESTART": "md_restart",  # binary, tracked only
 }
 
 # ORCA file types

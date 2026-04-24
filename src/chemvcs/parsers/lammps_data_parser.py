@@ -20,7 +20,7 @@ of atoms), only the header metadata and topology counts.
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from chemvcs.parsers.base_parser import BaseParser, DiffEntry, ParserError
 
@@ -54,17 +54,31 @@ class LammpsDataParser(BaseParser):
     # Significance classification                                          #
     # ------------------------------------------------------------------ #
 
-    CRITICAL_FIELDS = frozenset({
-        "num_atoms", "num_atom_types", "lx", "ly", "lz", "volume",
-    })
+    CRITICAL_FIELDS = frozenset(
+        {
+            "num_atoms",
+            "num_atom_types",
+            "lx",
+            "ly",
+            "lz",
+            "volume",
+        }
+    )
 
-    MAJOR_FIELDS = frozenset({
-        "has_bonds", "num_bonds", "num_bond_types",
-        "num_angles", "num_angle_types",
-        "num_dihedrals", "num_dihedral_types",
-        "num_impropers", "num_improper_types",
-        "masses",
-    })
+    MAJOR_FIELDS = frozenset(
+        {
+            "has_bonds",
+            "num_bonds",
+            "num_bond_types",
+            "num_angles",
+            "num_angle_types",
+            "num_dihedrals",
+            "num_dihedral_types",
+            "num_impropers",
+            "num_improper_types",
+            "masses",
+        }
+    )
 
     # ------------------------------------------------------------------ #
     # Header keyword patterns                                              #
@@ -113,7 +127,7 @@ class LammpsDataParser(BaseParser):
     # BaseParser interface                                                  #
     # ------------------------------------------------------------------ #
 
-    def parse(self, content: str) -> Dict[str, Any]:
+    def parse(self, content: str) -> dict[str, Any]:
         """Parse LAMMPS data file content.
 
         Args:
@@ -138,12 +152,12 @@ class LammpsDataParser(BaseParser):
                 title = stripped
                 break
 
-        data: Dict[str, Any] = {"title": title}
+        data: dict[str, Any] = {"title": title}
 
         # Parse header (lines before first named section)
-        sections: List[str] = []
+        sections: list[str] = []
         in_header = True
-        masses: Dict[int, float] = {}
+        masses: dict[int, float] = {}
         in_masses_section = False
 
         for line in lines[1:]:  # skip title
@@ -232,11 +246,11 @@ class LammpsDataParser(BaseParser):
 
     def diff(
         self,
-        old_data: Dict[str, Any],
-        new_data: Dict[str, Any],
-    ) -> List[DiffEntry]:
+        old_data: dict[str, Any],
+        new_data: dict[str, Any],
+    ) -> list[DiffEntry]:
         """Compute semantic diff between two parsed LAMMPS data files."""
-        entries: List[DiffEntry] = []
+        entries: list[DiffEntry] = []
 
         scalar_fields = [
             "num_atoms",
@@ -249,7 +263,9 @@ class LammpsDataParser(BaseParser):
             "num_dihedral_types",
             "num_impropers",
             "num_improper_types",
-            "lx", "ly", "lz",
+            "lx",
+            "ly",
+            "lz",
             "volume",
             "has_bonds",
             "title",
@@ -272,23 +288,19 @@ class LammpsDataParser(BaseParser):
                     and abs(old_val - new_val) < 1e-8
                 ):
                     continue
-                entries.append(
-                    DiffEntry(field, old_val, new_val, "modified", significance)
-                )
+                entries.append(DiffEntry(field, old_val, new_val, "modified", significance))
 
         # Diff masses dict
-        old_masses: Dict[str, float] = old_data.get("masses", {})
-        new_masses: Dict[str, float] = new_data.get("masses", {})
+        old_masses: dict[str, float] = old_data.get("masses", {})
+        new_masses: dict[str, float] = new_data.get("masses", {})
         if old_masses != new_masses:
-            entries.append(
-                DiffEntry("masses", old_masses, new_masses, "modified", "major")
-            )
+            entries.append(DiffEntry("masses", old_masses, new_masses, "modified", "major"))
 
         return entries
 
-    def validate(self, data: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    def validate(self, data: dict[str, Any]) -> tuple[bool, list[str]]:
         """Validate parsed LAMMPS data file."""
-        errors: List[str] = []
+        errors: list[str] = []
 
         if data.get("num_atoms", 0) <= 0:
             errors.append("num_atoms must be positive")

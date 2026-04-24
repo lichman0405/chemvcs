@@ -1,8 +1,8 @@
 """Pytest configuration and shared fixtures."""
 
-import pytest
 from pathlib import Path
-import tempfile
+
+import pytest
 
 
 @pytest.fixture
@@ -16,15 +16,10 @@ def temp_repo(tmp_path: Path) -> Path:
     """Create a temporary test repository with sample VASP files."""
     repo = tmp_path / "test_repo"
     repo.mkdir()
-    
+
     # Create sample INCAR
-    (repo / "INCAR").write_text(
-        "ENCUT = 520\n"
-        "ISMEAR = 0\n"
-        "SIGMA = 0.05\n"
-        "LDAUU = 3.5 0 0\n"
-    )
-    
+    (repo / "INCAR").write_text("ENCUT = 520\nISMEAR = 0\nSIGMA = 0.05\nLDAUU = 3.5 0 0\n")
+
     # Create sample POSCAR (simplified)
     (repo / "POSCAR").write_text(
         "Li4 Co4 O8\n"
@@ -52,13 +47,8 @@ def temp_repo(tmp_path: Path) -> Path:
         "0.625000  0.125000  0.125000 O\n"
         "0.875000  0.375000  0.375000 O\n"
     )
-    
+
     # Create sample KPOINTS
-    (repo / "KPOINTS").write_text(
-        "Automatic\n"
-        "0\n"
-        "Gamma\n"
-        "4 4 4\n"
-    )
-    
+    (repo / "KPOINTS").write_text("Automatic\n0\nGamma\n4 4 4\n")
+
     return repo

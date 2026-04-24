@@ -3,14 +3,22 @@
 > **Scenario**: Si (Silicon) bulk DFT convergence test  
 > **Objective**: Step-by-step demonstration of all ChemVCS MVP features
 
+> 💡 **Linux/macOS users**: Replace `$env:TEMP` with `/tmp`, `Copy-Item` with `cp`, `type` with `cat`, `Select-String` with `grep`, `Get-ChildItem` with `ls`. All `chemvcs` commands are identical across platforms.
+
 ---
 
 ## Prerequisites
 
 ```powershell
-# Create a temporary demo directory
+# Windows (PowerShell)
 mkdir $env:TEMP\si_convergence
 cd $env:TEMP\si_convergence
+```
+
+```bash
+# Linux/macOS
+mkdir -p /tmp/si_convergence
+cd /tmp/si_convergence
 ```
 
 > 💡 All commands below are executed in this directory.
@@ -38,7 +46,7 @@ chemvcs init
 - **KPOINTS** — 4×4×4 Gamma k-point grid
 
 ```powershell
-# Copy from pre-made files
+# Windows (PowerShell)
 # ⚠️ Replace the path below with your actual chemvcs project path
 $DEMO = "C:\Users\lishi\code\chemvcs\demo\vasp_files"
 
@@ -48,10 +56,27 @@ Copy-Item "$DEMO\step1_initial\INCAR"  .
 Copy-Item "$DEMO\step1_initial\KPOINTS" .
 ```
 
+```bash
+# Linux/macOS
+# ⚠️ Replace the path below with your actual chemvcs project path
+DEMO="/home/user/project/chemvcs/demo/vasp_files"
+
+cp "$DEMO/step1_initial/POSCAR" .
+cp "$DEMO/step1_initial/POTCAR" .
+cp "$DEMO/step1_initial/INCAR"  .
+cp "$DEMO/step1_initial/KPOINTS" .
+```
+
 Check file contents:
 
 ```powershell
+# Windows
 type INCAR
+```
+
+```bash
+# Linux/macOS
+cat INCAR
 ```
 
 **Expected Output**:
@@ -110,10 +135,15 @@ chemvcs commit -m "Initial setup: Si bulk SCF (ENCUT=400, K=4x4x4)"
 **Narration**: Assume VASP calculation finished, producing OUTCAR. Total energy E = **-10.8265 eV**. We'll commit all files together to save the complete calculation snapshot.
 
 ```powershell
+# Windows
 Copy-Item "$DEMO\step2_scf_done\OUTCAR" .
-
-# Check energy result
 Select-String "energy.*sigma" OUTCAR
+```
+
+```bash
+# Linux/macOS
+cp "$DEMO/step2_scf_done/OUTCAR" .
+grep "energy.*sigma" OUTCAR
 ```
 
 ```powershell
@@ -130,12 +160,17 @@ chemvcs commit -m "SCF completed: E=-10.8265 eV (ENCUT=400)"
 **Narration**: Energy cutoff ENCUT is the most critical parameter in DFT. We'll increase ENCUT from 400 to 520 eV to check energy convergence.
 
 ```powershell
-# Update INCAR and OUTCAR
+# Windows
 Copy-Item "$DEMO\step3_encut_conv\INCAR"  . -Force
 Copy-Item "$DEMO\step3_encut_conv\OUTCAR" . -Force
-
-# Check INCAR changes
 type INCAR
+```
+
+```bash
+# Linux/macOS
+cp "$DEMO/step3_encut_conv/INCAR"  .
+cp "$DEMO/step3_encut_conv/OUTCAR" .
+cat INCAR
 ```
 
 ```powershell
@@ -165,10 +200,17 @@ Semantic Changes:
 **Narration**: Next, test k-point grid density. Also adjust ISMEAR (0→1) and SIGMA (0.05→0.1).
 
 ```powershell
-# Update INCAR, KPOINTS, OUTCAR
+# Windows
 Copy-Item "$DEMO\step4_kpoint_conv\INCAR"   . -Force
 Copy-Item "$DEMO\step4_kpoint_conv\KPOINTS" . -Force
 Copy-Item "$DEMO\step4_kpoint_conv\OUTCAR"  . -Force
+```
+
+```bash
+# Linux/macOS
+cp "$DEMO/step4_kpoint_conv/INCAR"   .
+cp "$DEMO/step4_kpoint_conv/KPOINTS" .
+cp "$DEMO/step4_kpoint_conv/OUTCAR"  .
 ```
 
 ```powershell
@@ -276,11 +318,15 @@ chemvcs reproduce <initial-commit-hash> -o reproduce_initial
 ```
 
 ```powershell
-# View reproduced files
+# Windows
 Get-ChildItem reproduce_initial
-
-# Verify INCAR is the initial version (ENCUT=400)
 type reproduce_initial\INCAR
+```
+
+```bash
+# Linux/macOS
+ls reproduce_initial
+cat reproduce_initial/INCAR
 ```
 
 **Key Talking Points**:
@@ -315,8 +361,15 @@ ENCUT=520, K=8×8×8  →  E = -10.8489 eV  (ΔE =  3.7 meV → Converged!)
 ## Cleanup
 
 ```powershell
+# Windows
 cd ~
 Remove-Item $env:TEMP\si_convergence -Recurse -Force
+```
+
+```bash
+# Linux/macOS
+cd ~
+rm -rf /tmp/si_convergence
 ```
 
 ---
@@ -326,7 +379,6 @@ Remove-Item $env:TEMP\si_convergence -Recurse -Force
 ```
 demo/
 ├── GUIDE.md                      ← This file (manual walkthrough)
-├── run_demo.py                   ← Automated demo script (alternative)
 └── vasp_files/                   ← Pre-made VASP files for each stage
     ├── step1_initial/            ← Initial inputs
     │   ├── POSCAR                   Si diamond structure

@@ -18,20 +18,20 @@ chemvcs init
 chemvcs add step1_opt/water.inp
 chemvcs commit -m "DFT geometry optimisation B3LYP/def2-TZVP"
 
-# View workflow
-chemvcs log
-
 # --- Step 2: High-level single point ---
 chemvcs add step2_sp/water.inp
 chemvcs commit -m "CCSD(T)/def2-TZVPP single point on optimised geometry"
 
-# Compare the two input files
-chemvcs diff step2_sp/water.inp
+# View workflow
+chemvcs log
+
+# Compare both commits
+chemvcs diff HEAD~1 HEAD
 ```
 
 The semantic diff will highlight:
-- **‼️ CRITICAL**: Method changed from `B3LYP` → `CCSD(T)`, basis set from `DEF2-TZVP` → `DEF2-TZVPP`
-- **⚠️ MAJOR**: RI approximation `RIJCOSX` removed (not available for CCSD(T))
+- **+ step2_sp/water.inp** added as a new file (CCSD(T)/def2-TZVPP single point)
+- To compare parameters across the two calculations, place both files under the same path and commit sequentially so ChemVCS can track the parameter evolution.
 
 ## Files
 

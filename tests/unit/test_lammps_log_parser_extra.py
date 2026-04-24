@@ -21,9 +21,8 @@ Targets uncovered lines (see coverage report):
 
 import pytest
 
-from chemvcs.parsers.lammps_log_parser import LammpsLogParser
 from chemvcs.parsers.base_parser import ParserError
-
+from chemvcs.parsers.lammps_log_parser import LammpsLogParser
 
 # ---------------------------------------------------------------------------
 # Helpers / fixtures content
@@ -192,6 +191,7 @@ Some random output without any thermodynamic columns.
 # diff() edge cases
 # ---------------------------------------------------------------------------
 
+
 class TestLammpsLogDiff:
     def test_diff_added_field(self) -> None:
         """Field present in new but not old → added entry."""
@@ -236,6 +236,7 @@ class TestLammpsLogDiff:
 # validate()
 # ---------------------------------------------------------------------------
 
+
 class TestLammpsLogValidate:
     def test_validate_incomplete_run_gives_error(self) -> None:
         parser = LammpsLogParser()
@@ -270,6 +271,7 @@ class TestLammpsLogValidate:
 # parse() – regex fallback path (lines 87-91, 315-329)
 # ---------------------------------------------------------------------------
 
+
 class TestLammpsLogParseRegexFallback:
     def test_regex_fallback_extracts_toteng(self) -> None:
         parser = LammpsLogParser()
@@ -295,6 +297,7 @@ class TestLammpsLogParseRegexFallback:
 # ---------------------------------------------------------------------------
 # _try_parse_yaml_thermo edge cases
 # ---------------------------------------------------------------------------
+
 
 class TestYamlThermoEdgeCases:
     def test_yaml_multi_block(self) -> None:
@@ -354,6 +357,7 @@ class TestYamlThermoEdgeCases:
 # ---------------------------------------------------------------------------
 # _try_parse_columnar_thermo edge cases
 # ---------------------------------------------------------------------------
+
 
 class TestColumnarEdgeCases:
     def test_columnar_row_length_mismatch_still_parses_first_row(self) -> None:

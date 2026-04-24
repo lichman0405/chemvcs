@@ -47,59 +47,146 @@ class OrcaInputParser(BaseParser):
     # ------------------------------------------------------------------ #
 
     #: Keywords that directly change the computed energy / property.
-    CRITICAL_KEYWORDS: frozenset[str] = frozenset({
-        # Wavefunction model — HF and post-HF
-        "HF", "RHF", "UHF", "ROHF", "CASSCF",
-        "MP2", "RI-MP2", "OO-MP2", "SCS-MP2",
-        "DLPNO-MP2", "DLPNO-MP2-F12",
-        "CCSD", "CCSD(T)", "CCSD-F12", "CCSD(T)-F12",
-        "DLPNO-CCSD", "DLPNO-CCSD(T)", "DLPNO-CCSD(T1)",
-        # DFT functionals
-        "BLYP", "BP86", "PBE", "TPSS", "B97",
-        "B3LYP", "PBE0", "TPSSh", "BHLYP", "X3LYP", "B1LYP",
-        "B97-3C", "PBEh-3C", "R2SCAN-3C",
-        "M06", "M06-2X", "M06-L", "M06-HF",
-        "WB97X", "WB97X-D", "WB97X-D3", "WB97M-V", "WB97X-V",
-        "CAM-B3LYP", "LC-BLYP", "LC-PBE", "LONG-RANGE-CORRECTED",
-        "B2PLYP", "B2GP-PLYP", "DSDPBEP86", "PWPB95",
-        "SCAN", "R2SCAN",
-        # Run types — these change what property is computed
-        "SP", "OPT", "COPT", "ZOPT", "GDIIS-OPT",
-        "FREQ", "NUMFREQ", "NFREQ",
-        "NMR",
-        "SOCOUPLING",
-        "MD",
-        "IRC",
-        "TDDFT",
-        # Relativistic
-        "DKH", "DKH2", "DKH3",
-        "ZORA", "IORA",
-        "X2C", "DKH-X2C",
-    })
+    CRITICAL_KEYWORDS: frozenset[str] = frozenset(
+        {
+            # Wavefunction model — HF and post-HF
+            "HF",
+            "RHF",
+            "UHF",
+            "ROHF",
+            "CASSCF",
+            "MP2",
+            "RI-MP2",
+            "OO-MP2",
+            "SCS-MP2",
+            "DLPNO-MP2",
+            "DLPNO-MP2-F12",
+            "CCSD",
+            "CCSD(T)",
+            "CCSD-F12",
+            "CCSD(T)-F12",
+            "DLPNO-CCSD",
+            "DLPNO-CCSD(T)",
+            "DLPNO-CCSD(T1)",
+            # DFT functionals
+            "BLYP",
+            "BP86",
+            "PBE",
+            "TPSS",
+            "B97",
+            "B3LYP",
+            "PBE0",
+            "TPSSh",
+            "BHLYP",
+            "X3LYP",
+            "B1LYP",
+            "B97-3C",
+            "PBEh-3C",
+            "R2SCAN-3C",
+            "M06",
+            "M06-2X",
+            "M06-L",
+            "M06-HF",
+            "WB97X",
+            "WB97X-D",
+            "WB97X-D3",
+            "WB97M-V",
+            "WB97X-V",
+            "CAM-B3LYP",
+            "LC-BLYP",
+            "LC-PBE",
+            "LONG-RANGE-CORRECTED",
+            "B2PLYP",
+            "B2GP-PLYP",
+            "DSDPBEP86",
+            "PWPB95",
+            "SCAN",
+            "R2SCAN",
+            # Run types — these change what property is computed
+            "SP",
+            "OPT",
+            "COPT",
+            "ZOPT",
+            "GDIIS-OPT",
+            "FREQ",
+            "NUMFREQ",
+            "NFREQ",
+            "NMR",
+            "SOCOUPLING",
+            "MD",
+            "IRC",
+            "TDDFT",
+            # Relativistic
+            "DKH",
+            "DKH2",
+            "DKH3",
+            "ZORA",
+            "IORA",
+            "X2C",
+            "DKH-X2C",
+        }
+    )
 
     #: Keywords that affect numerical accuracy / cost without changing the model.
-    MAJOR_KEYWORDS: frozenset[str] = frozenset({
-        # SCF convergence thresholds
-        "SLOPPYSCF", "LOOSESCF", "NORMALSCF", "STRONGSCF",
-        "TIGHTSCF", "VERYTIGHTSCF", "EXTREMESCF",
-        # Quadrature grids
-        "DEFGRID1", "DEFGRID2", "DEFGRID3",
-        "GRID1", "GRID2", "GRID3", "GRID4", "GRID5",
-        "FINALGRID1", "FINALGRID2", "FINALGRID3", "FINALGRID4", "FINALGRID5", "FINALGRID6",
-        "GRIDX5",
-        # RI approximations
-        "RI", "RI-J", "RIJONX", "RIJK", "RIJCOSX", "NORIJCOSX", "NORI",
-        # Dispersion corrections
-        "D2", "D3", "D3BJ", "D3ZERO", "D4", "NODAMP", "NL",
-        # Solvation
-        "CPCM", "SMD",
-        # Frozen core / ECP
-        "FROZENCORE", "NOFROZENCORE", "SMALLCORE", "NOECP",
-        # Memory / parallelism keywords (when specified on ! line)
-        "LARGEMEM", "NORMALMEM", "SMALLMEM",
-        # Auxiliary basis sets (affect RI accuracy)
-        "AUTOAUX", "NOAUTOAUX",
-    })
+    MAJOR_KEYWORDS: frozenset[str] = frozenset(
+        {
+            # SCF convergence thresholds
+            "SLOPPYSCF",
+            "LOOSESCF",
+            "NORMALSCF",
+            "STRONGSCF",
+            "TIGHTSCF",
+            "VERYTIGHTSCF",
+            "EXTREMESCF",
+            # Quadrature grids
+            "DEFGRID1",
+            "DEFGRID2",
+            "DEFGRID3",
+            "GRID1",
+            "GRID2",
+            "GRID3",
+            "GRID4",
+            "GRID5",
+            "FINALGRID1",
+            "FINALGRID2",
+            "FINALGRID3",
+            "FINALGRID4",
+            "FINALGRID5",
+            "FINALGRID6",
+            "GRIDX5",
+            # RI approximations
+            "RI",
+            "RI-J",
+            "RIJONX",
+            "RIJK",
+            "RIJCOSX",
+            "NORIJCOSX",
+            "NORI",
+            # Dispersion corrections
+            "D2",
+            "D3",
+            "D3BJ",
+            "D3ZERO",
+            "D4",
+            "NODAMP",
+            "NL",
+            # Solvation
+            "CPCM",
+            "SMD",
+            # Frozen core / ECP
+            "FROZENCORE",
+            "NOFROZENCORE",
+            "SMALLCORE",
+            "NOECP",
+            # Memory / parallelism keywords (when specified on ! line)
+            "LARGEMEM",
+            "NORMALMEM",
+            "SMALLMEM",
+            # Auxiliary basis sets (affect RI accuracy)
+            "AUTOAUX",
+            "NOAUTOAUX",
+        }
+    )
 
     # ------------------------------------------------------------------ #
     # BaseParser interface                                                  #
@@ -235,13 +322,9 @@ class OrcaInputParser(BaseParser):
         new_kw = set(new_data.get("keywords", []))
 
         for kw in sorted(old_kw - new_kw):
-            entries.append(
-                DiffEntry(f"keyword.{kw}", kw, None, "deleted", self._classify_kw(kw))
-            )
+            entries.append(DiffEntry(f"keyword.{kw}", kw, None, "deleted", self._classify_kw(kw)))
         for kw in sorted(new_kw - old_kw):
-            entries.append(
-                DiffEntry(f"keyword.{kw}", None, kw, "added", self._classify_kw(kw))
-            )
+            entries.append(DiffEntry(f"keyword.{kw}", None, kw, "added", self._classify_kw(kw)))
 
         # ---- Scalar top-level fields -------------------------------- #
         _SCALAR_SIG: dict[str, str] = {
@@ -256,9 +339,7 @@ class OrcaInputParser(BaseParser):
             new_val = new_data.get(field)
             if old_val != new_val:
                 change_type = (
-                    "added" if old_val is None
-                    else "deleted" if new_val is None
-                    else "modified"
+                    "added" if old_val is None else "deleted" if new_val is None else "modified"
                 )
                 entries.append(DiffEntry(field, old_val, new_val, change_type, sig))
 
@@ -293,9 +374,7 @@ class OrcaInputParser(BaseParser):
                     sig = self._classify_block(block_name, k)
                     path = f"block.{block_name}.{k}"
                     change_type = (
-                        "added" if old_val is None
-                        else "deleted" if new_val is None
-                        else "modified"
+                        "added" if old_val is None else "deleted" if new_val is None else "modified"
                     )
                     entries.append(DiffEntry(path, old_val, new_val, change_type, sig))
 
@@ -313,9 +392,7 @@ class OrcaInputParser(BaseParser):
         errors: list[str] = []
 
         if not data.get("keywords"):
-            errors.append(
-                "No method/basis keywords found — expected at least one '!' line"
-            )
+            errors.append("No method/basis keywords found — expected at least one '!' line")
 
         if data.get("charge") is None:
             errors.append(
@@ -385,6 +462,7 @@ class OrcaInputParser(BaseParser):
 # ------------------------------------------------------------------ #
 # Module-level helpers                                                  #
 # ------------------------------------------------------------------ #
+
 
 def _try_numeric(s: str) -> Any:
     """Attempt to parse *s* as int, then float; return str on failure."""

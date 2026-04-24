@@ -12,7 +12,7 @@ extracts the most recent thermodynamic values found in the file.
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from chemvcs.parsers.base_parser import BaseParser, DiffEntry, ParserError
 
@@ -39,19 +39,28 @@ class LammpsLogParser(BaseParser):
     # Significance classification                                          #
     # ------------------------------------------------------------------ #
 
-    CRITICAL_FIELDS = frozenset({
-        "final_etotal", "final_pe", "completed",
-    })
+    CRITICAL_FIELDS = frozenset(
+        {
+            "final_etotal",
+            "final_pe",
+            "completed",
+        }
+    )
 
-    MAJOR_FIELDS = frozenset({
-        "final_temp", "final_press", "run_steps", "num_atoms",
-    })
+    MAJOR_FIELDS = frozenset(
+        {
+            "final_temp",
+            "final_press",
+            "run_steps",
+            "num_atoms",
+        }
+    )
 
     # ------------------------------------------------------------------ #
     # BaseParser interface                                                  #
     # ------------------------------------------------------------------ #
 
-    def parse(self, content: str) -> Dict[str, Any]:
+    def parse(self, content: str) -> dict[str, Any]:
         """Parse LAMMPS log content.
 
         Tries YAML-format parsing first (modern LAMMPS), then falls back
@@ -95,11 +104,11 @@ class LammpsLogParser(BaseParser):
 
     def diff(
         self,
-        old_data: Dict[str, Any],
-        new_data: Dict[str, Any],
-    ) -> List[DiffEntry]:
+        old_data: dict[str, Any],
+        new_data: dict[str, Any],
+    ) -> list[DiffEntry]:
         """Compute semantic diff between two parsed LAMMPS log snapshots."""
-        entries: List[DiffEntry] = []
+        entries: list[DiffEntry] = []
 
         tracked_fields = [
             "final_etotal",
@@ -134,9 +143,9 @@ class LammpsLogParser(BaseParser):
 
         return entries
 
-    def validate(self, data: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    def validate(self, data: dict[str, Any]) -> tuple[bool, list[str]]:
         """Validate parsed LAMMPS log data."""
-        errors: List[str] = []
+        errors: list[str] = []
 
         if not data.get("completed", False):
             errors.append("LAMMPS run did not complete normally (no 'Total wall time:' found)")
@@ -159,7 +168,7 @@ class LammpsLogParser(BaseParser):
 
     # -- YAML thermo format -------------------------------------------- #
 
-    def _try_parse_yaml_thermo(self, content: str) -> Optional[Dict[str, Any]]:
+    def _try_parse_yaml_thermo(self, content: str) -> dict[str, Any] | None:
         """Parse YAML-style thermo blocks (LAMMPS >= 24Mar2022).
 
         Expects blocks like::
@@ -182,8 +191,8 @@ class LammpsLogParser(BaseParser):
         # Extract YAML documents delimited by '---' and either '...'
         # or the next '---'/EOF. LAMMPS commonly writes a single thermo
         # document followed by ordinary log lines such as wall time.
-        yaml_blocks: List[str] = []
-        current_block: List[str] = []
+        yaml_blocks: list[str] = []
+        current_block: list[str] = []
         in_block = False
 
         for line in content.splitlines():
@@ -214,8 +223,8 @@ class LammpsLogParser(BaseParser):
             return None
 
         run_steps_total = 0
-        last_row: Optional[Dict[str, float]] = None
-        keywords: Optional[List[str]] = None
+        last_row: dict[str, float] | None = None
+        keywords: list[str] | None = None
 
         for block in yaml_blocks:
             try:
@@ -228,14 +237,14 @@ class LammpsLogParser(BaseParser):
             if "keywords" not in doc or "data" not in doc:
                 continue
 
-            kws: List[str] = doc["keywords"]
-            rows: List[List[Any]] = doc["data"]
+            kws: list[str] = doc["keywords"]
+            rows: list[list[Any]] = doc["data"]
 
             if not kws or not rows:
                 continue
 
             keywords = kws
-            last_row = dict(zip(kws, rows[-1]))
+            last_row = dict(zip(kws, rows[-1], strict=False))
 
             # Accumulate run steps
             if "Step" in last_row and len(rows) > 1:
@@ -250,7 +259,7 @@ class LammpsLogParser(BaseParser):
 
     # -- Columnar thermo format ----------------------------------------- #
 
-    def _try_parse_columnar_thermo(self, content: str) -> Optional[Dict[str, Any]]:
+    def _try_parse_columnar_thermo(self, content: str) -> dict[str, Any] | None:
         """Parse classic columnar thermo format.
 
         LAMMPS prints a header line like::
@@ -269,8 +278,8 @@ class LammpsLogParser(BaseParser):
         )
 
         run_steps_total = 0
-        last_row: Optional[Dict[str, float]] = None
-        keywords: Optional[List[str]] = None
+        last_row: dict[str, float] | None = None
+        keywords: list[str] | None = None
 
         for match in header_re.finditer(content):
             header_line = match.group(0)
@@ -278,7 +287,7 @@ class LammpsLogParser(BaseParser):
             start = match.end()
 
             # Collect subsequent numeric rows
-            rows: List[List[float]] = []
+            rows: list[list[float]] = []
             for line in content[start:].splitlines():
                 line = line.strip()
                 if not line:
@@ -297,7 +306,7 @@ class LammpsLogParser(BaseParser):
                 continue
 
             keywords = kws
-            last_row = dict(zip(kws, rows[-1]))
+            last_row = dict(zip(kws, rows[-1], strict=False))
 
             if len(rows) > 1 and "Step" in kws:
                 step_idx = kws.index("Step")
@@ -310,7 +319,7 @@ class LammpsLogParser(BaseParser):
 
     # -- Regex fallback ------------------------------------------------- #
 
-    def _try_regex_fallback(self, content: str) -> Optional[Dict[str, Any]]:
+    def _try_regex_fallback(self, content: str) -> dict[str, Any] | None:
         """Last-resort regex scan for partial log files."""
         data = self._extract_base_fields(content)
 
@@ -330,9 +339,9 @@ class LammpsLogParser(BaseParser):
 
     # -- Shared field extraction ---------------------------------------- #
 
-    def _extract_base_fields(self, content: str) -> Dict[str, Any]:
+    def _extract_base_fields(self, content: str) -> dict[str, Any]:
         """Extract fields common to all parse paths (num_atoms, wall_time...)."""
-        data: Dict[str, Any] = {}
+        data: dict[str, Any] = {}
 
         # Number of atoms
         m = re.search(r"(\d+)\s+atoms$", content, re.MULTILINE)
@@ -351,22 +360,22 @@ class LammpsLogParser(BaseParser):
 
     @staticmethod
     def _rows_to_final(
-        last_row: Dict[str, Any],
+        last_row: dict[str, Any],
         run_steps_total: int,
-        keywords: Optional[List[str]],
-    ) -> Dict[str, Any]:
+        keywords: list[str] | None,
+    ) -> dict[str, Any]:
         """Convert last thermo row to our canonical dict."""
-        data: Dict[str, Any] = {}
+        data: dict[str, Any] = {}
 
         # Map LAMMPS column names → our field names
         col_map = {
-            "Step":    "final_step",
-            "Temp":    "final_temp",
-            "Press":   "final_press",
-            "TotEng":  "final_etotal",
-            "PotEng":  "final_pe",
-            "E_pair":  "final_pe",     # fallback if PotEng absent
-            "KinEng":  "final_ke",
+            "Step": "final_step",
+            "Temp": "final_temp",
+            "Press": "final_press",
+            "TotEng": "final_etotal",
+            "PotEng": "final_pe",
+            "E_pair": "final_pe",  # fallback if PotEng absent
+            "KinEng": "final_ke",
         }
 
         for col, field in col_map.items():

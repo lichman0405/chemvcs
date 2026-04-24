@@ -10,7 +10,6 @@ Targets uncovered lines:
    208    – _parse_essential_fields returns {} (returns None / no data)
 """
 
-import os
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -18,10 +17,10 @@ import pytest
 from chemvcs.parsers.base_parser import ParserError
 from chemvcs.parsers.outcar_parser import OutcarParser
 
-
 # ---------------------------------------------------------------------------
 # validate()
 # ---------------------------------------------------------------------------
+
 
 class TestOutcarValidate:
     def test_validate_stopped_run_gives_error(self) -> None:
@@ -56,6 +55,7 @@ class TestOutcarValidate:
 # ---------------------------------------------------------------------------
 # diff() – added / deleted / noise-filtered branches
 # ---------------------------------------------------------------------------
+
 
 class TestOutcarDiff:
     def test_diff_added_field(self) -> None:
@@ -112,6 +112,7 @@ class TestOutcarDiff:
 # ---------------------------------------------------------------------------
 # _extract_pymatgen – called directly with a mock Outcar
 # ---------------------------------------------------------------------------
+
 
 class TestExtractPymatgen:
     """Call the static method directly so lines 162-184 are executed."""
@@ -184,6 +185,7 @@ class TestExtractPymatgen:
 # _parse_with_pymatgen – success path via mock PmgOutcar
 # ---------------------------------------------------------------------------
 
+
 class TestParseWithPymatgen:
     """Patch PmgOutcar so pymatgen 'succeeds', covering lines 146-157."""
 
@@ -216,10 +218,12 @@ class TestParseWithPymatgen:
         mock_outcar.run_stats = {}
         mock_outcar.is_stopped = False
 
-        with patch("chemvcs.parsers.outcar_parser.PmgOutcar", return_value=mock_outcar):
-            with patch("os.unlink", side_effect=OSError("simulated unlink error")):
-                parser = OutcarParser()
-                data = parser._parse_with_pymatgen("some content")
+        with (
+            patch("chemvcs.parsers.outcar_parser.PmgOutcar", return_value=mock_outcar),
+            patch("os.unlink", side_effect=OSError("simulated unlink error")),
+        ):
+            parser = OutcarParser()
+            data = parser._parse_with_pymatgen("some content")
 
         assert data["final_energy"] == -7.0
 
@@ -228,13 +232,11 @@ class TestParseWithPymatgen:
 # parse() – regex fallback (uses content with TOTEN pattern only)
 # ---------------------------------------------------------------------------
 
+
 class TestOutcarParseRegexFallback:
     def test_parse_regex_fallback_extracts_energy(self) -> None:
         """Content where pymatgen fails but regex succeeds."""
-        content = (
-            " free  energy   TOTEN  =       -15.12345678 eV\n"
-            " E-fermi :   6.1234\n"
-        )
+        content = " free  energy   TOTEN  =       -15.12345678 eV\n E-fermi :   6.1234\n"
         parser = OutcarParser()
         data = parser.parse(content)
         assert data.get("final_energy") == pytest.approx(-15.12345678)
@@ -247,6 +249,5 @@ class TestOutcarParseRegexFallback:
             OutcarParser,
             "_parse_essential_fields",
             side_effect=RuntimeError("boom"),
-        ):
-            with pytest.raises(ParserError):
-                parser.parse("some irrelevant content without patterns")
+        ), pytest.raises(ParserError):
+            parser.parse("some irrelevant content without patterns")

@@ -212,12 +212,8 @@ class TestLammpsWorkflow:
 
             # Modify the working tree after commit so `chemvcs diff` compares
             # HEAD against real current files instead of a clean tree.
-            (tmp_path / "in.lammps").write_text(
-                LAMMPS_INPUT_V2.replace("run 200000", "run 250000")
-            )
-            (tmp_path / "log.lammps").write_text(
-                LAMMPS_LOG_V2.replace("-1007.8214", "-1008.5000")
-            )
+            (tmp_path / "in.lammps").write_text(LAMMPS_INPUT_V2.replace("run 200000", "run 250000"))
+            (tmp_path / "log.lammps").write_text(LAMMPS_LOG_V2.replace("-1007.8214", "-1008.5000"))
 
             diff_result = runner.invoke(app, ["diff", "--summary"])
             assert diff_result.exit_code == 0

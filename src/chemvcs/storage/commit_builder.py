@@ -4,11 +4,12 @@ This module handles the creation and serialization of commit objects,
 which represent snapshots of the computational workspace at a point in time.
 """
 
+import contextlib
 import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from chemvcs.constants import COMMITS_DIR
 from chemvcs.storage.metadata_db import MetadataDB
@@ -54,13 +55,13 @@ class CommitBuilder:
 
     def create_commit(
         self,
-        files: List[Dict[str, Any]],
+        files: list[dict[str, Any]],
         message: str,
         author: str,
-        parent_hash: Optional[str] = None,
-        semantic_data: Optional[Dict[str, Any]] = None,
-        output_data: Optional[Dict[str, Any]] = None,
-        environment: Optional[Dict[str, str]] = None,
+        parent_hash: str | None = None,
+        semantic_data: dict[str, Any] | None = None,
+        output_data: dict[str, Any] | None = None,
+        environment: dict[str, str] | None = None,
     ) -> str:
         """Create a new commit object.
 
@@ -91,7 +92,7 @@ class CommitBuilder:
             # Start from the parent snapshot, then overlay newly staged files.
             # This makes each commit a full reproducible snapshot instead of an
             # incremental patch consisting only of files staged for this commit.
-            processed_by_path: Dict[str, Dict[str, Any]] = {}
+            processed_by_path: dict[str, dict[str, Any]] = {}
 
             if parent_hash:
                 parent_commit = self.read_commit(parent_hash)
@@ -117,12 +118,10 @@ class CommitBuilder:
                     "size_bytes": size_bytes,
                 }
 
-            processed_files = [
-                processed_by_path[path] for path in sorted(processed_by_path)
-            ]
+            processed_files = [processed_by_path[path] for path in sorted(processed_by_path)]
 
             # Build commit object
-            commit_obj: Dict[str, Any] = {
+            commit_obj: dict[str, Any] = {
                 "parent": parent_hash,
                 "timestamp": timestamp,
                 "author": author,
@@ -153,7 +152,7 @@ class CommitBuilder:
         except Exception as e:
             raise CommitBuilderError(f"Failed to create commit: {e}") from e
 
-    def read_commit(self, commit_hash: str) -> Dict[str, Any]:
+    def read_commit(self, commit_hash: str) -> dict[str, Any]:
         """Read a commit object from disk.
 
         Args:
@@ -178,8 +177,8 @@ class CommitBuilder:
             if not commit_path.exists():
                 raise CommitBuilderError(f"Commit file not found: {commit_hash}")
 
-            with open(commit_path, "r", encoding="utf-8") as f:
-                commit_obj: Dict[str, Any] = json.load(f)
+            with open(commit_path, encoding="utf-8") as f:
+                commit_obj: dict[str, Any] = json.load(f)
 
             # Verify hash integrity
             stored_hash = commit_obj.get("hash")
@@ -195,6 +194,58 @@ class CommitBuilder:
         except Exception as e:
             raise CommitBuilderError(f"Failed to read commit: {e}") from e
 
+    def resolve_revision(self, revision: str) -> str:
+        """Resolve a revision string to a full commit hash.
+
+        Supports:
+        - ``HEAD`` — current HEAD commit
+        - ``HEAD~N`` — N-th parent of HEAD (e.g. ``HEAD~1`` is parent, ``HEAD~3`` is
+          great‑grandparent)
+        - Full/short commit hash — passed through as-is
+
+        Returns:
+            Full 64‑character commit hash
+
+        Raises:
+            CommitBuilderError: If HEAD is missing, the revision syntax is invalid,
+                or any ancestor in the chain cannot be found.
+        """
+        import re
+
+        # -- handle HEAD relative syntax -------------------------------------------
+        if revision == "HEAD" or revision.startswith("HEAD~"):
+            head_file = self.chemvcs_dir / "HEAD"
+            if not head_file.exists():
+                raise CommitBuilderError("HEAD does not exist — no commits yet")
+            head_hash = head_file.read_text(encoding="utf-8").strip()
+            if not head_hash:
+                raise CommitBuilderError("HEAD is empty — no commits yet")
+
+            if revision == "HEAD":
+                return head_hash
+
+            m = re.fullmatch(r"HEAD~(\d+)", revision)
+            if not m:
+                raise CommitBuilderError(
+                    f"Invalid revision syntax: {revision}. "
+                    "Use HEAD or HEAD~<number>"
+                )
+            steps = int(m.group(1))
+            current_hash = head_hash
+            for _ in range(steps):
+                commit = self.read_commit(current_hash)
+                parent = commit.get("parent")
+                if not parent:
+                    raise CommitBuilderError(
+                        f"Cannot resolve {revision}: "
+                        f"commit {current_hash[:7]} has no parent"
+                    )
+                current_hash = parent
+            return current_hash
+
+        # -- plain hash --------------------------------------------------------
+        return revision
+
     def commit_exists(self, commit_hash: str) -> bool:
         """Check if a commit exists.
 
@@ -207,7 +258,7 @@ class CommitBuilder:
         commit_path = self.commits_dir / commit_hash
         return commit_path.exists()
 
-    def _compute_commit_hash(self, commit_obj: Dict[str, Any]) -> str:
+    def _compute_commit_hash(self, commit_obj: dict[str, Any]) -> str:
         """Compute SHA-256 hash of commit object.
 
         Hash is computed over the canonical JSON representation
@@ -236,7 +287,7 @@ class CommitBuilder:
         hasher.update(canonical_json.encode("utf-8"))
         return hasher.hexdigest()
 
-    def _write_commit_file(self, commit_hash: str, commit_obj: Dict[str, Any]) -> None:
+    def _write_commit_file(self, commit_hash: str, commit_obj: dict[str, Any]) -> None:
         """Write commit object to disk as JSON.
 
         Args:
@@ -253,8 +304,8 @@ class CommitBuilder:
 
         try:
             # Atomic write via temp file
-            import tempfile
             import os
+            import tempfile
 
             fd, tmp_path = tempfile.mkstemp(
                 dir=self.commits_dir,
@@ -273,16 +324,14 @@ class CommitBuilder:
 
             except Exception:
                 # Clean up temp file on error
-                try:
+                with contextlib.suppress(OSError):
                     os.unlink(tmp_path)
-                except OSError:
-                    pass
                 raise
 
         except Exception as e:
             raise CommitBuilderError(f"Failed to write commit file: {e}") from e
 
-    def _index_commit(self, commit_obj: Dict[str, Any]) -> None:
+    def _index_commit(self, commit_obj: dict[str, Any]) -> None:
         """Index commit in metadata database.
 
         Args:
@@ -302,7 +351,7 @@ class CommitBuilder:
             )
 
             # Build a lookup: file_path → semantic diff entries for that file
-            semantic_by_path: Dict[str, Any] = {}
+            semantic_by_path: dict[str, Any] = {}
             if "semantic_summary" in commit_obj:
                 for change in commit_obj["semantic_summary"].get("changes", []):
                     semantic_by_path[change["file"]] = change.get("diffs", [])

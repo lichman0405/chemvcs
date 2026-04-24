@@ -18,8 +18,6 @@ from __future__ import annotations
 import pytest
 
 from chemvcs.parsers.lammps_input_parser import LammpsInputParser
-from chemvcs.parsers.base_parser import ParserError
-
 
 # ---------------------------------------------------------------------------
 # _preprocess edge cases (inline comments with quotes)
@@ -205,6 +203,7 @@ class TestParseLineEdgeCases:
 # _summarize_fixes: langevin style (lines 419-428)
 # ---------------------------------------------------------------------------
 
+
 class TestLangevinFix:
     def test_langevin_fix_creates_fix_nvt_entry(self) -> None:
         """Langevin thermostat fix should populate fix_nvt."""
@@ -223,10 +222,12 @@ class TestLangevinFix:
 # _tokenize: shlex ValueError path (lines 437-439)
 # ---------------------------------------------------------------------------
 
+
 class TestTokenizeEdgeCases:
     def test_tokenize_unbalanced_quote_falls_back_to_split(self) -> None:
         """A line with an unbalanced quote should still be tokenized."""
         from chemvcs.parsers.lammps_input_parser import LammpsInputParser as _P
+
         # Unbalanced quote input that shlex would fail on
         result = _P._tokenize("variable x equal ${y}")
         assert len(result) >= 3
@@ -246,6 +247,7 @@ timestep 0.001
 run 10000
 """
 
+
 class TestParseFixNptNve:
     def test_npt_iso_keyword_parsed(self) -> None:
         """NPT fix with 'iso' pressure keyword: Pstart, Pstop, Pdamp set."""
@@ -263,13 +265,18 @@ class TestParseFixNptNve:
 # diff() – float noise in timestep, mass dict, read_data changes
 # ---------------------------------------------------------------------------
 
+
 class TestDiffEdgeCases:
     def test_diff_timestep_float_noise_suppressed(self) -> None:
         """Timestep values that differ by < 1e-15 must NOT appear in diff."""
         parser = LammpsInputParser()
         old: dict = {
-            "units": "lj", "pair_style": "lj/cut 2.5",
-            "timestep": 0.001, "read_data": [], "mass": {}, "variable_names": [],
+            "units": "lj",
+            "pair_style": "lj/cut 2.5",
+            "timestep": 0.001,
+            "read_data": [],
+            "mass": {},
+            "variable_names": [],
         }
         new: dict = dict(old)
         new["timestep"] = old["timestep"] + 1e-17  # below 1e-15 threshold
@@ -281,12 +288,18 @@ class TestDiffEdgeCases:
         """Changing mass values should produce a diff entry."""
         parser = LammpsInputParser()
         old: dict = {
-            "units": "metal", "pair_style": "eam",
-            "mass": {"1": 63.546}, "read_data": [], "variable_names": [],
+            "units": "metal",
+            "pair_style": "eam",
+            "mass": {"1": 63.546},
+            "read_data": [],
+            "variable_names": [],
         }
         new: dict = {
-            "units": "metal", "pair_style": "eam",
-            "mass": {"1": 65.38}, "read_data": [], "variable_names": [],
+            "units": "metal",
+            "pair_style": "eam",
+            "mass": {"1": 65.38},
+            "read_data": [],
+            "variable_names": [],
         }
         entries = parser.diff(old, new)
         mass_entries = [e for e in entries if e.path == "mass"]
@@ -297,12 +310,18 @@ class TestDiffEdgeCases:
         """Different read_data lists should produce a diff entry."""
         parser = LammpsInputParser()
         old: dict = {
-            "units": "lj", "pair_style": "lj/cut 2.5",
-            "read_data": ["data.lj_A"], "mass": {}, "variable_names": [],
+            "units": "lj",
+            "pair_style": "lj/cut 2.5",
+            "read_data": ["data.lj_A"],
+            "mass": {},
+            "variable_names": [],
         }
         new: dict = {
-            "units": "lj", "pair_style": "lj/cut 2.5",
-            "read_data": ["data.lj_B"], "mass": {}, "variable_names": [],
+            "units": "lj",
+            "pair_style": "lj/cut 2.5",
+            "read_data": ["data.lj_B"],
+            "mass": {},
+            "variable_names": [],
         }
         entries = parser.diff(old, new)
         rd_entries = [e for e in entries if e.path == "read_data"]
@@ -313,8 +332,11 @@ class TestDiffEdgeCases:
         """Field added in new_data should appear as added entry."""
         parser = LammpsInputParser()
         old: dict = {
-            "units": "lj", "pair_style": "lj/cut 2.5",
-            "read_data": [], "mass": {}, "variable_names": [],
+            "units": "lj",
+            "pair_style": "lj/cut 2.5",
+            "read_data": [],
+            "mass": {},
+            "variable_names": [],
         }
         new: dict = dict(old)
         new["kspace_style"] = "pppm 1e-5"
@@ -326,13 +348,19 @@ class TestDiffEdgeCases:
         """Field removed in new_data should appear as deleted entry."""
         parser = LammpsInputParser()
         old: dict = {
-            "units": "lj", "pair_style": "lj/cut 2.5",
+            "units": "lj",
+            "pair_style": "lj/cut 2.5",
             "kspace_style": "pppm 1e-5",
-            "read_data": [], "mass": {}, "variable_names": [],
+            "read_data": [],
+            "mass": {},
+            "variable_names": [],
         }
         new: dict = {
-            "units": "lj", "pair_style": "lj/cut 2.5",
-            "read_data": [], "mass": {}, "variable_names": [],
+            "units": "lj",
+            "pair_style": "lj/cut 2.5",
+            "read_data": [],
+            "mass": {},
+            "variable_names": [],
         }
         entries = parser.diff(old, new)
         deleted = [e for e in entries if e.path == "kspace_style" and e.change_type == "deleted"]
@@ -343,12 +371,17 @@ class TestDiffEdgeCases:
 # validate() – negative timestep
 # ---------------------------------------------------------------------------
 
+
 class TestValidateEdgeCases:
     def test_validate_negative_timestep_error(self) -> None:
         parser = LammpsInputParser()
         data = {
-            "units": "lj", "pair_style": "lj/cut 2.5",
-            "timestep": -0.001, "read_data": [], "mass": {}, "variable_names": [],
+            "units": "lj",
+            "pair_style": "lj/cut 2.5",
+            "timestep": -0.001,
+            "read_data": [],
+            "mass": {},
+            "variable_names": [],
         }
         is_valid, errors = parser.validate(data)
         assert not is_valid
@@ -357,8 +390,12 @@ class TestValidateEdgeCases:
     def test_validate_zero_timestep_error(self) -> None:
         parser = LammpsInputParser()
         data = {
-            "units": "lj", "pair_style": "lj/cut 2.5",
-            "timestep": 0.0, "read_data": [], "mass": {}, "variable_names": [],
+            "units": "lj",
+            "pair_style": "lj/cut 2.5",
+            "timestep": 0.0,
+            "read_data": [],
+            "mass": {},
+            "variable_names": [],
         }
         is_valid, errors = parser.validate(data)
         assert not is_valid
@@ -367,8 +404,12 @@ class TestValidateEdgeCases:
         """Variable-containing timestep (non-numeric) should not error."""
         parser = LammpsInputParser()
         data = {
-            "units": "lj", "pair_style": "lj/cut 2.5",
-            "timestep": "${dt}", "read_data": [], "mass": {}, "variable_names": [],
+            "units": "lj",
+            "pair_style": "lj/cut 2.5",
+            "timestep": "${dt}",
+            "read_data": [],
+            "mass": {},
+            "variable_names": [],
         }
         is_valid, errors = parser.validate(data)
         # No timestep error since it can't be converted to float
@@ -379,6 +420,7 @@ class TestValidateEdgeCases:
 # ---------------------------------------------------------------------------
 # _classify – major and minor fields
 # ---------------------------------------------------------------------------
+
 
 class TestClassify:
     def test_classify_critical_field(self) -> None:

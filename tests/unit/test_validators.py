@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def write(tmp_path: Path, name: str, content: str) -> Path:
     p = tmp_path / name
@@ -91,10 +91,12 @@ KPOINTS_BAD = """\
 # INCARPOSCARValidator tests
 # ===========================================================================
 
+
 class TestINCARPOSCARValidator:
     @pytest.fixture(autouse=True)
     def _validator(self):
         from chemvcs_validator.incar_poscar import INCARPOSCARValidator
+
         self.v = INCARPOSCARValidator()
 
     def test_basic_valid(self, tmp_path):
@@ -108,7 +110,7 @@ class TestINCARPOSCARValidator:
         write(tmp_path, "POSCAR", POSCAR_LiCoO2)
         write(tmp_path, "INCAR", INCAR_ISPIN2_NO_MAGMOM)
         r = self.v.validate(tmp_path, ["INCAR", "POSCAR"])
-        assert r.passed          # warning, not error
+        assert r.passed  # warning, not error
         assert any("ISPIN" in w for w in r.warnings)
 
     def test_magmom_wrong_length_is_error(self, tmp_path):
@@ -160,10 +162,12 @@ class TestINCARPOSCARValidator:
 # FileFormatValidator tests
 # ===========================================================================
 
+
 class TestFileFormatValidator:
     @pytest.fixture(autouse=True)
     def _validator(self):
         from chemvcs_validator.file_format import FileFormatValidator
+
         self.v = FileFormatValidator()
 
     def test_valid_incar_passes(self, tmp_path):
@@ -208,7 +212,7 @@ class TestFileFormatValidator:
     def test_poscar_mismatched_counts_flagged(self, tmp_path):
         bad = (
             "comment\n1.0\n2.8 0.0 0.0\n0.0 2.8 0.0\n0.0 0.0 5.0\n"
-            "Li Co O\n1 1\n"   # 2 counts for 3 elements
+            "Li Co O\n1 1\n"  # 2 counts for 3 elements
             "Direct\n0.0 0.0 0.0\n0.5 0.5 0.5\n"
         )
         (tmp_path / "POSCAR").write_text(bad)
@@ -233,15 +237,18 @@ class TestFileFormatValidator:
 # PluginManager config persistence tests
 # ===========================================================================
 
+
 class TestPluginManagerConfig:
     def test_load_nonexistent_config_is_noop(self, tmp_path):
         from chemvcs.plugins.manager import PluginManager
+
         pm = PluginManager()
         pm.load_config(tmp_path)  # no plugins.json yet — should not raise
         assert pm._config == {}
 
     def test_save_and_reload_config(self, tmp_path):
         from chemvcs.plugins.manager import PluginManager
+
         pm = PluginManager()
         pm.load_config(tmp_path)
         pm._config = {"validators": {"poscar-potcar": {"enabled": False}}}
@@ -252,8 +259,10 @@ class TestPluginManagerConfig:
         assert pm2._config["validators"]["poscar-potcar"]["enabled"] is False
 
     def test_set_validator_enabled_persists(self, tmp_path):
-        from chemvcs.plugins.manager import PluginManager
         from chemvcs_validator.poscar_potcar import POSCARPOTCARValidator
+
+        from chemvcs.plugins.manager import PluginManager
+
         pm = PluginManager()
         pm.load_config(tmp_path)
         pm.validators["poscar-potcar"] = POSCARPOTCARValidator()
@@ -264,18 +273,22 @@ class TestPluginManagerConfig:
         config_path = tmp_path / "plugins.json"
         assert config_path.exists()
         import json
+
         data = json.loads(config_path.read_text())
         assert data["validators"]["poscar-potcar"]["enabled"] is False
 
     def test_set_validator_enabled_unknown_returns_false(self, tmp_path):
         from chemvcs.plugins.manager import PluginManager
+
         pm = PluginManager()
         pm.load_config(tmp_path)
         assert pm.set_validator_enabled("nonexistent", True) is False
 
     def test_is_validator_enabled_respects_config(self, tmp_path):
-        from chemvcs.plugins.manager import PluginManager
         from chemvcs_validator.poscar_potcar import POSCARPOTCARValidator
+
+        from chemvcs.plugins.manager import PluginManager
+
         pm = PluginManager()
         pm.load_config(tmp_path)
         v = POSCARPOTCARValidator()

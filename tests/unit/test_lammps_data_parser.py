@@ -2,9 +2,8 @@
 
 import pytest
 
-from chemvcs.parsers.lammps_data_parser import LammpsDataParser
 from chemvcs.parsers.base_parser import ParserError
-
+from chemvcs.parsers.lammps_data_parser import LammpsDataParser
 
 # ---------------------------------------------------------------------------
 # Sample data file content
@@ -93,8 +92,8 @@ Bad data file
 # Test cases
 # ---------------------------------------------------------------------------
 
-class TestLammpsDataParser:
 
+class TestLammpsDataParser:
     def test_parse_atomic_returns_dict(self) -> None:
         parser = LammpsDataParser()
         data = parser.parse(SAMPLE_DATA_ATOMIC)

@@ -13,13 +13,13 @@ from __future__ import annotations
 
 import pytest
 
+from chemvcs.parsers.base_parser import DiffEntry, ParserError
 from chemvcs.parsers.orca_output_parser import OrcaOutputParser, _extract_wall_time
-from chemvcs.parsers.base_parser import ParserError, DiffEntry
-
 
 # ---------------------------------------------------------------------------
 # Helpers – synthetic ORCA output fragments
 # ---------------------------------------------------------------------------
+
 
 def _make_orca_output(
     *,
@@ -72,6 +72,7 @@ RADICAL_OUTPUT = _make_orca_output(charge=0, mult=2)
 # ---------------------------------------------------------------------------
 # Parse tests (regex fallback path)
 # ---------------------------------------------------------------------------
+
 
 class TestOrcaOutputParserParse:
     def setup_method(self) -> None:
@@ -156,6 +157,7 @@ class TestOrcaOutputParserParse:
 # ---------------------------------------------------------------------------
 # Diff tests
 # ---------------------------------------------------------------------------
+
 
 class TestOrcaOutputParserDiff:
     def setup_method(self) -> None:
@@ -246,6 +248,7 @@ class TestOrcaOutputParserDiff:
 # Validate tests
 # ---------------------------------------------------------------------------
 
+
 class TestOrcaOutputParserValidate:
     def setup_method(self) -> None:
         self.parser = OrcaOutputParser()
@@ -278,6 +281,7 @@ class TestOrcaOutputParserValidate:
 # ---------------------------------------------------------------------------
 # _extract_wall_time helper
 # ---------------------------------------------------------------------------
+
 
 class TestExtractWallTime:
     def test_standard_format(self) -> None:

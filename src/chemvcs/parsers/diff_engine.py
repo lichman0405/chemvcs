@@ -5,7 +5,7 @@ selects and applies appropriate parsers based on file type.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from chemvcs.parsers.base_parser import BaseParser, DiffEntry, ParserError
 from chemvcs.parsers.incar_parser import IncarParser
@@ -36,7 +36,7 @@ class DiffEngine:
 
     def __init__(self) -> None:
         """Initialize the diff engine with available parsers."""
-        self.parsers: Dict[str, BaseParser] = {
+        self.parsers: dict[str, BaseParser] = {
             "INCAR": IncarParser(),
             "KPOINTS": KpointsParser(),
             "OUTCAR": OutcarParser(),
@@ -47,7 +47,7 @@ class DiffEngine:
             "ORCA_OUTPUT": OrcaOutputParser(),
         }
 
-    def get_file_type(self, filename: str) -> Optional[str]:
+    def get_file_type(self, filename: str) -> str | None:
         """Detect file type from filename.
 
         Args:
@@ -112,45 +112,45 @@ class DiffEngine:
             return "LAMMPS_INPUT"
 
         return None
-    
+
     def can_parse(self, filename: str) -> bool:
         """Check if file type is supported for parsing.
-        
+
         Args:
             filename: Name of the file
-            
+
         Returns:
             True if file can be parsed semantically
         """
         file_type = self.get_file_type(filename)
         return file_type is not None and file_type in self.parsers
-    
+
     def diff_files(
         self,
         old_content: str,
         new_content: str,
         filename: str,
-    ) -> Optional[List[DiffEntry]]:
+    ) -> list[DiffEntry] | None:
         """Compute semantic diff between two file versions.
-        
+
         Args:
             old_content: Content of old version
             new_content: Content of new version
             filename: Name of the file (for type detection)
-            
+
         Returns:
             List of DiffEntry objects, or None if file type not supported
-            
+
         Raises:
             ParserError: If parsing fails
         """
         file_type = self.get_file_type(filename)
-        
+
         if file_type is None or file_type not in self.parsers:
             return None
-        
+
         parser = self.parsers[file_type]
-        
+
         # Parse both versions
         try:
             old_data = parser.parse(old_content)
@@ -158,41 +158,41 @@ class DiffEngine:
         except ParserError:
             # If parsing fails, return None to fall back to text diff
             return None
-        
+
         # Compute diff
         return parser.diff(old_data, new_data)
-    
+
     def format_diff(
         self,
-        diff_entries: List[DiffEntry],
+        diff_entries: list[DiffEntry],
         style: str = "default",
     ) -> str:
         """Format diff entries for display.
-        
+
         Args:
             diff_entries: List of diff entries
             style: Format style ("default", "compact", "detailed")
-            
+
         Returns:
             Formatted diff string
         """
         if not diff_entries:
             return "No changes"
-        
+
         # Use the BaseParser's format_diff via any parser instance
         # (they all share the same base implementation)
         parser = next(iter(self.parsers.values()))
         return parser.format_diff(diff_entries, style=style)
-    
+
     def summarize_diff(
         self,
-        diff_entries: List[DiffEntry],
-    ) -> Dict[str, Any]:
+        diff_entries: list[DiffEntry],
+    ) -> dict[str, Any]:
         """Generate summary statistics for a diff.
-        
+
         Args:
             diff_entries: List of diff entries
-            
+
         Returns:
             Dictionary with summary information
         """
@@ -202,43 +202,43 @@ class DiffEngine:
                 "by_type": {},
                 "by_significance": {},
             }
-        
+
         by_type = {"added": 0, "deleted": 0, "modified": 0}
         by_significance = {"critical": 0, "major": 0, "minor": 0}
-        
+
         for entry in diff_entries:
             by_type[entry.change_type] = by_type.get(entry.change_type, 0) + 1
             by_significance[entry.significance] = by_significance.get(entry.significance, 0) + 1
-        
+
         return {
             "total_changes": len(diff_entries),
             "by_type": by_type,
             "by_significance": by_significance,
             "has_critical_changes": by_significance.get("critical", 0) > 0,
         }
-    
+
     def validate_file(
         self,
         content: str,
         filename: str,
-    ) -> tuple[bool, List[str]]:
+    ) -> tuple[bool, list[str]]:
         """Validate file content.
-        
+
         Args:
             content: File content
             filename: Filename for type detection
-            
+
         Returns:
             Tuple of (is_valid, list_of_errors)
         """
         file_type = self.get_file_type(filename)
-        
+
         if file_type is None or file_type not in self.parsers:
             # Can't validate unknown file types
             return True, []
-        
+
         parser = self.parsers[file_type]
-        
+
         try:
             data = parser.parse(content)
             return parser.validate(data)

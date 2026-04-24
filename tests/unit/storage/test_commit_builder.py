@@ -50,7 +50,7 @@ class TestCommitBuilderInit:
     ) -> None:
         """Test that CommitBuilder creates commits directory."""
         builder = CommitBuilder(chemvcs_dir, object_store, metadata_db)
-        
+
         assert builder.commits_dir.exists()
         assert builder.commits_dir.is_dir()
         assert builder.commits_dir == chemvcs_dir / "commits"
@@ -61,9 +61,9 @@ class TestCommitBuilderInit:
         """Test init with existing commits directory."""
         commits_dir = chemvcs_dir / "commits"
         commits_dir.mkdir()
-        
+
         builder = CommitBuilder(chemvcs_dir, object_store, metadata_db)
-        
+
         assert builder.commits_dir.exists()
 
 
@@ -79,13 +79,13 @@ class TestCreateCommit:
                 "file_type": "INCAR",
             }
         ]
-        
+
         commit_hash = commit_builder.create_commit(
             files=files,
             message="Initial commit",
             author="test@host",
         )
-        
+
         assert isinstance(commit_hash, str)
         assert len(commit_hash) == 64
         assert all(c in "0123456789abcdef" for c in commit_hash)
@@ -98,7 +98,7 @@ class TestCreateCommit:
             message="Parent commit",
             author="test@host",
         )
-        
+
         # Create child commit
         child_hash = commit_builder.create_commit(
             files=[{"path": "file2.txt", "content": b"child", "file_type": "text"}],
@@ -106,9 +106,9 @@ class TestCreateCommit:
             author="test@host",
             parent_hash=parent_hash,
         )
-        
+
         assert child_hash != parent_hash
-        
+
         # Verify parent relationship in commit object
         child_obj = commit_builder.read_commit(child_hash)
         assert child_obj["parent"] == parent_hash
@@ -126,7 +126,11 @@ class TestCreateCommit:
 
         child_hash = commit_builder.create_commit(
             files=[
-                {"path": "log.lammps", "content": b"Total wall time: 0:00:10\n", "file_type": "LAMMPS_LOG"},
+                {
+                    "path": "log.lammps",
+                    "content": b"Total wall time: 0:00:10\n",
+                    "file_type": "LAMMPS_LOG",
+                },
             ],
             message="Child commit",
             author="test@host",
@@ -147,23 +151,23 @@ class TestCreateCommit:
                 "file_type": "POSCAR",
             }
         ]
-        
+
         semantic_data = {
             "formula": "Fe1",
             "space_group": "Pm-3m",
             "lattice_parameters": {"a": 1.0, "b": 1.0, "c": 1.0},
         }
-        
+
         output_data = {
             "final_energy": -8.532,
             "converged": True,
         }
-        
+
         environment = {
             "VASP_VERSION": "6.3.0",
             "HOSTNAME": "node01",
         }
-        
+
         commit_hash = commit_builder.create_commit(
             files=files,
             message="Commit with metadata",
@@ -172,7 +176,7 @@ class TestCreateCommit:
             output_data=output_data,
             environment=environment,
         )
-        
+
         # Verify metadata is stored
         commit_obj = commit_builder.read_commit(commit_hash)
         assert commit_obj["semantic_summary"] == semantic_data
@@ -186,16 +190,16 @@ class TestCreateCommit:
             {"path": "POSCAR", "content": b"Fe\n...", "file_type": "POSCAR"},
             {"path": "KPOINTS", "content": b"Auto\n0\nG\n4 4 4\n", "file_type": "KPOINTS"},
         ]
-        
+
         commit_hash = commit_builder.create_commit(
             files=files,
             message="Multi-file commit",
             author="test@host",
         )
-        
+
         commit_obj = commit_builder.read_commit(commit_hash)
         assert len(commit_obj["files"]) == 3
-        
+
         paths = [f["path"] for f in commit_obj["files"]]
         assert "INCAR" in paths
         assert "POSCAR" in paths
@@ -211,42 +215,40 @@ class TestCreateCommit:
                 "is_reference": True,
             }
         ]
-        
+
         commit_hash = commit_builder.create_commit(
             files=files,
             message="Commit with POTCAR reference",
             author="test@host",
         )
-        
+
         commit_obj = commit_builder.read_commit(commit_hash)
         assert commit_obj["files"][0]["is_reference"] is True
 
-    def test_create_commit_blob_deduplication(
-        self, commit_builder: CommitBuilder
-    ) -> None:
+    def test_create_commit_blob_deduplication(self, commit_builder: CommitBuilder) -> None:
         """Test that identical file content reuses same blob."""
         content = b"Same content"
-        
+
         # Create two commits with same file content
         hash1 = commit_builder.create_commit(
             files=[{"path": "file1.txt", "content": content, "file_type": "text"}],
             message="First",
             author="test@host",
         )
-        
+
         hash2 = commit_builder.create_commit(
             files=[{"path": "file2.txt", "content": content, "file_type": "text"}],
             message="Second",
             author="test@host",
         )
-        
+
         # Verify they reference the same blob
         obj1 = commit_builder.read_commit(hash1)
         obj2 = commit_builder.read_commit(hash2)
-        
+
         blob_hash1 = obj1["files"][0]["blob_hash"]
         blob_hash2 = obj2["files"][0]["blob_hash"]
-        
+
         assert blob_hash1 == blob_hash2
 
 
@@ -256,15 +258,15 @@ class TestReadCommit:
     def test_read_commit_exists(self, commit_builder: CommitBuilder) -> None:
         """Test reading an existing commit."""
         files = [{"path": "test.txt", "content": b"test", "file_type": "text"}]
-        
+
         commit_hash = commit_builder.create_commit(
             files=files,
             message="Test commit",
             author="test@host",
         )
-        
+
         commit_obj = commit_builder.read_commit(commit_hash)
-        
+
         assert commit_obj["hash"] == commit_hash
         assert commit_obj["message"] == "Test commit"
         assert commit_obj["author"] == "test@host"
@@ -277,10 +279,10 @@ class TestReadCommit:
             message="Test",
             author="test@host",
         )
-        
+
         short_hash = commit_hash[:7]
         commit_obj = commit_builder.read_commit(short_hash)
-        
+
         assert commit_obj["hash"] == commit_hash
 
     def test_read_commit_not_found(self, commit_builder: CommitBuilder) -> None:
@@ -298,17 +300,17 @@ class TestReadCommit:
             message="Test",
             author="test@host",
         )
-        
+
         # Corrupt the commit file by changing hash field
         commit_path = chemvcs_dir / "commits" / commit_hash
-        with open(commit_path, "r", encoding="utf-8") as f:
+        with open(commit_path, encoding="utf-8") as f:
             commit_obj = json.load(f)
-        
+
         commit_obj["hash"] = "0" * 64  # Wrong hash
-        
+
         with open(commit_path, "w", encoding="utf-8") as f:
             json.dump(commit_obj, f)
-        
+
         with pytest.raises(CommitBuilderError, match="hash mismatch"):
             commit_builder.read_commit(commit_hash)
 
@@ -323,7 +325,7 @@ class TestCommitExists:
             message="Test",
             author="test@host",
         )
-        
+
         assert commit_builder.commit_exists(commit_hash) is True
 
     def test_commit_exists_false(self, commit_builder: CommitBuilder) -> None:
@@ -337,17 +339,17 @@ class TestCommitHash:
     def test_commit_hash_deterministic(self, commit_builder: CommitBuilder) -> None:
         """Test that same commit data produces same hash."""
         files = [{"path": "test.txt", "content": b"test content", "file_type": "text"}]
-        
+
         hash1 = commit_builder.create_commit(
             files=files,
             message="Test message",
             author="test@host",
         )
-        
+
         # Create another commit with same files/message
         # Note: timestamp will differ, so hashes will differ
         # Instead, test _compute_commit_hash directly
-        
+
         commit_obj = {
             "parent": None,
             "timestamp": "2026-02-09T10:00:00Z",
@@ -355,10 +357,10 @@ class TestCommitHash:
             "message": "Test",
             "files": [{"path": "f.txt", "blob_hash": "abc123"}],
         }
-        
+
         hash1 = commit_builder._compute_commit_hash(commit_obj)
         hash2 = commit_builder._compute_commit_hash(commit_obj)
-        
+
         assert hash1 == hash2
 
     def test_commit_hash_different_content(self, commit_builder: CommitBuilder) -> None:
@@ -370,7 +372,7 @@ class TestCommitHash:
             "message": "Message 1",
             "files": [],
         }
-        
+
         obj2 = {
             "parent": None,
             "timestamp": "2026-02-09T10:00:00Z",
@@ -378,15 +380,13 @@ class TestCommitHash:
             "message": "Message 2",
             "files": [],
         }
-        
+
         hash1 = commit_builder._compute_commit_hash(obj1)
         hash2 = commit_builder._compute_commit_hash(obj2)
-        
+
         assert hash1 != hash2
 
-    def test_commit_hash_ignores_hash_field(
-        self, commit_builder: CommitBuilder
-    ) -> None:
+    def test_commit_hash_ignores_hash_field(self, commit_builder: CommitBuilder) -> None:
         """Test that hash field is excluded from hash computation."""
         obj_without_hash = {
             "parent": None,
@@ -395,50 +395,46 @@ class TestCommitHash:
             "message": "Test",
             "files": [],
         }
-        
+
         obj_with_hash = {
             **obj_without_hash,
             "hash": "should_be_ignored",
         }
-        
+
         hash1 = commit_builder._compute_commit_hash(obj_without_hash)
         hash2 = commit_builder._compute_commit_hash(obj_with_hash)
-        
+
         assert hash1 == hash2
 
 
 class TestCommitPersistence:
     """Test commit persistence and file format."""
 
-    def test_commit_file_created(
-        self, commit_builder: CommitBuilder, chemvcs_dir: Path
-    ) -> None:
+    def test_commit_file_created(self, commit_builder: CommitBuilder, chemvcs_dir: Path) -> None:
         """Test that commit file is created on disk."""
         commit_hash = commit_builder.create_commit(
             files=[{"path": "file.txt", "content": b"data", "file_type": "text"}],
             message="Test",
             author="test@host",
         )
-        
+
         commit_path = chemvcs_dir / "commits" / commit_hash
         assert commit_path.exists()
         assert commit_path.is_file()
 
-    def test_commit_file_valid_json(
-        self, commit_builder: CommitBuilder, chemvcs_dir: Path
-    ) -> None:
+    def test_commit_file_valid_json(self, commit_builder: CommitBuilder, chemvcs_dir: Path) -> None:
         """Test that commit file is valid JSON."""
         commit_hash = commit_builder.create_commit(
             files=[{"path": "file.txt", "content": b"data", "file_type": "text"}],
             message="Test",
             author="test@host",
         )
-        
+
         commit_path = chemvcs_dir / "commits" / commit_hash
-        
-        with open(commit_path, "r", encoding="utf-8") as f:
+
+        with open(commit_path, encoding="utf-8") as f:
             commit_obj = json.load(f)
-        
+
         assert isinstance(commit_obj, dict)
         assert commit_obj["hash"] == commit_hash
 
@@ -455,10 +451,10 @@ class TestDatabaseIntegration:
             message="Test commit",
             author="test@host",
         )
-        
+
         # Query database
         db_commit = metadata_db.get_commit_by_hash(commit_hash)
-        
+
         assert db_commit is not None
         assert db_commit["commit_hash"] == commit_hash
         assert db_commit["message"] == "Test commit"
@@ -472,20 +468,20 @@ class TestDatabaseIntegration:
             {"path": "INCAR", "content": b"ENCUT = 520\n", "file_type": "INCAR"},
             {"path": "POSCAR", "content": b"Fe\n...", "file_type": "POSCAR"},
         ]
-        
+
         commit_hash = commit_builder.create_commit(
             files=files,
             message="Multi-file",
             author="test@host",
         )
-        
+
         # Get commit ID from database
         db_commit = metadata_db.get_commit_by_hash(commit_hash)
         commit_id = db_commit["id"]
-        
+
         # Query files
         db_files = metadata_db.get_files_for_commit(commit_id)
-        
+
         assert len(db_files) == 2
         paths = [f["path"] for f in db_files]
         assert "INCAR" in paths
@@ -500,18 +496,95 @@ class TestObjectStoreIntegration:
     ) -> None:
         """Test that file content is stored as blobs."""
         content = b"Test file content"
-        
+
         commit_hash = commit_builder.create_commit(
             files=[{"path": "test.txt", "content": content, "file_type": "text"}],
             message="Test",
             author="test@host",
         )
-        
+
         # Get blob hash from commit
         commit_obj = commit_builder.read_commit(commit_hash)
         blob_hash = commit_obj["files"][0]["blob_hash"]
-        
+
         # Verify blob exists and contains correct content
         assert object_store.blob_exists(blob_hash)
         retrieved_content = object_store.read_blob(blob_hash)
         assert retrieved_content == content
+
+
+class TestResolveRevision:
+    """Tests for CommitBuilder.resolve_revision()."""
+
+    def _make_commit(
+        self, cb: CommitBuilder, path: str, msg: str, parent: str | None = None
+    ) -> str:
+        return cb.create_commit(
+            files=[{"path": path, "content": msg.encode(), "file_type": "text"}],
+            message=msg,
+            author="test@host",
+            parent_hash=parent,
+        )
+
+    def test_head_returns_current_head(
+        self, commit_builder: CommitBuilder, chemvcs_dir: Path
+    ) -> None:
+        root = self._make_commit(commit_builder, "a.txt", "first")
+        h2 = self._make_commit(commit_builder, "b.txt", "second", parent=root)
+        (chemvcs_dir / "HEAD").write_text(h2)
+        assert commit_builder.resolve_revision("HEAD") == h2
+
+    def test_head_1_returns_parent(
+        self, commit_builder: CommitBuilder, chemvcs_dir: Path
+    ) -> None:
+        root = self._make_commit(commit_builder, "a.txt", "first")
+        h2 = self._make_commit(commit_builder, "b.txt", "second", parent=root)
+        (chemvcs_dir / "HEAD").write_text(h2)
+        assert commit_builder.resolve_revision("HEAD~1") == root
+
+    def test_head_2_returns_grandparent(
+        self, commit_builder: CommitBuilder, chemvcs_dir: Path
+    ) -> None:
+        root = self._make_commit(commit_builder, "a.txt", "first")
+        h2 = self._make_commit(commit_builder, "b.txt", "second", parent=root)
+        h3 = self._make_commit(commit_builder, "c.txt", "third", parent=h2)
+        (chemvcs_dir / "HEAD").write_text(h3)
+        assert commit_builder.resolve_revision("HEAD~2") == root
+
+    def test_plain_short_hash_passthrough(
+        self, commit_builder: CommitBuilder, chemvcs_dir: Path
+    ) -> None:
+        ch = self._make_commit(commit_builder, "a.txt", "first")
+        # short hash is passed through (read_commit resolves it later)
+        result = commit_builder.resolve_revision(ch[:7])
+        assert result == ch[:7]
+
+    def test_no_commits_raises(
+        self, commit_builder: CommitBuilder, chemvcs_dir: Path
+    ) -> None:
+        with pytest.raises(CommitBuilderError, match="no commits yet"):
+            commit_builder.resolve_revision("HEAD")
+
+    def test_empty_head_raises(
+        self, commit_builder: CommitBuilder, chemvcs_dir: Path
+    ) -> None:
+        (chemvcs_dir / "HEAD").write_text("")
+        with pytest.raises(CommitBuilderError, match="no commits yet"):
+            commit_builder.resolve_revision("HEAD")
+
+    def test_invalid_syntax_raises(
+        self, commit_builder: CommitBuilder, chemvcs_dir: Path
+    ) -> None:
+        ch = self._make_commit(commit_builder, "a.txt", "first")
+        (chemvcs_dir / "HEAD").write_text(ch)
+        with pytest.raises(CommitBuilderError, match="Invalid revision syntax"):
+            commit_builder.resolve_revision("HEAD~abc")
+
+    def test_past_root_raises(
+        self, commit_builder: CommitBuilder, chemvcs_dir: Path
+    ) -> None:
+        root = self._make_commit(commit_builder, "a.txt", "first")
+        h2 = self._make_commit(commit_builder, "b.txt", "second", parent=root)
+        (chemvcs_dir / "HEAD").write_text(h2)
+        with pytest.raises(CommitBuilderError, match="has no parent"):
+            commit_builder.resolve_revision("HEAD~5")

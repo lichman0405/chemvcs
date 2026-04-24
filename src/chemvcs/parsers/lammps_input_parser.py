@@ -46,9 +46,9 @@ Notes
 
 from __future__ import annotations
 
-import re
+import contextlib
 import shlex
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from chemvcs.parsers.base_parser import BaseParser, DiffEntry, ParserError
 
@@ -64,20 +64,33 @@ class LammpsInputParser(BaseParser):
     # Significance classification                                          #
     # ------------------------------------------------------------------ #
 
-    CRITICAL_COMMANDS = frozenset({
-        "units", "pair_style", "kspace_style", "timestep", "run", "minimize",
-    })
+    CRITICAL_COMMANDS = frozenset(
+        {
+            "units",
+            "pair_style",
+            "kspace_style",
+            "timestep",
+            "run",
+            "minimize",
+        }
+    )
 
-    MAJOR_COMMANDS = frozenset({
-        "boundary", "atom_style", "dimension",
-        "fix_nvt", "fix_npt", "fix_nve",
-    })
+    MAJOR_COMMANDS = frozenset(
+        {
+            "boundary",
+            "atom_style",
+            "dimension",
+            "fix_nvt",
+            "fix_npt",
+            "fix_nve",
+        }
+    )
 
     # ------------------------------------------------------------------ #
     # BaseParser interface                                                  #
     # ------------------------------------------------------------------ #
 
-    def parse(self, content: str) -> Dict[str, Any]:
+    def parse(self, content: str) -> dict[str, Any]:
         """Parse LAMMPS input script and extract key settings.
 
         Args:
@@ -94,12 +107,12 @@ class LammpsInputParser(BaseParser):
 
         lines = self._preprocess(content)
 
-        data: Dict[str, Any] = {
+        data: dict[str, Any] = {
             "read_data": [],
             "mass": {},
             "variable_names": [],
         }
-        fix_list: List[Dict[str, Any]] = []
+        fix_list: list[dict[str, Any]] = []
 
         for line in lines:
             self._parse_line(line, data, fix_list)
@@ -111,19 +124,30 @@ class LammpsInputParser(BaseParser):
 
     def diff(
         self,
-        old_data: Dict[str, Any],
-        new_data: Dict[str, Any],
-    ) -> List[DiffEntry]:
+        old_data: dict[str, Any],
+        new_data: dict[str, Any],
+    ) -> list[DiffEntry]:
         """Compute semantic diff between two parsed LAMMPS input scripts."""
-        entries: List[DiffEntry] = []
+        entries: list[DiffEntry] = []
 
         scalar_fields = [
-            "units", "pair_style", "kspace_style", "timestep",
-            "run", "minimize_etol", "minimize_ftol",
-            "minimize_maxiter", "minimize_maxeval",
-            "boundary", "atom_style", "dimension",
-            "fix_nvt", "fix_npt", "fix_nve",
-            "thermo", "pair_coeff",
+            "units",
+            "pair_style",
+            "kspace_style",
+            "timestep",
+            "run",
+            "minimize_etol",
+            "minimize_ftol",
+            "minimize_maxiter",
+            "minimize_maxeval",
+            "boundary",
+            "atom_style",
+            "dimension",
+            "fix_nvt",
+            "fix_npt",
+            "fix_nve",
+            "thermo",
+            "pair_coeff",
         ]
 
         for field in scalar_fields:
@@ -143,9 +167,7 @@ class LammpsInputParser(BaseParser):
                     and abs(old_val - new_val) < 1e-15
                 ):
                     continue
-                entries.append(
-                    DiffEntry(field, old_val, new_val, "modified", significance)
-                )
+                entries.append(DiffEntry(field, old_val, new_val, "modified", significance))
 
         # List-valued fields: read_data, variable_names
         for list_field, sig in [("read_data", "minor"), ("variable_names", "minor")]:
@@ -166,15 +188,13 @@ class LammpsInputParser(BaseParser):
         old_mass = old_data.get("mass", {})
         new_mass = new_data.get("mass", {})
         if old_mass != new_mass:
-            entries.append(
-                DiffEntry("mass", old_mass, new_mass, "modified", "minor")
-            )
+            entries.append(DiffEntry("mass", old_mass, new_mass, "modified", "minor"))
 
         return entries
 
-    def validate(self, data: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    def validate(self, data: dict[str, Any]) -> tuple[bool, list[str]]:
         """Validate parsed LAMMPS input script."""
-        errors: List[str] = []
+        errors: list[str] = []
 
         if "units" not in data:
             errors.append("'units' command not found – required for all simulations")
@@ -225,9 +245,9 @@ class LammpsInputParser(BaseParser):
     # -- Pre-processing ------------------------------------------------- #
 
     @staticmethod
-    def _preprocess(content: str) -> List[str]:
+    def _preprocess(content: str) -> list[str]:
         """Strip comments, join continuation lines, return clean lines."""
-        result: List[str] = []
+        result: list[str] = []
         pending = ""
 
         for raw_line in content.splitlines():
@@ -276,8 +296,8 @@ class LammpsInputParser(BaseParser):
     def _parse_line(
         self,
         line: str,
-        data: Dict[str, Any],
-        fix_list: List[Dict[str, Any]],
+        data: dict[str, Any],
+        fix_list: list[dict[str, Any]],
     ) -> None:
         """Dispatch a single cleaned line to the appropriate handler."""
         try:
@@ -365,7 +385,7 @@ class LammpsInputParser(BaseParser):
                 pass
 
         elif cmd == "fix" and len(tokens) >= 4:
-            fix_info: Dict[str, Any] = {
+            fix_info: dict[str, Any] = {
                 "fix_id": tokens[1],
                 "group": tokens[2],
                 "style": tokens[3].lower(),
@@ -376,17 +396,13 @@ class LammpsInputParser(BaseParser):
         elif cmd == "dump" and len(tokens) >= 5:
             # dump ID group style N file
             if "dump_interval" not in data:
-                try:
+                with contextlib.suppress(ValueError, IndexError):
                     data["dump_interval"] = int(tokens[4])
-                except (ValueError, IndexError):
-                    pass
 
         elif cmd == "restart" and len(tokens) >= 2:
             if "restart_interval" not in data:
-                try:
+                with contextlib.suppress(ValueError):
                     data["restart_interval"] = int(tokens[1])
-                except ValueError:
-                    pass
 
         elif cmd == "neigh_modify" and "neigh_modify" not in data:
             data["neigh_modify"] = " ".join(tokens[1:])
@@ -395,8 +411,8 @@ class LammpsInputParser(BaseParser):
 
     @staticmethod
     def _summarize_fixes(
-        fix_list: List[Dict[str, Any]],
-        data: Dict[str, Any],
+        fix_list: list[dict[str, Any]],
+        data: dict[str, Any],
     ) -> None:
         """Extract NVT/NPT/NVE ensemble settings from fix commands."""
         for fix in fix_list:
@@ -407,13 +423,11 @@ class LammpsInputParser(BaseParser):
                 summary = _parse_fix_nvt_npt(style, args)
                 data.setdefault("fix_nvt", summary)
 
-            elif style in ("npt", "npt/omp", "npt/gpu", "npt/kk",
-                           "npt/sphere", "npt/asphere"):
+            elif style in ("npt", "npt/omp", "npt/gpu", "npt/kk", "npt/sphere", "npt/asphere"):
                 summary = _parse_fix_nvt_npt(style, args)
                 data.setdefault("fix_npt", summary)
 
-            elif style in ("nve", "nve/omp", "nve/gpu", "nve/kk",
-                           "nve/sphere", "nve/asphere"):
+            elif style in ("nve", "nve/omp", "nve/gpu", "nve/kk", "nve/sphere", "nve/asphere"):
                 data.setdefault("fix_nve", True)
 
             elif style in ("langevin",):
@@ -430,7 +444,7 @@ class LammpsInputParser(BaseParser):
     # -- Tokenizer ----------------------------------------------------- #
 
     @staticmethod
-    def _tokenize(line: str) -> List[str]:
+    def _tokenize(line: str) -> list[str]:
         """Tokenize a LAMMPS line, respecting quoted strings."""
         try:
             return shlex.split(line)
@@ -443,6 +457,7 @@ class LammpsInputParser(BaseParser):
 # Module-level helpers                                               #
 # ------------------------------------------------------------------ #
 
+
 def _maybe_float(s: str) -> Any:
     """Try to convert to float, return raw string on failure."""
     try:
@@ -451,9 +466,9 @@ def _maybe_float(s: str) -> Any:
         return s
 
 
-def _parse_fix_nvt_npt(style: str, args: List[str]) -> Dict[str, Any]:
+def _parse_fix_nvt_npt(style: str, args: list[str]) -> dict[str, Any]:
     """Extract temp/press/damp from NVT or NPT fix args."""
-    summary: Dict[str, Any] = {"style": style}
+    summary: dict[str, Any] = {"style": style}
     i = 0
     while i < len(args):
         kw = args[i].lower()

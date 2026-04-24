@@ -3,7 +3,6 @@
 import os
 from pathlib import Path
 
-import pytest
 from typer.testing import CliRunner
 
 from chemvcs.cli.main import app
@@ -36,7 +35,7 @@ class TestDiffCommand:
             runner.invoke(app, ["init", "--quiet"])
             result = runner.invoke(app, ["diff"])
             assert result.exit_code == 1
-            assert "No commits yet" in result.stdout
+            assert "No commits yet" in result.stdout or "no commits yet" in result.stdout
         finally:
             os.chdir(original_cwd)
 
@@ -98,9 +97,7 @@ class TestDiffCommand:
         original_cwd = Path.cwd()
         os.chdir(tmp_path)
         try:
-            hash1 = _init_and_commit(
-                tmp_path, {"INCAR": "ENCUT = 520\n"}, "first"
-            )
+            hash1 = _init_and_commit(tmp_path, {"INCAR": "ENCUT = 520\n"}, "first")
             (tmp_path / "INCAR").write_text("ENCUT = 600\n", encoding="utf-8")
             runner.invoke(app, ["add", "INCAR"])
             result_c2 = runner.invoke(app, ["commit", "-m", "second"])
@@ -146,9 +143,7 @@ class TestDiffCommand:
         original_cwd = Path.cwd()
         os.chdir(tmp_path)
         try:
-            _init_and_commit(
-                tmp_path, {"notes.txt": "hello world\n"}, "init"
-            )
+            _init_and_commit(tmp_path, {"notes.txt": "hello world\n"}, "init")
             (tmp_path / "notes.txt").write_text("goodbye world\n", encoding="utf-8")
             result = runner.invoke(app, ["diff"])
             assert result.exit_code == 0

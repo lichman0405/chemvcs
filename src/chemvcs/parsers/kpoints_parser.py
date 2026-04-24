@@ -5,7 +5,7 @@ k-point formats: Automatic (Gamma / Monkhorst-Pack), Explicit, and
 Line-mode for band-structure calculations.
 """
 
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from pymatgen.io.vasp.inputs import Kpoints as PmgKpoints
 
@@ -29,7 +29,7 @@ class KpointsParser(BaseParser):
 
     # ---------- BaseParser interface ----------
 
-    def parse(self, content: str) -> Dict[str, Any]:
+    def parse(self, content: str) -> dict[str, Any]:
         """Parse KPOINTS content using pymatgen.
 
         Args:
@@ -49,19 +49,17 @@ class KpointsParser(BaseParser):
 
     def diff(
         self,
-        old_data: Dict[str, Any],
-        new_data: Dict[str, Any],
-    ) -> List[DiffEntry]:
+        old_data: dict[str, Any],
+        new_data: dict[str, Any],
+    ) -> list[DiffEntry]:
         """Compute semantic diff between two parsed KPOINTS dictionaries."""
-        diff_entries: List[DiffEntry] = []
+        diff_entries: list[DiffEntry] = []
 
         old_type = old_data.get("type")
         new_type = new_data.get("type")
 
         if old_type != new_type:
-            diff_entries.append(
-                DiffEntry("type", old_type, new_type, "modified", "critical")
-            )
+            diff_entries.append(DiffEntry("type", old_type, new_type, "modified", "critical"))
             return diff_entries
 
         if old_type == "automatic":
@@ -75,7 +73,7 @@ class KpointsParser(BaseParser):
 
     # ---------- internal conversion ----------
 
-    def _to_dict(self, kpts: PmgKpoints) -> Dict[str, Any]:
+    def _to_dict(self, kpts: PmgKpoints) -> dict[str, Any]:
         """Convert a pymatgen ``Kpoints`` object to our canonical dict."""
         style = kpts.style.name  # "Gamma", "Monkhorst", "Reciprocal", "Cartesian", "Line_mode"
 
@@ -88,7 +86,7 @@ class KpointsParser(BaseParser):
 
     # -- automatic --
 
-    def _auto_dict(self, kpts: PmgKpoints, style: str) -> Dict[str, Any]:
+    def _auto_dict(self, kpts: PmgKpoints, style: str) -> dict[str, Any]:
         grid = [int(g) for g in kpts.kpts[0]] if kpts.kpts else [1, 1, 1]
         shift = list(kpts.kpts_shift) if kpts.kpts_shift else [0.0, 0.0, 0.0]
         return {
@@ -101,7 +99,7 @@ class KpointsParser(BaseParser):
 
     # -- explicit --
 
-    def _explicit_dict(self, kpts: PmgKpoints, style: str) -> Dict[str, Any]:
+    def _explicit_dict(self, kpts: PmgKpoints, style: str) -> dict[str, Any]:
         weights = kpts.kpts_weights or []
         kpoints = []
         for i, kpt in enumerate(kpts.kpts):
@@ -117,24 +115,26 @@ class KpointsParser(BaseParser):
 
     # -- line-mode --
 
-    def _linemode_dict(self, kpts: PmgKpoints) -> Dict[str, Any]:
-        segments: List[Dict[str, Any]] = []
+    def _linemode_dict(self, kpts: PmgKpoints) -> dict[str, Any]:
+        segments: list[dict[str, Any]] = []
         kpt_list = kpts.kpts or []
         labels = kpts.labels or []
 
         for i in range(0, len(kpt_list) - 1, 2):
             start_label = labels[i] if i < len(labels) else ""
             end_label = labels[i + 1] if (i + 1) < len(labels) else ""
-            segments.append({
-                "start": {
-                    "coords": list(kpt_list[i]),
-                    "label": start_label,
-                },
-                "end": {
-                    "coords": list(kpt_list[i + 1]),
-                    "label": end_label,
-                },
-            })
+            segments.append(
+                {
+                    "start": {
+                        "coords": list(kpt_list[i]),
+                        "label": start_label,
+                    },
+                    "end": {
+                        "coords": list(kpt_list[i + 1]),
+                        "label": end_label,
+                    },
+                }
+            )
 
         return {
             "type": "line",
@@ -146,10 +146,8 @@ class KpointsParser(BaseParser):
 
     # ---------- diff helpers ----------
 
-    def _diff_automatic(
-        self, old: Dict[str, Any], new: Dict[str, Any]
-    ) -> List[DiffEntry]:
-        entries: List[DiffEntry] = []
+    def _diff_automatic(self, old: dict[str, Any], new: dict[str, Any]) -> list[DiffEntry]:
+        entries: list[DiffEntry] = []
 
         if old.get("gamma_centered") != new.get("gamma_centered"):
             entries.append(
@@ -186,10 +184,8 @@ class KpointsParser(BaseParser):
 
         return entries
 
-    def _diff_explicit(
-        self, old: Dict[str, Any], new: Dict[str, Any]
-    ) -> List[DiffEntry]:
-        entries: List[DiffEntry] = []
+    def _diff_explicit(self, old: dict[str, Any], new: dict[str, Any]) -> list[DiffEntry]:
+        entries: list[DiffEntry] = []
 
         if old.get("num_kpoints") != new.get("num_kpoints"):
             entries.append(
@@ -215,10 +211,8 @@ class KpointsParser(BaseParser):
 
         return entries
 
-    def _diff_line(
-        self, old: Dict[str, Any], new: Dict[str, Any]
-    ) -> List[DiffEntry]:
-        entries: List[DiffEntry] = []
+    def _diff_line(self, old: dict[str, Any], new: dict[str, Any]) -> list[DiffEntry]:
+        entries: list[DiffEntry] = []
 
         if old.get("num_points") != new.get("num_points"):
             entries.append(

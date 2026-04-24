@@ -194,7 +194,7 @@ chemvcs diff <step1_hash> <step4_hash>
 
 Shows cumulative changes across entire workflow!
 
----Plugin System: Automatic Validation
+## Plugin System: Automatic Validation
 
 ChemVCS includes a plugin system for extensible validation. By default, the **POSCAR-POTCAR validator** ensures element order consistency.
 
@@ -263,8 +263,6 @@ chemvcs add vasp_files/* --no-validate
 ```
 
 ---
-
-## 
 
 ## Key Insights from ChemVCS Tracking
 

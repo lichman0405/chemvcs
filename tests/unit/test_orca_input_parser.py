@@ -2,9 +2,8 @@
 
 import pytest
 
+from chemvcs.parsers.base_parser import DiffEntry, ParserError
 from chemvcs.parsers.orca_input_parser import OrcaInputParser, _try_numeric
-from chemvcs.parsers.base_parser import ParserError, DiffEntry
-
 
 # ---------------------------------------------------------------------------
 # Fixtures / shared content strings
@@ -109,6 +108,7 @@ $new_job
 # ---------------------------------------------------------------------------
 # Parse tests
 # ---------------------------------------------------------------------------
+
 
 class TestOrcaInputParserParse:
     def setup_method(self) -> None:
@@ -249,6 +249,7 @@ end
 # Diff tests
 # ---------------------------------------------------------------------------
 
+
 class TestOrcaInputParserDiff:
     def setup_method(self) -> None:
         self.parser = OrcaInputParser()
@@ -259,7 +260,7 @@ class TestOrcaInputParserDiff:
         assert entries == []
 
     def test_method_change_is_critical(self) -> None:
-        old = self.parser.parse(SIMPLE_OPT)          # B3LYP
+        old = self.parser.parse(SIMPLE_OPT)  # B3LYP
         new_content = SIMPLE_OPT.replace("B3LYP", "PBE0")
         new = self.parser.parse(new_content)
         entries = self.parser.diff(old, new)
@@ -273,7 +274,7 @@ class TestOrcaInputParserDiff:
         assert pbe0_entry.significance == "critical"
 
     def test_basis_set_change_is_critical(self) -> None:
-        old = self.parser.parse(SIMPLE_OPT)          # def2-TZVP
+        old = self.parser.parse(SIMPLE_OPT)  # def2-TZVP
         new_content = SIMPLE_OPT.replace("def2-TZVP", "def2-SVP")
         new = self.parser.parse(new_content)
         entries = self.parser.diff(old, new)
@@ -282,7 +283,7 @@ class TestOrcaInputParserDiff:
         assert sigs.get("keyword.DEF2-SVP") == "critical"
 
     def test_dispersion_change_is_major(self) -> None:
-        old = self.parser.parse(SIMPLE_OPT)          # D3BJ present
+        old = self.parser.parse(SIMPLE_OPT)  # D3BJ present
         new_content = SIMPLE_OPT.replace(" D3BJ", "")
         new = self.parser.parse(new_content)
         entries = self.parser.diff(old, new)
@@ -291,7 +292,7 @@ class TestOrcaInputParserDiff:
         assert d3bj_del.significance == "major"
 
     def test_charge_change_is_critical(self) -> None:
-        old = self.parser.parse(SIMPLE_OPT)          # charge 0
+        old = self.parser.parse(SIMPLE_OPT)  # charge 0
         new_content = SIMPLE_OPT.replace("xyz 0 1", "xyz 1 2")
         new = self.parser.parse(new_content)
         entries = self.parser.diff(old, new)
@@ -301,7 +302,7 @@ class TestOrcaInputParserDiff:
         assert mult_e.significance == "critical"
 
     def test_maxcore_change_is_major(self) -> None:
-        old = self.parser.parse(SIMPLE_OPT)          # maxcore 4000
+        old = self.parser.parse(SIMPLE_OPT)  # maxcore 4000
         new_content = SIMPLE_OPT.replace("%maxcore 4000", "%maxcore 8000")
         new = self.parser.parse(new_content)
         entries = self.parser.diff(old, new)
@@ -311,7 +312,7 @@ class TestOrcaInputParserDiff:
         assert mc_e.new_value == 8000
 
     def test_nprocs_change_is_major(self) -> None:
-        old = self.parser.parse(SIMPLE_OPT)          # nprocs 8
+        old = self.parser.parse(SIMPLE_OPT)  # nprocs 8
         new_content = SIMPLE_OPT.replace("nprocs 8", "nprocs 16")
         new = self.parser.parse(new_content)
         entries = self.parser.diff(old, new)
@@ -320,9 +321,7 @@ class TestOrcaInputParserDiff:
 
     def test_atom_count_change_is_critical(self) -> None:
         old = self.parser.parse(SIMPLE_OPT)
-        new_content = SIMPLE_OPT.replace(
-            "  H   -0.363  -0.513  -0.890\n", ""
-        )
+        new_content = SIMPLE_OPT.replace("  H   -0.363  -0.513  -0.890\n", "")
         new = self.parser.parse(new_content)
         entries = self.parser.diff(old, new)
         coord_e = next((e for e in entries if e.path == "coordinates"), None)
@@ -358,12 +357,13 @@ class TestOrcaInputParserDiff:
 # Format diff tests
 # ---------------------------------------------------------------------------
 
+
 class TestOrcaInputParserFormat:
     def setup_method(self) -> None:
         self.parser = OrcaInputParser()
 
     def test_format_no_changes(self) -> None:
-        data = self.parser.parse(SIMPLE_OPT)
+        self.parser.parse(SIMPLE_OPT)
         result = self.parser.format_diff([])
         assert result == "No changes"
 
@@ -395,6 +395,7 @@ class TestOrcaInputParserFormat:
 # ---------------------------------------------------------------------------
 # Validate tests
 # ---------------------------------------------------------------------------
+
 
 class TestOrcaInputParserValidate:
     def setup_method(self) -> None:
@@ -435,6 +436,7 @@ class TestOrcaInputParserValidate:
 # ---------------------------------------------------------------------------
 # _try_numeric helper
 # ---------------------------------------------------------------------------
+
 
 class TestTryNumeric:
     def test_int(self) -> None:

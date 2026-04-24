@@ -24,16 +24,16 @@ Targets uncovered lines:
 
 import sqlite3
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from chemvcs.storage.metadata_db import DatabaseError, MetadataDB
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def chemvcs_dir(tmp_path: Path) -> Path:
@@ -54,6 +54,7 @@ def db(chemvcs_dir: Path) -> MetadataDB:
 # WAL / open edge cases
 # ---------------------------------------------------------------------------
 
+
 class TestWalAndOpen:
     def test_open_delete_journal_mode(self, chemvcs_dir: Path) -> None:
         """Force non-WAL mode to cover the else-branch (journal_mode=DELETE)."""
@@ -70,9 +71,8 @@ class TestWalAndOpen:
         with patch(
             "chemvcs.storage.metadata_db.sqlite3.connect",
             side_effect=sqlite3.OperationalError("no such file"),
-        ):
-            with pytest.raises(DatabaseError, match="Failed to open database"):
-                db.open()
+        ), pytest.raises(DatabaseError, match="Failed to open database"):
+            db.open()
 
     def test_detect_wal_sqlite_error(self, chemvcs_dir: Path) -> None:
         """If WAL detection raises sqlite3.Error, wal is set to False."""
@@ -90,6 +90,7 @@ class TestWalAndOpen:
 # ---------------------------------------------------------------------------
 # "conn is None" error paths for all public methods
 # ---------------------------------------------------------------------------
+
 
 class TestConnNoneErrors:
     def test_init_schema_no_conn(self, chemvcs_dir: Path) -> None:
@@ -136,6 +137,7 @@ class TestConnNoneErrors:
 # ---------------------------------------------------------------------------
 # get_commit_history – start_hash pagination
 # ---------------------------------------------------------------------------
+
 
 class TestGetCommitHistoryStartHash:
     def _populate(self, db: MetadataDB) -> list[str]:
@@ -185,6 +187,7 @@ class TestGetCommitHistoryStartHash:
 # get_schema_version – edge cases
 # ---------------------------------------------------------------------------
 
+
 class TestGetSchemaVersionExtra:
     def test_returns_zero_when_no_version_row(self, chemvcs_dir: Path) -> None:
         """Should return 0 if schema_version key is absent."""
@@ -210,6 +213,7 @@ class TestGetSchemaVersionExtra:
 # init_schema – sqlite3.Error path
 # ---------------------------------------------------------------------------
 
+
 class TestInitSchemaSqliteError:
     def test_sqlite_error_raises_database_error(self, chemvcs_dir: Path) -> None:
         db = MetadataDB(chemvcs_dir)
@@ -227,6 +231,7 @@ class TestInitSchemaSqliteError:
 # insert_commit – generic sqlite3.Error path
 # ---------------------------------------------------------------------------
 
+
 class TestInsertCommitSqliteError:
     def test_generic_sqlite_error_raises_database_error(self, db: MetadataDB) -> None:
         mock_conn = MagicMock()
@@ -242,6 +247,7 @@ class TestInsertCommitSqliteError:
 # get_commit_by_hash – sqlite3.Error path
 # ---------------------------------------------------------------------------
 
+
 class TestGetCommitByHashSqliteError:
     def test_sqlite_error_raises_database_error(self, db: MetadataDB) -> None:
         mock_conn = MagicMock()
@@ -254,6 +260,7 @@ class TestGetCommitByHashSqliteError:
 # ---------------------------------------------------------------------------
 # get_files_for_commit – sqlite3.Error path
 # ---------------------------------------------------------------------------
+
 
 class TestGetFilesForCommitSqliteError:
     def test_sqlite_error_raises_database_error(self, db: MetadataDB) -> None:
@@ -268,6 +275,7 @@ class TestGetFilesForCommitSqliteError:
 # insert_commit – duplicate hash (IntegrityError path)
 # ---------------------------------------------------------------------------
 
+
 class TestInsertCommitDuplicateHash:
     def test_duplicate_hash_raises_database_error(self, db: MetadataDB) -> None:
         db.insert_commit("c" * 64, None, "2026-01-01T00:00:00Z", "u", "First")
@@ -278,6 +286,7 @@ class TestInsertCommitDuplicateHash:
 # ---------------------------------------------------------------------------
 # insert_file – sqlite3 error on foreign-key violation
 # ---------------------------------------------------------------------------
+
 
 class TestInsertFileSqliteError:
     def test_insert_file_invalid_commit_id_raises(self, db: MetadataDB) -> None:
@@ -294,6 +303,7 @@ class TestInsertFileSqliteError:
 # get_latest_commit – sqlite3.Error path
 # ---------------------------------------------------------------------------
 
+
 class TestGetLatestCommitSqliteError:
     def test_sqlite_error_raises_database_error(self, db: MetadataDB) -> None:
         mock_conn = MagicMock()
@@ -307,6 +317,7 @@ class TestGetLatestCommitSqliteError:
 # get_commit_history – sqlite3.Error path
 # ---------------------------------------------------------------------------
 
+
 class TestGetCommitHistorySqliteError:
     def test_sqlite_error_raises_database_error(self, db: MetadataDB) -> None:
         mock_conn = MagicMock()
@@ -319,6 +330,7 @@ class TestGetCommitHistorySqliteError:
 # ---------------------------------------------------------------------------
 # get_schema_version – sqlite3.Error path
 # ---------------------------------------------------------------------------
+
 
 class TestGetSchemaVersionSqliteError:
     def test_sqlite_error_raises_database_error(self, db: MetadataDB) -> None:

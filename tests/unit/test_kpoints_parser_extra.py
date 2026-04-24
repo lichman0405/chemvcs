@@ -6,11 +6,8 @@ Targets uncovered lines:
   221-247  – _diff_line body (comparison of line-mode KPOINTS)
 """
 
-import pytest
 
 from chemvcs.parsers.kpoints_parser import KpointsParser
-from chemvcs.parsers.base_parser import DiffEntry
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -80,6 +77,7 @@ Reciprocal
 # diff() – explicit KPOINTS branch (lines 71-72)
 # ---------------------------------------------------------------------------
 
+
 class TestDiffExplicit:
     def test_diff_explicit_no_change(self) -> None:
         """Two identical explicit KPOINTS: no diff entries."""
@@ -123,6 +121,7 @@ Reciprocal
 # diff() – line-mode branch (lines 221-247)
 # ---------------------------------------------------------------------------
 
+
 class TestDiffLineMode:
     def test_diff_line_no_change(self) -> None:
         """Two identical line-mode KPOINTS: no diff."""
@@ -147,7 +146,7 @@ class TestDiffLineMode:
     def test_diff_line_num_segments_change(self) -> None:
         """Adding a segment is detected as modified (major)."""
         parser = KpointsParser()
-        old = parser.parse(LINE_MODE_40)   # 2 segments
+        old = parser.parse(LINE_MODE_40)  # 2 segments
         new = parser.parse(LINE_MODE_3SEG)  # 3 segments
         entries = parser.diff(old, new)
         seg_entries = [e for e in entries if e.path == "num_segments"]

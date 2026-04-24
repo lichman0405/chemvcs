@@ -49,19 +49,23 @@ class OrcaOutputParser(BaseParser):
     # Significance classification                                         #
     # ------------------------------------------------------------------ #
 
-    CRITICAL_FIELDS: frozenset[str] = frozenset({
-        "final_energy",
-        "termination_status",
-        "optimization_converged",
-        "charge",
-        "multiplicity",
-    })
+    CRITICAL_FIELDS: frozenset[str] = frozenset(
+        {
+            "final_energy",
+            "termination_status",
+            "optimization_converged",
+            "charge",
+            "multiplicity",
+        }
+    )
 
-    MAJOR_FIELDS: frozenset[str] = frozenset({
-        "dipole_moment",
-        "scf_cycles",
-        "scf_converged",
-    })
+    MAJOR_FIELDS: frozenset[str] = frozenset(
+        {
+            "dipole_moment",
+            "scf_cycles",
+            "scf_converged",
+        }
+    )
 
     # ------------------------------------------------------------------ #
     # BaseParser interface                                                  #
@@ -141,9 +145,7 @@ class OrcaOutputParser(BaseParser):
             elif old_val is not None and new_val is None:
                 entries.append(DiffEntry(field, old_val, None, "deleted", significance))
             elif old_val != new_val:
-                entries.append(
-                    DiffEntry(field, old_val, new_val, "modified", significance)
-                )
+                entries.append(DiffEntry(field, old_val, new_val, "modified", significance))
 
         # Suppress float noise for energy comparison (< 1e-10 Hartree)
         entries = [
@@ -204,13 +206,14 @@ class OrcaOutputParser(BaseParser):
             with os.fdopen(fd, "w", encoding="utf-8") as fh:
                 fh.write(content)
 
+            # Suppress cclib's own logging BEFORE calling ccopen/parse
+            import logging
+
+            logging.getLogger("cclib").setLevel(logging.ERROR)
+
             parser = cclib.io.ccopen(tmppath)
             if parser is None:
                 return None
-
-            # Suppress cclib's own logging to keep chemvcs output clean
-            import logging
-            logging.getLogger("cclib").setLevel(logging.ERROR)
 
             ccdata = parser.parse()
         except Exception:
@@ -234,9 +237,13 @@ class OrcaOutputParser(BaseParser):
 
         final_ev: float | None = None
         if ccenergies is not None and len(ccenergies) > 0:
-            final_ev = float(ccenergies[-1][-1] if hasattr(ccenergies[-1], "__len__") else ccenergies[-1])
+            final_ev = float(
+                ccenergies[-1][-1] if hasattr(ccenergies[-1], "__len__") else ccenergies[-1]
+            )
         elif mpenergies is not None and len(mpenergies) > 0:
-            final_ev = float(mpenergies[-1][-1] if hasattr(mpenergies[-1], "__len__") else mpenergies[-1])
+            final_ev = float(
+                mpenergies[-1][-1] if hasattr(mpenergies[-1], "__len__") else mpenergies[-1]
+            )
         elif scfenergies is not None and len(scfenergies) > 0:
             final_ev = float(scfenergies[-1])
 
@@ -252,7 +259,10 @@ class OrcaOutputParser(BaseParser):
             data["termination_status"] = "error"
         else:
             # Fallback: check raw content for the footer string
-            if "ORCA TERMINATED NORMALLY" in raw_content or "****ORCA TERMINATED NORMALLY****" in raw_content:
+            if (
+                "ORCA TERMINATED NORMALLY" in raw_content
+                or "****ORCA TERMINATED NORMALLY****" in raw_content
+            ):
                 data["termination_status"] = "normal"
             else:
                 data["termination_status"] = None
@@ -274,7 +284,9 @@ class OrcaOutputParser(BaseParser):
         # ---- Optimisation ------------------------------------------- #
         optdone = getattr(ccdata, "optdone", None)
         if optdone is not None:
-            data["optimization_converged"] = bool(optdone) if not hasattr(optdone, "__len__") else bool(len(optdone) > 0)
+            data["optimization_converged"] = (
+                bool(optdone) if not hasattr(optdone, "__len__") else bool(len(optdone) > 0)
+            )
         else:
             data["optimization_converged"] = None
 
@@ -286,6 +298,7 @@ class OrcaOutputParser(BaseParser):
         dipole = getattr(ccdata, "moments", None)
         if dipole is not None and len(dipole) > 1:
             import math
+
             dvec = dipole[1]
             data["dipole_moment"] = round(math.sqrt(sum(x**2 for x in dvec)), 6)
         else:
@@ -387,6 +400,7 @@ class OrcaOutputParser(BaseParser):
 # ------------------------------------------------------------------ #
 # Module-level helpers                                                  #
 # ------------------------------------------------------------------ #
+
 
 def _extract_wall_time(content: str) -> str | None:
     """Extract the TOTAL RUN TIME line from ORCA output."""

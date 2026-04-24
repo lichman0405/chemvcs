@@ -2,9 +2,8 @@
 
 import pytest
 
-from chemvcs.parsers.lammps_input_parser import LammpsInputParser
 from chemvcs.parsers.base_parser import ParserError
-
+from chemvcs.parsers.lammps_input_parser import LammpsInputParser
 
 # ---------------------------------------------------------------------------
 # Sample input scripts
@@ -105,8 +104,8 @@ SAMPLE_INPUT_EMPTY = ""
 # Tests
 # ---------------------------------------------------------------------------
 
-class TestLammpsInputParser:
 
+class TestLammpsInputParser:
     def test_parse_nvt_returns_dict(self) -> None:
         parser = LammpsInputParser()
         data = parser.parse(SAMPLE_INPUT_NVT)

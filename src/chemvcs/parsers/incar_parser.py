@@ -5,7 +5,7 @@ of VASP INCAR files.  All type inference, boolean handling, list values,
 semicolon-separated entries, and comment stripping are delegated to pymatgen.
 """
 
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from pymatgen.io.vasp.inputs import Incar as PmgIncar
 
@@ -29,23 +29,50 @@ class IncarParser(BaseParser):
 
     # ---------- significance classification ----------
 
-    CRITICAL_TAGS = frozenset({
-        "ENCUT", "PREC", "ALGO", "LREAL",
-        "ISMEAR", "SIGMA", "EDIFF", "EDIFFG",
-        "NSW", "IBRION", "POTIM", "ISIF",
-        "NELM", "NELMIN",
-    })
+    CRITICAL_TAGS = frozenset(
+        {
+            "ENCUT",
+            "PREC",
+            "ALGO",
+            "LREAL",
+            "ISMEAR",
+            "SIGMA",
+            "EDIFF",
+            "EDIFFG",
+            "NSW",
+            "IBRION",
+            "POTIM",
+            "ISIF",
+            "NELM",
+            "NELMIN",
+        }
+    )
 
-    MAJOR_TAGS = frozenset({
-        "LWAVE", "LCHARG", "LORBIT", "LVTOT", "LVHAR",
-        "ISPIN", "MAGMOM", "NCORE", "KPAR",
-        "LDAU", "LDAUTYPE", "LDAUL", "LDAUU", "LDAUJ",
-        "IVDW", "LUSE_VDW", "AGGAC",
-    })
+    MAJOR_TAGS = frozenset(
+        {
+            "LWAVE",
+            "LCHARG",
+            "LORBIT",
+            "LVTOT",
+            "LVHAR",
+            "ISPIN",
+            "MAGMOM",
+            "NCORE",
+            "KPAR",
+            "LDAU",
+            "LDAUTYPE",
+            "LDAUL",
+            "LDAUU",
+            "LDAUJ",
+            "IVDW",
+            "LUSE_VDW",
+            "AGGAC",
+        }
+    )
 
     # ---------- BaseParser interface ----------
 
-    def parse(self, content: str) -> Dict[str, Any]:
+    def parse(self, content: str) -> dict[str, Any]:
         """Parse INCAR content into a typed parameter dictionary.
 
         Args:
@@ -65,15 +92,15 @@ class IncarParser(BaseParser):
 
     def diff(
         self,
-        old_data: Dict[str, Any],
-        new_data: Dict[str, Any],
-    ) -> List[DiffEntry]:
+        old_data: dict[str, Any],
+        new_data: dict[str, Any],
+    ) -> list[DiffEntry]:
         """Compute semantic diff between two parsed INCAR dictionaries.
 
         Each changed tag is annotated with a *significance* level based on
         its impact on computational results.
         """
-        diff_entries: List[DiffEntry] = []
+        diff_entries: list[DiffEntry] = []
         all_keys = set(old_data.keys()) | set(new_data.keys())
 
         for key in sorted(all_keys):
@@ -83,50 +110,46 @@ class IncarParser(BaseParser):
             significance = self._classify(key)
 
             if old_value is None:
-                diff_entries.append(
-                    DiffEntry(key, None, new_value, "added", significance)
-                )
+                diff_entries.append(DiffEntry(key, None, new_value, "added", significance))
             elif new_value is None:
-                diff_entries.append(
-                    DiffEntry(key, old_value, None, "deleted", significance)
-                )
+                diff_entries.append(DiffEntry(key, old_value, None, "deleted", significance))
             elif old_value != new_value:
-                diff_entries.append(
-                    DiffEntry(key, old_value, new_value, "modified", significance)
-                )
+                diff_entries.append(DiffEntry(key, old_value, new_value, "modified", significance))
 
         return diff_entries
 
-    def validate(self, data: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    def validate(self, data: dict[str, Any]) -> tuple[bool, list[str]]:
         """Validate commonly-checked INCAR constraints."""
-        errors: List[str] = []
+        errors: list[str] = []
 
-        if "ENCUT" in data:
-            if not isinstance(data["ENCUT"], (int, float)) or data["ENCUT"] <= 0:
-                errors.append("ENCUT must be a positive number")
+        if "ENCUT" in data and (
+            not isinstance(data["ENCUT"], (int, float)) or data["ENCUT"] <= 0
+        ):
+            errors.append("ENCUT must be a positive number")
 
-        if "ISMEAR" in data and isinstance(data["ISMEAR"], int):
-            if data["ISMEAR"] < -5 or data["ISMEAR"] > 5:
-                errors.append("ISMEAR should be in range -5 to 5")
+        if (
+            "ISMEAR" in data
+            and isinstance(data["ISMEAR"], int)
+            and (data["ISMEAR"] < -5 or data["ISMEAR"] > 5)
+        ):
+            errors.append("ISMEAR should be in range -5 to 5")
 
-        if "SIGMA" in data:
-            if not isinstance(data["SIGMA"], (int, float)) or data["SIGMA"] <= 0:
-                errors.append("SIGMA must be a positive number")
+        if "SIGMA" in data and (
+            not isinstance(data["SIGMA"], (int, float)) or data["SIGMA"] <= 0
+        ):
+            errors.append("SIGMA must be a positive number")
 
-        if "NSW" in data:
-            if not isinstance(data["NSW"], int) or data["NSW"] < 0:
-                errors.append("NSW must be a non-negative integer")
+        if "NSW" in data and (not isinstance(data["NSW"], int) or data["NSW"] < 0):
+            errors.append("NSW must be a non-negative integer")
 
-        if "ISMEAR" in data and "SIGMA" in data:
-            if (
-                data["ISMEAR"] == 0
-                and isinstance(data["SIGMA"], (int, float))
-                and data["SIGMA"] > 0.2
-            ):
-                errors.append(
-                    "Warning: ISMEAR=0 (Gaussian) with large SIGMA (>0.2) "
-                    "may be inappropriate"
-                )
+        if "ISMEAR" in data and "SIGMA" in data and (
+            data["ISMEAR"] == 0
+            and isinstance(data["SIGMA"], (int, float))
+            and data["SIGMA"] > 0.2
+        ):
+            errors.append(
+                "Warning: ISMEAR=0 (Gaussian) with large SIGMA (>0.2) may be inappropriate"
+            )
 
         return len(errors) == 0, errors
 

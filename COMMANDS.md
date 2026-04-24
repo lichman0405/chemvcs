@@ -15,6 +15,10 @@ Complete reference for all ChemVCS commands, options, and usage patterns for VAS
 - [chemvcs diff](#chemvcs-diff)
 - [chemvcs reproduce](#chemvcs-reproduce)
 - [chemvcs version](#chemvcs-version)
+- [chemvcs plugin](#chemvcs-plugin)
+- [chemvcs remote](#chemvcs-remote)
+- [chemvcs push](#chemvcs-push)
+- [chemvcs pull](#chemvcs-pull)
 
 ---
 
@@ -143,6 +147,8 @@ ChemVCS automatically detects supported VASP and LAMMPS file types:
 | `in.*`, `*.lammps`, `lammps.in` | LAMMPS input script |
 | `data.*`, `*.lmp`, `*.data` | LAMMPS data file |
 | `log.lammps`, `log.*`, `*.log`, `lammps.log` | LAMMPS thermo/log output |
+| `*.inp` | ORCA input script |
+| `*.out` (not `OUTCAR*`) | ORCA output log |
 | Others | Unknown (stored as binary blob) |
 
 ### Notes
@@ -515,8 +521,12 @@ ChemVCS performs **parameter-level analysis** for supported file types:
 |-----------|-------------------|
 | **INCAR** | Parameter changes with significance levels, value comparisons |
 | **KPOINTS** | Grid size changes, k-point type changes (Gamma/Monkhorst), line-mode detection |
-| **POSCAR** | *(Future)* Structure changes, lattice parameter shifts |
-| **OUTCAR** | *(Future)* Energy comparisons, convergence metrics |
+| **POSCAR** | Structural changes (lattice parameters, atom positions) |
+| **OUTCAR** | Energy comparisons, convergence metrics |
+| **ORCA input** | Method, basis set, run type, charge, multiplicity changes |
+| **ORCA output** | Final energy, SCF convergence, optimisation status |
+| **LAMMPS input** | Thermostat/barostat settings, timestep, pair style, run steps |
+| **LAMMPS log** | Final energies, temperature, pressure, wall time |
 
 ### Notes
 
@@ -657,6 +667,183 @@ chemvcs version
 
 ---
 
+## chemvcs plugin
+
+**Purpose**: Manage validator plugins.
+
+### Synopsis
+
+```bash
+chemvcs plugin <subcommand> [OPTIONS]
+```
+
+### Subcommands
+
+| Command | Description |
+|---------|-------------|
+| `list` | List all discovered validator plugins |
+| `info <name>` | Show detailed information about a plugin |
+| `enable <name>` | Enable a validator plugin |
+| `disable <name>` | Disable a validator plugin |
+
+### Examples
+
+```bash
+# List all plugins
+chemvcs plugin list
+
+# Show plugin details
+chemvcs plugin info poscar-potcar
+
+# Enable/disable plugins
+chemvcs plugin enable file-format
+chemvcs plugin disable file-format
+```
+
+---
+
+## chemvcs remote
+
+**Purpose**: Manage remote repositories for collaboration.
+
+### Synopsis
+
+```bash
+chemvcs remote <subcommand> [ARGUMENTS]
+```
+
+### Subcommands
+
+| Command | Arguments | Description |
+|---------|-----------|-------------|
+| `add <name> <url>` | name, url | Register a new remote repository |
+| `list` | — | List all registered remotes |
+| `remove <name>` | name | Remove a remote repository |
+
+### Examples
+
+```bash
+# Add a remote
+chemvcs remote add origin user@server:/path/to/remote/repo
+
+# List remotes
+chemvcs remote list
+# origin    user@server:/path/to/remote/repo
+
+# Remove a remote
+chemvcs remote remove origin
+```
+
+### Remote URL Format
+
+```
+[user@]host:/absolute/path/to/repository
+```
+
+- `user@` is optional (defaults to current local user)
+- The path must be absolute (starts with `/`)
+- The remote directory must have `.chemvcs/` initialized (or will be auto-initialized on first push)
+
+### Configuration
+
+Remotes are stored in `.chemvcs/remotes.toml`:
+
+```toml
+[origin]
+url = "user@server:/data/repos/my_calc"
+```
+
+---
+
+## chemvcs push
+
+**Purpose**: Push commits to a remote repository (fast-forward only).
+
+### Synopsis
+
+```bash
+chemvcs push <remote>
+```
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `<remote>` | Yes | Name of the remote to push to |
+
+### Examples
+
+```bash
+# Push to origin
+chemvcs push origin
+# Pushed to origin (user@server:/path/to/repo)
+
+# If already up to date
+chemvcs push origin
+# Already up to date
+```
+
+### Fast-Forward Only
+
+Push is rejected if the remote has diverged from the local history:
+
+```
+Error: Remote has diverged.
+  Run: chemvcs pull origin
+```
+
+### Transport
+
+Push uses SSH + rsync:
+1. Objects (`objects/`) transferred with `--ignore-existing`
+2. Commits (`commits/`) transferred with `--ignore-existing`
+3. Remote HEAD updated
+
+---
+
+## chemvcs pull
+
+**Purpose**: Pull commits from a remote repository (fast-forward only).
+
+### Synopsis
+
+```bash
+chemvcs pull <remote>
+```
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `<remote>` | Yes | Name of the remote to pull from |
+
+### Examples
+
+```bash
+# Pull from origin
+chemvcs pull origin
+# Pulled 3 commit(s) from origin
+
+# If already up to date
+chemvcs pull origin
+# Already up to date
+```
+
+### Fast-Forward Only
+
+Pull is rejected if the local history has diverged from the remote:
+
+```
+Error: Local has diverged.
+  Push your commits first.
+```
+
+### After Pull
+
+The local HEAD is updated to match the remote HEAD. The metadata database (`.chemvcs/metadata.db`) is automatically rebuilt to index the newly fetched commits.
+
+---
+
 ## File Patterns & Ignore Rules
 
 ### .chemvcsignore
@@ -743,14 +930,16 @@ cd reproduce_abc1234
 | Code | Meaning |
 |------|---------|
 | `0` | Success |
-| `1` | Error (not initialized, file not found, etc.) |
-| `2` | Invalid arguments |
+| `1` | User error (not initialized, file not found, etc.) |
+| `2` | System error (disk full, permission denied, etc.) |
+| `3` | Data error (corrupted file, parse failure, etc.) |
+| `130` | Interrupted (Ctrl+C) |
 
 ---
 
 ## Environment Variables
 
-Currently, ChemVCS does not use environment variables. Configuration is workspace-local.
+Configuration is workspace-local (`.chemvcs/` directory). ChemVCS does not currently require environment variables for normal operation.
 
 ---
 
